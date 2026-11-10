@@ -66,8 +66,14 @@ light) is a separate choice.
 
 | Period | When | Dark theme | Light theme |
 |---|---|---|---|
-| Day | from the user's *day start* (default 06:00) to *day end* (default 19:00) | sage → clay `#5F6F6C → #966848`, chips `#4E5B58 → #6A5444` | `#E3E8E6 → #F6E0CD` |
+| Day | from the user's *day start* (default 06:00) to *day end* (default 19:00) | sage → orange `linear-gradient(165deg, #5F6F6C 0%, #B83D0B 62%, #C9480F 100%)`, chips `#4E5B58 → #9A3A0E` | `#E3E8E6 → #FFD9BF` |
 | Night | the rest | sage → dusk blue `#5F6F6C → #3F5F8A`, chips `#4E5B58 → #3E4F6B` | `#E3E8E6 → #D6E2F2` |
+
+**Day orange must read clearly as orange (Steeven, 2026-11-09)** — this replaces the earlier sage → clay day gradient
+and the `gradientSage` / `gradientChip` day values above. Contrast (day): white on `#5F6F6C` 5.28, `#B83D0B` 5.66,
+`#C9480F` 4.75; chips white on `#9A3A0E` 7.03; light day `#17191B` on `#FFD9BF` 13.37, `#5A6664` 4.53. Because the
+bottom of the day header is now orange, elements sitting on it change: the round action (bell) becomes charcoal
+`#17191B` with an orange icon, and the workload bar / progress fills on the header are white on a 35% charcoal track.
 
 Contrast (night): white on `#5F6F6C` 5.28, midpoint 5.90, `#3F5F8A` 6.53; chips 7.09 / 7.67 / 8.28; light night
 `#17191B` 14.23 → 13.45, `#5A6664` 4.82 → 4.55. The orange accent stays the same day and night. The switch is checked
