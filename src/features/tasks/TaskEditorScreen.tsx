@@ -34,11 +34,11 @@ import { Text } from '../../ui/Text';
 import { TextField } from '../../ui/TextField';
 import { radii, sizes, space } from '../../ui/theme/layout';
 import { useTheme } from '../../ui/theme/ThemeProvider';
-import { archiveGoal } from '../../data/goals';
+import { archiveGoal, getGoalOptions, GoalRepeatError } from '../../data/goals';
 import { useLastTaskGuard } from '../goals/useLastTaskGuard';
 import { useDataContext } from '../session/SessionProvider';
 import { CategoryField, DurationSelect, GoalField, TimeSelect } from './fields';
-import { RepeatEditor } from './RepeatEditor';
+import { clampRepeatDraft, RepeatEditor, type GoalRepeatBound } from './RepeatEditor';
 
 const TIME_RE = /^([01]?\d|2[0-3])[:h.]?([0-5]\d)$/;
 
@@ -66,6 +66,7 @@ function errorsFrom(error: ZodError, t: (k: string) => string): Errors {
       'dateRequiredForTime',
       'endBeforeStart',
       'categoryTooLong',
+      'repeatNeverInGoal',
     ];
     const key = known.includes(issue.message)
       ? issue.message
@@ -149,9 +150,34 @@ export function TaskEditorScreen({
   const isSeries = !!(form && form !== 'missing' && form.rule);
   const update = useCallback((patch: Partial<TaskDraft>) => setDraft((d) => (d ? { ...d, ...patch } : d)), []);
 
+  // A repeating task linked to a goal must end by the goal's due date / period end ("Never" is blocked).
+  const goalsQuery = useCallback(
+    (db: Parameters<typeof getGoalOptions>[0]) => getGoalOptions(db, ctx?.ownerId ?? 'local', today),
+    [ctx?.ownerId, today],
+  );
+  const goalChoices = useQuery(goalsQuery);
+  const seriesStart = form && form !== 'missing' && form.rule ? form.rule.startDate : null;
+  const linkedGoalId = draft?.goalId ?? null;
+  const hasNewGoal = !!draft?.newGoalTitle;
+  const goalBound = useMemo((): GoalRepeatBound | null => {
+    if (hasNewGoal) return { limit: null, today, start: seriesStart };
+    if (!linkedGoalId || goalChoices.status !== 'success') return null;
+    const goal = goalChoices.data.find((g) => g.id === linkedGoalId);
+    return { limit: goal?.repeatEnd ?? null, today, start: seriesStart };
+  }, [hasNewGoal, linkedGoalId, goalChoices, today, seriesStart]);
+  const repeatDraft = draft?.repeat ?? null;
+  const repeatStart = seriesStart ?? draft?.date ?? null;
+  // The repeat as shown and saved. Derived, so both directions are covered without touching what the user set:
+  // picking a goal for a task that repeats forever ends it on the goal's limit, removing the goal restores it.
+  const repeat = useMemo(
+    () =>
+      goalBound && repeatDraft && repeatStart ? clampRepeatDraft(repeatDraft, repeatStart, goalBound) : repeatDraft,
+    [goalBound, repeatDraft, repeatStart],
+  );
+
   const finalDraft = useCallback((): TaskDraft | null => {
     if (!draft) return null;
-    const candidate = { ...draft, startTime: draft.date ? draft.startTime : null };
+    const candidate = { ...draft, repeat, startTime: draft.date ? draft.startTime : null };
     const parsed = taskDraftSchema.safeParse(candidate);
     if (!parsed.success) {
       setErrors(errorsFrom(parsed.error, (k) => t(k as never)));
@@ -159,7 +185,7 @@ export function TaskEditorScreen({
     }
     setErrors({});
     return candidate;
-  }, [draft, t]);
+  }, [draft, repeat, t]);
 
   const close = useCallback(() => {
     if (router.canGoBack()) router.back();
@@ -174,7 +200,8 @@ export function TaskEditorScreen({
         close();
       } catch (error) {
         console.warn('Task save failed', error instanceof Error ? error.name : 'unknown');
-        setErrors({ form: t('editor.errors.saveFailed') });
+        if (error instanceof GoalRepeatError) setErrors({ repeat: t(`editor.errors.${error.issue}`) });
+        else setErrors({ form: t('editor.errors.saveFailed') });
       } finally {
         setSaving(false);
       }
@@ -370,11 +397,12 @@ export function TaskEditorScreen({
 
         <Section title={t('repeat.title')}>
           <RepeatEditor
-            value={draft.repeat}
-            onChange={(repeat) => update({ repeat })}
+            value={repeat}
+            onChange={(next) => update({ repeat: next })}
             startDate={draft.date}
             weekStartsOn={weekStartsOn}
             error={errors.repeat}
+            goal={goalBound}
           />
         </Section>
 

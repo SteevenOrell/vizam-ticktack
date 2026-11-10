@@ -399,6 +399,11 @@ export function GoalEditorScreen({ goalId, now = new Date() }: { goalId?: string
               />
             );
           })}
+          {draft.linkTaskIds.some((id) => taskById.get(id)?.recurring) ? (
+            <Text variant="caption" color={colors.textSecondary} testID="goal-repeat-note">
+              {t('goals.repeatEndNote')}
+            </Text>
+          ) : null}
           {draft.newTasks.map((n, i) => (
             <TaskLine
               key={`new-${i}`}

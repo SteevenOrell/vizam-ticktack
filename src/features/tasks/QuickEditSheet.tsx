@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { StyleSheet, View } from 'react-native';
 
+import { GoalRepeatError } from '../../data/goalBase';
 import { getCategoryOptions, type AgendaItem } from '../../data/queries/agenda';
 import { loadTaskForm, taskDraftSchema, updateTask, type TaskForm } from '../../data/tasks';
 import { useQuery } from '../../data/useQuery';
@@ -100,6 +101,7 @@ export function QuickEditSheet({
         'dateRequiredForRepeat',
         'dateRequiredForTime',
         'categoryTooLong',
+        'repeatNeverInGoal',
       ];
       setError(t(`editor.errors.${known.includes(message) ? message : 'invalid'}` as never));
       return null;
@@ -117,7 +119,8 @@ export function QuickEditSheet({
       onClose();
     } catch (e) {
       console.warn('Quick edit failed', e instanceof Error ? e.name : 'unknown');
-      setError(t('editor.errors.saveFailed'));
+      // The sheet has no repeat controls: a goal-linked series that may not be saved as is points to the editor.
+      setError(t(e instanceof GoalRepeatError ? `editor.errors.${e.issue}` : 'editor.errors.saveFailed'));
     } finally {
       setSaving(false);
     }

@@ -142,6 +142,11 @@ function TaskPicker({ selected, goalId, onDone, onClose }: PickerProps) {
           returnKeyType="search"
           maxLength={100}
         />
+        {list.some((task) => task.recurring) ? (
+          <Text variant="caption" color={colors.textSecondary} testID="task-picker-repeat-note">
+            {t('goals.repeatEndNote')}
+          </Text>
+        ) : null}
         {list.length === 0 && tasks.status === 'success' ? (
           <View style={styles.empty}>
             <Icon name="note" size={18} color={colors.textSecondary} />

@@ -137,6 +137,7 @@
     "newTaskBadge": "New",
     "addTask": "Add task",
     "needsTaskHint": "Link or create at least one task to save this goal.",
+    "repeatEndNote": "Repeating tasks in a goal can’t run forever: they end on the goal’s due date, or at the end of the current period.",
     "saveChanges": "Save changes",
     "notFound": "This goal no longer exists.",
     "notFoundBody": "It may have been deleted on another device.",
@@ -315,6 +316,8 @@
       "timeInvalid": "Use a 24-hour time such as 09:30.",
       "invalid": "Check this field.",
       "saveFailed": "The task could not be saved. Try again.",
+      "repeatNeverInGoal": "A task linked to a goal can’t repeat forever. Choose when it ends.",
+      "repeatAfterGoalEnd": "The repeat has to end by the goal’s due date.",
       "categoryTooLong": "Keep the category under 40 characters.",
       "goalInvalid": "Give the goal a name (up to 120 characters)."
     },
@@ -355,7 +358,10 @@
     "preview": "Next: {{dates}}",
     "previewNone": "No upcoming dates with these settings.",
     "needsDate": "Pick a date first to repeat a task.",
-    "endNeverHint": "Repeats with no end date."
+    "endNeverHint": "Repeats with no end date.",
+    "endNeverBlocked": "Not available for a task linked to a goal.",
+    "goalEndHint": "A task linked to a goal can’t repeat forever. It ends by the goal’s due date, {{date}}.",
+    "goalEndHintOpen": "A task linked to a goal can’t repeat forever. Choose an end date or a number of times."
   },
   "auth": {
     "signInTitle": "Sign in",

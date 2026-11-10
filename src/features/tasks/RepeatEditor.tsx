@@ -4,8 +4,9 @@ import { StyleSheet, View } from 'react-native';
 
 import type { RepeatDraft } from '../../data/tasks';
 import { dayLabel, shortDate, weekdayNames } from '../../i18n/dates';
-import { addDays, addMonthsClamped, parseYmd, weekdayOf, type LocalDate } from '../../domain/localDate';
-import { nextOccurrences } from '../../domain/recurrence/generator';
+import { clampRuleToGoal, goalRepeatIssue } from '../../domain/goals';
+import { addDays, addMonthsClamped, maxDate, parseYmd, weekdayOf, type LocalDate } from '../../domain/localDate';
+import { nextOccurrences, occurrencesBetween } from '../../domain/recurrence/generator';
 import { noonOf } from '../../lib/dates';
 import { Pill } from '../../ui/Pill';
 import { Stepper } from '../../ui/Stepper';
@@ -28,22 +29,43 @@ export function defaultRepeat(freq: RepeatDraft['freq'], date: LocalDate, weekSt
   };
 }
 
+/** The end a repeating task has to respect because it is linked to a goal. */
+export interface GoalRepeatBound {
+  /** Goal's due date / end of its current period; null when the goal has no due date (the repeat still must end). */
+  limit: LocalDate | null;
+  today: LocalDate;
+  /** Start of the stored series when editing one (defaults to the task date). */
+  start?: LocalDate | null;
+}
+
+/** The draft made valid for the goal (same object when nothing changes): "never" and too-late ends are clamped. */
+export function clampRepeatDraft(value: RepeatDraft, start: LocalDate, goal: GoalRepeatBound): RepeatDraft {
+  const rule = { ...value, startDate: start };
+  const next = clampRuleToGoal(rule, goal.limit, goal.today);
+  if (next === rule) return value;
+  const { startDate: _start, ...rest } = next;
+  return rest;
+}
+
 /**
  * Recurrence settings (DESIGN.md section 7.7): frequency, "every n", weekdays (weekly), day of month (monthly),
- * end (never / on date / after n), and a live preview of the next dates.
+ * end (never / on date / after n), and a live preview of the next dates. With `goal` set (the task is linked to a
+ * goal) "Never" is blocked, the end defaults to the goal's limit and cannot pass it, and a note explains why.
  */
 export function RepeatEditor({
   value,
-  onChange,
+  onChange: onChangeRaw,
   startDate,
   weekStartsOn,
   error,
+  goal = null,
 }: {
   value: RepeatDraft | null;
   onChange: (value: RepeatDraft | null) => void;
   startDate: LocalDate | null;
   weekStartsOn: 0 | 1 | 6;
   error?: string | null;
+  goal?: GoalRepeatBound | null;
 }) {
   const { t, i18n } = useTranslation();
   const { colors } = useTheme();
@@ -51,6 +73,11 @@ export function RepeatEditor({
   const names = weekdayNames(lang);
   const order = Array.from({ length: 7 }, (_, i) => (weekStartsOn + i) % 7);
   const base = startDate ?? null;
+  const ruleStart = goal?.start ?? base;
+  /** Latest end date the goal allows (a series starting after the limit keeps its first occurrence). */
+  const maxEnd = goal?.limit && ruleStart ? maxDate(goal.limit, ruleStart) : null;
+  const onChange = (next: RepeatDraft | null) =>
+    onChangeRaw(next && goal && ruleStart ? clampRepeatDraft(next, ruleStart, goal) : next);
 
   const preview = useMemo(() => {
     if (!value || !base) return [];
@@ -156,18 +183,21 @@ export function RepeatEditor({
           </Text>
           <View accessibilityRole="radiogroup" accessibilityLabel={t('repeat.ends')} style={styles.pills}>
             <Pill
+              testID="repeat-end-never"
               label={t('repeat.endNever')}
               selected={value.endType === 'never'}
-              onPress={() => onChange({ ...value, endType: 'never', endDate: null, count: null })}
+              accessibilityHint={goal ? t('repeat.endNeverBlocked') : undefined}
+              onPress={goal ? undefined : () => onChange({ ...value, endType: 'never', endDate: null, count: null })}
             />
             <Pill
+              testID="repeat-end-date"
               label={t('repeat.endOnDate')}
               selected={value.endType === 'onDate'}
               onPress={() =>
                 onChange({
                   ...value,
                   endType: 'onDate',
-                  endDate: value.endDate ?? addMonthsClamped(base ?? '2026-01-01', 1),
+                  endDate: value.endDate ?? maxEnd ?? addMonthsClamped(base ?? '2026-01-01', 1),
                   count: null,
                 })
               }
@@ -175,12 +205,32 @@ export function RepeatEditor({
             <Pill
               label={t('repeat.endAfter')}
               selected={value.endType === 'afterCount'}
-              onPress={() => onChange({ ...value, endType: 'afterCount', count: value.count ?? 10, endDate: null })}
+              onPress={() => {
+                // In a goal the default count is capped to what fits before the goal's limit.
+                const fits =
+                  maxEnd && ruleStart
+                    ? occurrencesBetween({ ...value, startDate: ruleStart, endType: 'never' }, ruleStart, maxEnd, 999)
+                        .length
+                    : 999;
+                onChange({
+                  ...value,
+                  endType: 'afterCount',
+                  count: Math.max(1, Math.min(value.count ?? 10, fits)),
+                  endDate: null,
+                });
+              }}
             />
           </View>
-          {value.endType === 'never' ? (
+          {value.endType === 'never' && !goal ? (
             <Text variant="caption" color={colors.textSecondary} testID="repeat-never-hint">
               {t('repeat.endNeverHint')}
+            </Text>
+          ) : null}
+          {goal ? (
+            <Text variant="caption" color={colors.textSecondary} testID="repeat-goal-hint">
+              {maxEnd
+                ? t('repeat.goalEndHint', { date: shortDate(noonOf(maxEnd), lang) })
+                : t('repeat.goalEndHintOpen')}
             </Text>
           ) : null}
           {value.endType === 'onDate' && value.endDate ? (
@@ -191,6 +241,7 @@ export function RepeatEditor({
               previousLabel={t('dates.previousDay')}
               nextLabel={t('dates.nextDay')}
               canPrevious={!base || value.endDate > base}
+              canNext={!maxEnd || value.endDate < maxEnd}
               onPrevious={() => onChange({ ...value, endDate: addDays(value.endDate as string, -1) })}
               onNext={() => onChange({ ...value, endDate: addDays(value.endDate as string, 1) })}
             />
@@ -204,7 +255,14 @@ export function RepeatEditor({
               previousLabel={t('repeat.less')}
               nextLabel={t('repeat.more')}
               canPrevious={(value.count ?? 1) > 1}
-              canNext={(value.count ?? 1) < 999}
+              canNext={
+                (value.count ?? 1) < 999 &&
+                !(
+                  goal &&
+                  ruleStart &&
+                  goalRepeatIssue({ ...value, count: (value.count ?? 1) + 1, startDate: ruleStart }, goal.limit)
+                )
+              }
               onPrevious={() => onChange({ ...value, count: Math.max(1, (value.count ?? 1) - 1) })}
               onNext={() => onChange({ ...value, count: Math.min(999, (value.count ?? 1) + 1) })}
             />

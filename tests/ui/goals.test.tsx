@@ -177,6 +177,63 @@ describe('Deleting the last task of a goal', () => {
   });
 });
 
+describe('Repeat on a task linked to a goal', () => {
+  const goalId = async (title: string) =>
+    (await db.first<{ id: string }>('SELECT id FROM goals WHERE title = ?', [title]))!.id;
+
+  it('blocks "Never", explains why and ends the repeat on the goal due date by default', async () => {
+    await seeded();
+    const race = await goalId('Run a 10 km race'); // due 20 Dec (today + 41)
+    await renderWithProviders(<TaskEditorScreen now={NOW} />, { open: async () => db });
+    await fireEvent.changeText(await screen.findByTestId('field-title'), 'Tempo run');
+
+    // Without a goal a new repeat never ends.
+    await fireEvent.press(screen.getByRole('radio', { name: 'Daily' }));
+    expect(screen.getByTestId('repeat-never-hint')).toBeTruthy();
+    expect(screen.getByTestId('repeat-end-never')).toBeEnabled();
+
+    // Picking a goal for a task that repeats forever moves the end to the goal's due date.
+    await fireEvent.press(screen.getByTestId('field-goal'));
+    await fireEvent.press(screen.getByTestId(`field-goal-option-${race}`));
+    await waitFor(() => expect(screen.getByTestId('repeat-enddate')).toHaveTextContent(/20 Dec|Dec 20/));
+    expect(screen.getByTestId('repeat-end-never')).toBeDisabled();
+    expect(screen.getByTestId('repeat-goal-hint')).toHaveTextContent(/can’t repeat forever/);
+    expect(screen.queryByTestId('repeat-never-hint')).toBeNull();
+    // The end cannot be moved past the due date.
+    expect(screen.getByTestId('repeat-enddate-next')).toBeDisabled();
+    expect(screen.getByTestId('repeat-enddate-prev')).toBeEnabled();
+
+    await fireEvent.press(screen.getByTestId('save-task'));
+    await waitFor(() => expect(mockRouter.back).toHaveBeenCalled());
+    expect(
+      await db.first(
+        `SELECT r.end_type, r.end_date FROM recurrence_rules r JOIN tasks t ON t.recurrence_rule_id = r.id
+         WHERE t.title = 'Tempo run'`,
+      ),
+    ).toEqual({ end_type: 'onDate', end_date: '2026-12-20' });
+  });
+
+  it('a new repeat on an already linked task starts with the goal period end (weekly goal)', async () => {
+    await seeded();
+    const taskId = (await db.first<{ id: string }>("SELECT id FROM tasks WHERE title = 'Water the plants'"))!.id;
+    await renderWithProviders(<TaskEditorScreen taskId={taskId} now={NOW} />, { open: async () => db });
+    await fireEvent.press(await screen.findByRole('radio', { name: 'Daily' }));
+    // "Keep the home tidy" is weekly from a Monday: the current period ends on Sunday 15 Nov.
+    await waitFor(() => expect(screen.getByTestId('repeat-enddate')).toHaveTextContent(/15 Nov|Nov 15/));
+    expect(screen.getByTestId('repeat-end-never')).toBeDisabled();
+    // "After n times" is allowed as long as it stays inside the period (9 .. 15 Nov = 7).
+    await fireEvent.press(screen.getByRole('radio', { name: 'After' }));
+    expect(screen.getByTestId('repeat-count')).toHaveTextContent('7 times');
+  });
+
+  it('the goal form says that linked repeating tasks will end', async () => {
+    await seeded();
+    const race = await goalId('Run a 10 km race');
+    await renderWithProviders(<GoalEditorScreen goalId={race} now={NOW} />, { open: async () => db });
+    expect(await screen.findByTestId('goal-repeat-note')).toHaveTextContent(/can’t run forever/);
+  });
+});
+
 describe('Calendar swipe and keyboard math', () => {
   it('month view is wrapped in a swipe pager; arrows still move the month', async () => {
     await renderWithProviders(<CalendarScreen now={NOW} initialView="month" />, { open: seeded });
