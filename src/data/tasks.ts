@@ -553,6 +553,45 @@ export async function moveToDate(ctx: DataContext, ref: ItemRef, date: LocalDate
   });
 }
 
+/**
+ * Moves a task to another start time (drag in the calendar). A one-off task is simply updated. For a series the
+ * scope decides: `this` writes an exception for the occurrence, `following` splits the series at the occurrence,
+ * `all` changes the series template. Runs through `updateTask`, so validation, the outbox and the goal-repeat rule
+ * (`GoalRepeatError`) apply as for any other edit; the repeat settings themselves are never changed here.
+ */
+export async function rescheduleTime(
+  ctx: DataContext,
+  ref: ItemRef,
+  startTime: string,
+  scope: EditScope = 'all',
+): Promise<void> {
+  hhmmSchema.parse(startTime);
+  const occId = ref.occurrenceId ?? null;
+  // "This occurrence" starts from the occurrence's own values; the series scopes start from the template, so an
+  // override on the dragged occurrence (a renamed day, say) is not copied to the whole series.
+  const form = await loadTaskForm(ctx, ref.taskId, scope === 'this' ? occId : null);
+  if (!form) throw new Error('Task not found');
+  // The goal link is left as stored (`undefined`): the repository then checks the series against its goal and
+  // refuses with `GoalRepeatError`, and a "this occurrence" move, which does not touch the rule, is not checked.
+  const base: TaskDraft = { ...form.draft, goalId: undefined, startTime };
+  if (!form.rule) {
+    if (!form.draft.date) throw new Error('Task has no date');
+    await updateTask(ctx, ref.taskId, base);
+    return;
+  }
+  if (!occId) throw new Error('Occurrence required to move a repeating task');
+  const occ = await occurrenceFor(ctx, occId);
+  const draft = scope === 'following' ? { ...base, date: occ.date } : base;
+  await updateTask(ctx, ref.taskId, draft, { scope, occurrenceId: occId });
+  // "All": the dragged occurrence follows the series again, otherwise its own start time would keep it in place.
+  if (scope === 'all' && occ.startTime !== null && occ.startTime !== startTime) {
+    await mutate(ctx, async () => {
+      const stored = await getEntity(ctx.db, 'occurrences', occId, ctx.ownerId);
+      if (stored) await writeException(ctx, stored, { startTime: null });
+    });
+  }
+}
+
 /** Deletes a task, or one / following / all occurrences of a series (tombstones; never hard deletes). */
 export async function deleteTask(ctx: DataContext, ref: ItemRef, scope: EditScope = 'all'): Promise<void> {
   const task = await getEntity(ctx.db, 'tasks', ref.taskId, ctx.ownerId);
