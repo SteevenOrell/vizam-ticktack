@@ -61,6 +61,28 @@ Accessibility changes: the reference puts white text on orange (2.6:1, fails AA)
   the sage end, 7.08 at the clay end).
 - Phase 2 adds a unit test sampling both ends and the midpoint of every gradient against the text colours used on it.
 
+**Day and night (Steeven, 2026-11-09).** The warm end of every gradient follows the time of day; the theme (dark /
+light) is a separate choice.
+
+| Period | When | Dark theme | Light theme |
+|---|---|---|---|
+| Day | from the user's *day start* (default 06:00) to *day end* (default 19:00) | sage → clay `#5F6F6C → #966848`, chips `#4E5B58 → #6A5444` | `#E3E8E6 → #F6E0CD` |
+| Night | the rest | sage → dusk blue `#5F6F6C → #3F5F8A`, chips `#4E5B58 → #3E4F6B` | `#E3E8E6 → #D6E2F2` |
+
+Contrast (night): white on `#5F6F6C` 5.28, midpoint 5.90, `#3F5F8A` 6.53; chips 7.09 / 7.67 / 8.28; light night
+`#17191B` 14.23 → 13.45, `#5A6664` 4.82 → 4.55. The orange accent stays the same day and night. The switch is checked
+when the app comes to the foreground and once a minute while open, and cross-fades over 600 ms (instant with Reduce
+Motion). Day start/end are the existing settings in Me > Planning.
+
+**Splash (Steeven, 2026-11-09).** A soft, blurred "mesh" gradient on warm paper `#F4F1EC`: two or three large,
+heavily blurred blobs (sage `#70807D` plus orange `#FF7A24` by day, sage plus blue `#5B8FD6` by night), with a faint
+grain. The `ticktack` wordmark is charcoal `#17191B`, centred; the tagline sits 8 pt below it in Manrope 400, 13 pt,
+-0.4 tracking, `#5A6664`. The backgrounds are pre-rendered images (day and night, 1290 x 2796, WebP for the in-app
+splash, PNG for the native one), not drawn live. Limitation: the native splash is a single static image shown before
+any code runs, so it always uses the day image; the in-app splash that follows picks day or night.
+
+**Language.** English and French (`fr-CA` wording, works for `fr-FR`). See section 9.
+
 ### Light theme ("paper")
 
 | Token | Hex | Use | Contrast checked |
@@ -87,19 +109,22 @@ sky `#5AA9E6`, plum `#A77BD8`, moss `#7DB46C`, sand `#D9B26F`, rose `#E57A8F`, s
 
 - **Display / numerals:** Space Grotesk (OFL) — Medium 500 and Bold 700. Tight tracking (-2%) above 34 pt. Tabular
   figures (`fontVariant: ['tabular-nums']`) for times and counters.
-- **Text:** Inter (OFL) — Regular 400, Medium 500, SemiBold 600.
+- **Text:** Manrope (OFL, `@expo-google-fonts/manrope`) — Light 300 for body copy, Regular 400 and Medium 500 for small
+  sizes and labels, SemiBold 600 for task titles. **Letter spacing -0.4 on every Manrope style** (Steeven, 2026-11-09).
+  Light 300 is not used below 14 pt, where it gets too faint on dark surfaces. Full Latin coverage, so French accents
+  (é, è, ê, à, ç, œ, «») render correctly; Space Grotesk covers them too.
 
-| Style | Font | Size / line | Use |
-|---|---|---|---|
-| `dayFace` | Space Grotesk 500 | 72 / 72 | Today date numerals |
-| `display` | Space Grotesk 500 | 48 / 52 | Goal %, big times, onboarding |
-| `title1` | Space Grotesk 600 | 30 / 34 | Screen titles |
-| `title2` | Space Grotesk 600 | 22 / 28 | Section and card titles |
-| `title3` | Inter 600 | 17 / 22 | Task titles |
-| `body` | Inter 400 | 16 / 22 | Body, inputs |
-| `bodySm` | Inter 400 | 14 / 20 | Secondary lines |
-| `label` | Inter 500 | 13 / 16 | Pills, tabs, buttons small |
-| `caption` | Inter 400 | 12 / 16 | Timestamps (minimum size) |
+| Style | Font | Size / line | Tracking | Use |
+|---|---|---|---|---|
+| `dayFace` | Space Grotesk 500 | 72 / 72 | -2% | Today date numerals |
+| `display` | Space Grotesk 500 | 48 / 52 | -2% | Goal %, big times, onboarding |
+| `title1` | Space Grotesk 600 | 30 / 34 | 0 | Screen titles |
+| `title2` | Space Grotesk 600 | 22 / 28 | 0 | Section and card titles |
+| `title3` | Manrope 600 | 17 / 22 | -0.4 | Task titles |
+| `body` | Manrope 300 | 16 / 23 | -0.4 | Body, inputs |
+| `bodySm` | Manrope 300 | 14 / 20 | -0.4 | Secondary lines |
+| `label` | Manrope 500 | 13 / 16 | -0.4 | Pills, tabs, buttons small |
+| `caption` | Manrope 400 | 12 / 16 | -0.4 | Timestamps (minimum size) |
 
 Dynamic Type is honoured: body styles scale up to 2x, `dayFace`/`display` cap at 1.3x so layouts hold.
 
@@ -162,6 +187,18 @@ Every screen has explicit loading (skeleton), empty, error and success states.
 13. **Profile and settings** (Me tab) — account (or guest + "Create account"), theme (System / Dark / Light), week
     start, day start/end and capacity, categories manager, sync status and failed items, data export (later), About (concept
     label, licences), sign out, delete account.
+
+## 9. Language (English and French)
+
+- Every user-visible string goes through `i18next` / `react-i18next` with `en.json` and `fr.json`; no hard-coded text
+  in components. A unit test fails when a key exists in one file but not the other.
+- Default follows the device language (`expo-localization`); Me > Language offers System / English / Français.
+- Dates, times, weekday names and numbers use the locale (`Intl` and the `date-fns` `fr` locale): 24 h clock and
+  "lun. 9 nov." in French; week starts Monday in French by default.
+- Plurals use i18next plural rules ("1 tâche", "3 tâches").
+- French runs about 20% longer: buttons and pills wrap or shrink rather than truncate, and every screen is checked in
+  French before a phase is reported done. Reminder notification text is localised at scheduling time.
+- Onboarding, store listing and the "VIZAM portfolio concept" note exist in both languages.
 
 ## 8. Imagery
 

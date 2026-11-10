@@ -30,7 +30,9 @@ Versions were read from the npm registry on 2026-11-09. Native module versions a
 | IDs | `expo-crypto` `randomUUID()` | `~58.0.7` | Client-generated UUID v4 for every record. |
 | Secure values | `expo-secure-store` | `~58.0.2` | Small device secrets (device ID, local DB key if SQLCipher is enabled later). |
 | Dates | `date-fns` (+ `@date-fns/tz` if needed) | `^4.4.0` | Own recurrence generator (below); `rrule` is not used (old, larger than our needs). |
-| Fonts | `@expo-google-fonts/space-grotesk`, `@expo-google-fonts/inter`, `expo-font` | `0.4.x`, `~58.0.11` | Both SIL Open Font License. |
+| Languages (EN, FR) | `i18next`, `react-i18next`, `date-fns` (`fr` locale) | latest compatible, checked in phase 2 | Device language by default, override in settings; key-parity test. See DESIGN.md section 9. |
+| Gradients | `expo-linear-gradient` | per SDK 58 manifest | Day/night header gradients; splash backgrounds are pre-rendered images. |
+| Fonts | `@expo-google-fonts/space-grotesk`, `@expo-google-fonts/manrope`, `expo-font` | `0.4.x`, `~58.0.11` | Both SIL Open Font License. |
 | Haptics, locale, date picker | `expo-haptics`, `expo-localization`, `@react-native-community/datetimepicker` | `~58.0.7`, `~58.0.5`, `9.2.1` | |
 | Tests | `jest-expo`, `@testing-library/react-native`, `better-sqlite3` (Node test driver), `@firebase/rules-unit-testing`, `firebase-tools` | `~58.0.14`, `^14.1.0`, latest, `^6.0.0`, `^15.35.0` | Firestore emulator needs Java 21 (installed on this machine: OpenJDK 21.0.12). Firebase CLI used through `npx`, no global install. |
 | Lint / format | ESLint (`eslint-config-expo`), Prettier | per SDK 58 template | |
