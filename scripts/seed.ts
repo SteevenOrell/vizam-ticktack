@@ -14,10 +14,22 @@ import { randomUUID } from 'crypto';
 import { existsSync, mkdirSync, rmSync } from 'fs';
 import { dirname, resolve } from 'path';
 
+import { deleteApp, initializeApp } from 'firebase/app';
+import {
+  connectAuthEmulator,
+  createUserWithEmailAndPassword,
+  getAuth,
+  inMemoryPersistence,
+  setPersistence,
+} from 'firebase/auth';
+import { connectFirestoreEmulator, initializeFirestore, memoryLocalCache } from 'firebase/firestore';
+
 import { adoptGuestData } from '../src/data/account';
 import { openBetterSqliteDriver } from '../src/data/db/betterSqliteDriver';
 import { migrate } from '../src/data/db/migrate';
 import { buildDemoData, insertDemoData } from '../src/data/seed/demoData';
+import { syncOnce } from '../src/sync/engine';
+import { createFirestoreRemote } from '../src/sync/firestoreRemote';
 
 function arg(name: string): string | undefined {
   const i = process.argv.indexOf(`--${name}`);
@@ -32,12 +44,8 @@ async function uploadToEmulator(db: ReturnType<typeof openBetterSqliteDriver>, l
       '--emulator needs FIRESTORE_EMULATOR_HOST and FIREBASE_AUTH_EMULATOR_HOST (use npm run seed:emulator)',
     );
   }
-  const { initializeApp, deleteApp } = await import('firebase/app');
-  const { connectAuthEmulator, createUserWithEmailAndPassword, getAuth, inMemoryPersistence, setPersistence } =
-    await import('firebase/auth');
-  const { connectFirestoreEmulator, initializeFirestore, memoryLocalCache } = await import('firebase/firestore');
-  const { syncOnce } = await import('../src/sync/engine');
-  const { createFirestoreRemote } = await import('../src/sync/firestoreRemote');
+  // Static imports above: a dynamic import() would load the ESM build of firebase next to the CJS one used by the
+  // sync layer (two Firestore copies -> invalid-argument).
 
   const projectId = 'demo-ticktack'; // demo- IDs cannot reach a real project
   const app = initializeApp({
@@ -95,5 +103,5 @@ async function main() {
 
 main().catch((error: unknown) => {
   console.error(error instanceof Error ? error.message : error);
-  process.exit(1);
+  process.exitCode = 1; // not process.exit(): let Firebase close its handles
 });

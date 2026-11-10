@@ -16,6 +16,7 @@ export type IconName =
   | 'check'
   | 'chevronLeft'
   | 'chevronRight'
+  | 'chevronDown'
   | 'trash'
   | 'repeat'
   | 'flag'
@@ -76,6 +77,7 @@ export function Icon({ name, size = 24, color }: { name: IconName; size?: number
       {name === 'check' && <Path d="M5.5 12.5l4 4 9-9" {...stroke} strokeWidth={2.2} />}
       {name === 'chevronLeft' && <Path d="M14.5 5.5L8 12l6.5 6.5" {...stroke} strokeWidth={2} />}
       {name === 'chevronRight' && <Path d="M9.5 5.5L16 12l-6.5 6.5" {...stroke} strokeWidth={2} />}
+      {name === 'chevronDown' && <Path d="M5.5 9.5L12 16l6.5-6.5" {...stroke} strokeWidth={2} />}
       {name === 'trash' && (
         <>
           <Path d="M5 7h14M10 7V5h4v2M7 7l1 12.5h8L17 7" {...stroke} />

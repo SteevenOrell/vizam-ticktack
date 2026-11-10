@@ -57,7 +57,7 @@ function Group({
         {title} · {items.length}
       </Text>
       {collapsible ? (
-        <Icon name={open ? 'chevronLeft' : 'chevronRight'} size={16} color={colors.textSecondary} />
+        <Icon name={open ? 'chevronDown' : 'chevronRight'} size={16} color={colors.textSecondary} />
       ) : null}
     </View>
   );

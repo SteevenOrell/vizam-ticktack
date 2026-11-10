@@ -46,11 +46,18 @@ export function Checkbox({
 }
 
 /** Small category colour dot (decorative; the category name is given in text or labels). */
-export function CategoryDot({ color, size = 10 }: { color: CategoryColor | null; size?: number }) {
+export function CategoryDot({ color, size = 10, ring }: { color: CategoryColor | null; size?: number; ring?: string }) {
   if (!color) return null;
   return (
     <View
-      style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: categoryColors[color] }}
+      style={{
+        width: size,
+        height: size,
+        borderRadius: size / 2,
+        backgroundColor: categoryColors[color],
+        borderWidth: ring ? 2 : 0,
+        borderColor: ring,
+      }}
       accessibilityElementsHidden
       importantForAccessibility="no"
     />

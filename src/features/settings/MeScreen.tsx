@@ -116,7 +116,7 @@ export function MeScreen() {
           <Text variant="title3" color={header.on.text}>
             {signedIn ? t('me.signedInTitle') : t('me.guestTitle')}
           </Text>
-          <Text variant="bodySm" color={header.on.textSecondary} numberOfLines={1}>
+          <Text variant="bodySm" color={header.on.textSecondary} numberOfLines={signedIn ? 1 : undefined}>
             {signedIn ? (session.email ?? '') : t('me.guestBody')}
           </Text>
         </View>

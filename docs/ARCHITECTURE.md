@@ -245,7 +245,13 @@ single SQLite transaction that updates the row, bumps `local_rev`, sets `dirty =
   open one-off tasks with `date < today`.
 - Edge cases covered by unit tests: DST start/end days, month-end clamping, leap day, interval > 1 across year end,
   `endDate` before `startDate`, `count` reached inside the window, week-start differences, regeneration idempotency.
-- Later enhancement (not in MVP): "this and following" edits, implemented as a series split.
+- "This and following" edits (implemented in phase 3) split the series: the old rule ends the day before the edited
+  occurrence (`endType = onDate`), a new template task + rule start on it with the same phase (weekdays and month
+  day written out explicitly; `afterCount` keeps the remaining count); the old series' generated rows and exceptions
+  from that date on are removed. Code: `src/domain/recurrence/seriesEdit.ts`, `src/data/tasks.ts`.
+- Phase 3 implementation notes: dates are pure epoch-day arithmetic on `YYYY-MM-DD` (`src/domain/localDate.ts`), so
+  DST never shifts a day; `ensureOccurrences` records generated spans in `occurrence_window`; both SQLite drivers
+  serialise transactions through a queue (`withTransactionQueue`) so concurrent flows never nest `BEGIN`.
 
 ## 6. Offline sync: outbox and conflict policy
 

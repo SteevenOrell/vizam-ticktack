@@ -3,11 +3,13 @@ import { Platform } from 'react-native';
 /**
  * Web-only layout rules (VIZAM rule for every site): below 250 px the layout locks at 500 px wide and visitors pan
  * horizontally. `#root` and fixed layers (React Native Web modals and portals are appended to <body>) get the lock;
- * fixed layers also drop their right anchor.
+ * fixed layers also drop their right anchor. Expo's web reset sets `body { overflow: hidden }`, so the body itself
+ * gets the 500 px minimum and the `html` element is the horizontal scroller.
  */
 export const NARROW_LOCK_CSS = `
 html { overflow-x: auto; }
 @media (max-width: 250px) {
+  body { min-width: 500px !important; }
   #root { width: 500px !important; min-width: 500px !important; }
   body > div:not(#root) { width: 500px !important; right: auto !important; }
 }

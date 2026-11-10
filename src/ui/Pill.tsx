@@ -47,7 +47,7 @@ export function Pill({ label, selected = false, onPress, onHeader, accessibility
       style={() => [styles.hit, focused ? { borderColor: colors.focus } : null]}
     >
       <View style={[styles.pill, { backgroundColor: bg, borderColor: border }]}>
-        {dot ? <CategoryDot color={dot} /> : null}
+        {dot ? <CategoryDot color={dot} ring={selected ? fg : undefined} /> : null}
         <Text variant="label" weight={selected ? 600 : 500} color={fg} align="center">
           {label}
         </Text>

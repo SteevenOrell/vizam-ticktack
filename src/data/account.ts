@@ -27,13 +27,14 @@ export async function setSyncValue(db: SqlDriver, key: string, value: string): P
 
 export const getBoundUid = (db: SqlDriver) => getSyncValue(db, 'bound_uid');
 
-/** Number of user-visible guest items (tasks, goals, routines, categories) on this device. */
+/** Number of user-visible guest items (top-level tasks and series, goals, routines) on this device. */
 export async function countGuestItems(db: SqlDriver): Promise<number> {
   let total = 0;
   for (const table of ['tasks', 'goals', 'routines']) {
-    const row = await db.first<{ n: number }>(`SELECT count(*) AS n FROM ${table} WHERE owner_id = ? AND deleted = 0`, [
-      LOCAL_OWNER,
-    ]);
+    const row = await db.first<{ n: number }>(
+      `SELECT count(*) AS n FROM ${table} WHERE owner_id = ? AND deleted = 0${table === 'tasks' ? ' AND parent_task_id IS NULL' : ''}`,
+      [LOCAL_OWNER],
+    );
     total += row?.n ?? 0;
   }
   return total;
