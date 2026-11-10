@@ -90,6 +90,7 @@ export interface DemoData {
   tasks: Row[];
   routines: Row[];
   recurrence_rules: Row[];
+  task_occurrences: Row[];
   reminders: Row[];
 }
 
@@ -314,11 +315,35 @@ export function buildDemoData(options: {
       by_month_day: null,
       week_starts_on: 1,
       start_date: day(addDays(today, -7)),
-      end_type: 'never',
-      end_date: null,
+      // A repeating task linked to a goal must end (by the goal's due date): a two-week block, 10 weekdays.
+      end_type: 'onDate',
+      end_date: day(addDays(today, 6)),
       count: null,
     },
   ];
+
+  // Last week's stretch breaks are done, so the goal reads "6 of 12" (5 breaks + the easy run) instead of "1 of 37".
+  const task_occurrences: Row[] = [];
+  for (let back = 7; back >= 1; back -= 1) {
+    const date = addDays(today, -back);
+    if (date.getDay() === 0 || date.getDay() === 6) continue;
+    task_occurrences.push({
+      ...base(`${stretch.id as string}_${format(date, 'yyyyMMdd')}`),
+      series_type: 'task',
+      series_id: stretch.id as string,
+      rule_id: stretchRuleId,
+      original_date: day(date),
+      date: day(date),
+      start_time: null,
+      duration_min: null,
+      title: null,
+      notes: null,
+      status: 'done',
+      completed_at: now,
+      completed_step_ids: '[]',
+      is_exception: 1,
+    });
+  }
 
   const reminders: Row[] = [
     {
@@ -347,7 +372,7 @@ export function buildDemoData(options: {
     },
   ];
 
-  return { profile, categories, goals, milestones, tasks, routines, recurrence_rules, reminders };
+  return { profile, categories, goals, milestones, tasks, routines, recurrence_rules, task_occurrences, reminders };
 }
 
 const IDENT = /^[a-z_]+$/;

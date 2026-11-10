@@ -10,10 +10,10 @@ import {
   daysLeft,
   dueDateOf,
   endedPeriodsSince,
+  goalRepeatIssue,
   goalSection,
   progressRange,
   type GoalSection,
-  type GoalTiming,
   type LinkedTask,
   type PeriodRange,
   type Progress,
@@ -35,10 +35,13 @@ import {
 } from '../domain/models';
 import type { SqlDriver } from './db/driver';
 import { rowToEntity, type SqlRow } from './entities';
-import { insertGoal } from './goalBase';
+import { goalRepeatLimit, insertGoal, timingOf } from './goalBase';
+import { defaultWindow, ensureOccurrences } from './occurrences';
 import { getAgenda, getTaskItems, type AgendaItem } from './queries/agenda';
 import { getEntity, listEntities, mutate, nowIso, tombstone, writeEntity, type DataContext } from './store';
-import { emptyDraft, insertTask } from './tasks';
+import { clampSeriesToGoal, emptyDraft, insertTask } from './tasks';
+
+export { GoalRepeatError } from './goalBase';
 
 export class GoalNeedsTaskError extends Error {
   constructor() {
@@ -52,13 +55,19 @@ export interface GoalOption {
   title: string;
 }
 
-/** Active goals for the task editor's goal selector. */
-export async function getGoalOptions(db: SqlDriver, ownerId: string): Promise<GoalOption[]> {
-  return db.all<GoalOption>(
-    `SELECT id, title FROM goals WHERE owner_id = ? AND deleted = 0 AND status = 'active'
-     ORDER BY created_at LIMIT 100`,
-    [ownerId],
-  );
+export interface GoalChoice extends GoalOption {
+  /** Last day a repeating task linked to this goal may run (null: no due date, the repeat still has to end). */
+  repeatEnd: LocalDate | null;
+}
+
+/** Active goals for the task editor's goal selector, with the end a linked repeating task must respect. */
+export async function getGoalOptions(
+  db: SqlDriver,
+  ownerId: string,
+  today: LocalDate = localDateOf(new Date()),
+): Promise<GoalChoice[]> {
+  const goals = await listEntities(db, 'goals', ownerId, "status = 'active'", [], 'created_at');
+  return goals.slice(0, 100).map((g) => ({ id: g.id, title: g.title, repeatEnd: goalRepeatLimit(g, today) }));
 }
 
 export const goalTitleSchema = goalSchema.shape.title;
@@ -140,24 +149,93 @@ async function attachTasks(ctx: DataContext, goalId: string, link: readonly stri
   }
 }
 
+/**
+ * Repeating tasks in a goal must end: every linked series without an end, or ending after the goal's limit (due
+ * date of a one-time goal, end of the current period of a periodic one), is ended on that limit. An end that is
+ * already allowed is kept (never extended). Returns the ids of the changed series. Must run inside `mutate`.
+ */
+async function clampGoalSeries(ctx: DataContext, goal: Goal): Promise<string[]> {
+  const limit = goalRepeatLimit(goal, todayOf(ctx));
+  const series = await listEntities(
+    ctx.db,
+    'tasks',
+    ctx.ownerId,
+    'goal_id = ? AND recurrence_rule_id IS NOT NULL AND parent_task_id IS NULL',
+    [goal.id],
+  );
+  const changed: string[] = [];
+  for (const task of series) if (await clampSeriesToGoal(ctx, task, limit)) changed.push(task.id);
+  return changed;
+}
+
+/** Rebuilds the occurrences of series whose rule was shortened (after the transaction). */
+async function regenerate(ctx: DataContext, seriesIds: readonly string[]): Promise<void> {
+  for (const seriesId of seriesIds) {
+    await ensureOccurrences(ctx.db, ctx.ownerId, defaultWindow(todayOf(ctx)), { seriesId });
+  }
+}
+
+/**
+ * Repair pass for data written before the rule existed, or pulled from another device: ends every goal-linked
+ * series that has no end or runs past its goal. Idempotent and write-free when nothing is wrong. Returns how many
+ * series changed. Runs with the goal maintenance (app start, foreground, after changes).
+ */
+export async function enforceGoalRepeats(ctx: DataContext): Promise<number> {
+  const today = todayOf(ctx);
+  const rows = await ctx.db.all<{ goal_id: string }>(
+    `SELECT DISTINCT t.goal_id FROM tasks t
+       JOIN recurrence_rules r ON r.id = t.recurrence_rule_id AND r.owner_id = t.owner_id AND r.deleted = 0
+     WHERE t.owner_id = ? AND t.deleted = 0 AND t.goal_id IS NOT NULL AND t.parent_task_id IS NULL
+       AND (r.end_type != 'onDate' OR r.end_date > r.start_date) LIMIT 500`,
+    [ctx.ownerId],
+  );
+  const candidates: Goal[] = [];
+  for (const row of rows) {
+    const goal = await getEntity(ctx.db, 'goals', row.goal_id, ctx.ownerId);
+    if (!goal) continue;
+    const limit = goalRepeatLimit(goal, today);
+    const series = await listEntities(ctx.db, 'tasks', ctx.ownerId, 'goal_id = ? AND recurrence_rule_id IS NOT NULL', [
+      goal.id,
+    ]);
+    for (const task of series) {
+      const rule = await getEntity(ctx.db, 'recurrenceRules', task.recurrenceRuleId as string, ctx.ownerId);
+      if (rule && goalRepeatIssue(rule, limit)) {
+        candidates.push(goal);
+        break;
+      }
+    }
+  }
+  if (candidates.length === 0) return 0;
+  const changed = await mutate(ctx, async () => {
+    const ids: string[] = [];
+    for (const goal of candidates) ids.push(...(await clampGoalSeries(ctx, goal)));
+    return ids;
+  });
+  await regenerate(ctx, changed);
+  return changed.length;
+}
+
 /** Creates a goal with its linked and new tasks in one transaction. At least one task is required. */
 export async function createGoal(ctx: DataContext, input: GoalDraft): Promise<Goal> {
   const draft = goalDraftSchema.parse(input);
-  return mutate(ctx, async () => {
+  const { goal, changed } = await mutate(ctx, async () => {
     const goal = await insertGoal(ctx, goalFields(draft));
     await attachTasks(ctx, goal.id, [...new Set(draft.linkTaskIds)], draft.newTasks);
     if ((await linkedTaskIds(ctx.db, ctx.ownerId, goal.id)).length === 0) throw new GoalNeedsTaskError();
-    return goal;
+    return { goal, changed: await clampGoalSeries(ctx, goal) };
   });
+  await regenerate(ctx, changed);
+  return goal;
 }
 
 /**
  * Saves the goal form: fields, the full set of linked tasks (missing ones are unlinked, never deleted) and new
- * tasks. A change of period or start clears the history (its periods no longer match).
+ * tasks. A change of period or start clears the history (its periods no longer match). Linked repeating tasks that
+ * would now run past the goal (earlier due date, other period, newly linked) are ended on the goal's limit.
  */
 export async function updateGoal(ctx: DataContext, goalId: string, input: GoalDraft): Promise<Goal> {
   const draft = goalDraftSchema.parse(input);
-  return mutate(ctx, async () => {
+  const { goal, changed } = await mutate(ctx, async () => {
     const goal = await getEntity(ctx.db, 'goals', goalId, ctx.ownerId);
     if (!goal) throw new Error('Goal not found');
     const keep = new Set(draft.linkTaskIds);
@@ -170,16 +248,22 @@ export async function updateGoal(ctx: DataContext, goalId: string, input: GoalDr
     if ((await linkedTaskIds(ctx.db, ctx.ownerId, goalId)).length === 0) throw new GoalNeedsTaskError();
     const fields = goalFields(draft);
     const reset = fields.period !== goal.period || fields.startDate !== goal.startDate;
-    return writeEntity(ctx, 'goals', { ...goal, ...fields, history: reset ? [] : goal.history });
+    const saved = await writeEntity(ctx, 'goals', { ...goal, ...fields, history: reset ? [] : goal.history });
+    return { goal: saved, changed: await clampGoalSeries(ctx, saved) };
   });
+  await regenerate(ctx, changed);
+  return goal;
 }
 
-/** Links more existing tasks to a goal (from the detail screen). */
+/** Links more existing tasks to a goal (from the detail screen). A repeating task is ended on the goal's limit. */
 export async function linkTasks(ctx: DataContext, goalId: string, taskIds: readonly string[]): Promise<void> {
-  await mutate(ctx, async () => {
-    if (!(await getEntity(ctx.db, 'goals', goalId, ctx.ownerId))) throw new Error('Goal not found');
+  const changed = await mutate(ctx, async () => {
+    const goal = await getEntity(ctx.db, 'goals', goalId, ctx.ownerId);
+    if (!goal) throw new Error('Goal not found');
     await attachTasks(ctx, goalId, [...new Set(taskIds)], []);
+    return clampGoalSeries(ctx, goal);
   });
+  await regenerate(ctx, changed);
 }
 
 /** Unlinks one task (the task is kept). Refuses to remove the goal's last task. */
@@ -247,13 +331,6 @@ export async function goalLeftEmptyBy(db: SqlDriver, ownerId: string, taskId: st
 }
 
 // ---------- progress ----------
-
-const timingOf = (goal: Goal): GoalTiming => ({
-  period: goal.period,
-  startDate: goal.startDate,
-  targetDate: goal.targetDate,
-  createdOn: localDateOf(new Date(goal.createdAt)),
-});
 
 interface LinkedRow {
   id: string;

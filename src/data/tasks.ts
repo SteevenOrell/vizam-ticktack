@@ -4,6 +4,7 @@
  */
 import { z } from 'zod';
 
+import { clampRuleToGoal, goalRepeatIssue } from '../domain/goals';
 import { addDays, localDateOf, type LocalDate } from '../domain/localDate';
 import {
   hhmmSchema,
@@ -18,7 +19,7 @@ import { occurrenceId, parseOccurrenceId, producesDate } from '../domain/recurre
 import { orphanedExceptions, sameSchedule, splitRule, type EditScope } from '../domain/recurrence/seriesEdit';
 import { CATEGORY_NAME_MAX, normalizeCategoryName } from '../domain/categoryName';
 import { resolveCategoryName } from './categories';
-import { insertGoal } from './goalBase';
+import { GoalRepeatError, goalRepeatLimit, insertGoal } from './goalBase';
 import { defaultWindow, ensureOccurrences, resetGenerated } from './occurrences';
 import { getEntity, listEntities, mutate, nowIso, tombstone, writeEntity, type DataContext } from './store';
 
@@ -67,6 +68,10 @@ export const taskDraftSchema = z
     if (d.repeat?.endType === 'onDate' && d.date && d.repeat.endDate && d.repeat.endDate < d.date) {
       ctx.addIssue({ code: 'custom', path: ['repeat', 'endDate'], message: 'endBeforeStart' });
     }
+    // A repeating task linked to a goal must end (the end is checked against the goal's limit on save).
+    if (d.repeat?.endType === 'never' && (d.goalId || d.newGoalTitle)) {
+      ctx.addIssue({ code: 'custom', path: ['repeat', 'endType'], message: 'repeatNeverInGoal' });
+    }
   });
 export type TaskDraft = z.infer<typeof taskDraftSchema>;
 
@@ -106,6 +111,39 @@ async function writeRule(
   id: string = ctx.newId(),
 ): Promise<RecurrenceRule> {
   return writeEntity(ctx, 'recurrenceRules', { id, seriesType: 'task', seriesId, ...core });
+}
+
+/**
+ * Refuses a rule that never ends, or ends after the goal's limit (due date / end of the current period), on a
+ * goal-linked task. Must run inside `mutate` so a refused save rolls back.
+ */
+async function assertGoalRepeat(ctx: DataContext, goalId: string | null | undefined, core: RuleCore): Promise<void> {
+  if (!goalId) return;
+  const goal = await getEntity(ctx.db, 'goals', goalId, ctx.ownerId);
+  if (!goal) return;
+  const issue = goalRepeatIssue(core, goalRepeatLimit(goal, today(ctx)));
+  if (issue) throw new GoalRepeatError(issue);
+}
+
+/**
+ * Ends a goal-linked series on the goal's limit when it has no end or runs past it (linking a task to a goal,
+ * moving a goal's due date or period, repairing older data). Future occurrences after the new end are dropped.
+ * Returns true when the rule changed; the caller then runs `ensureOccurrences` for the series after the
+ * transaction. Must run inside `mutate`.
+ */
+export async function clampSeriesToGoal(ctx: DataContext, task: Task, limit: LocalDate | null): Promise<boolean> {
+  if (!task.recurrenceRuleId) return false;
+  const rule = await getEntity(ctx.db, 'recurrenceRules', task.recurrenceRuleId, ctx.ownerId);
+  if (!rule) return false;
+  const day = today(ctx);
+  const next = clampRuleToGoal(rule, limit, day);
+  if (next === rule || !next.endDate) return false;
+  await writeEntity(ctx, 'recurrenceRules', next);
+  for (const o of orphanedExceptions(next, await exceptionsFrom(ctx, task.id, day), day)) {
+    await tombstone(ctx, 'occurrences', o.id);
+  }
+  await resetGenerated(ctx.db, task.id, addDays(next.endDate, 1));
+  return true;
 }
 
 async function syncSubtasks(ctx: DataContext, parent: Task, subtasks: TaskDraft['subtasks']) {
@@ -175,6 +213,7 @@ export async function insertTask(ctx: DataContext, parsed: TaskDraft): Promise<T
   const id = ctx.newId();
   const ruleId = parsed.repeat ? ctx.newId() : null;
   const draft = await resolveRefs(ctx, parsed);
+  if (draft.repeat && draft.date) await assertGoalRepeat(ctx, draft.goalId, { ...draft.repeat, startDate: draft.date });
   const t = await writeEntity(ctx, 'tasks', {
     id,
     goalId: null,
@@ -336,9 +375,11 @@ export async function updateTask(
 
   await mutate(ctx, async () => {
     const draft = await resolveRefs(ctx, parsed);
+    const goalId = draft.goalId !== undefined ? draft.goalId : task.goalId;
     // One-off task (possibly turning into a series).
     if (!rule) {
       const ruleId = draft.repeat ? ctx.newId() : null;
+      if (draft.repeat && draft.date) await assertGoalRepeat(ctx, goalId, { ...draft.repeat, startDate: draft.date });
       const t = await writeEntity(ctx, 'tasks', { ...task, ...taskFields(draft), recurrenceRuleId: ruleId });
       if (draft.repeat && draft.date && ruleId) {
         await writeRule(ctx, task.id, { ...draft.repeat, startDate: draft.date }, ruleId);
@@ -368,6 +409,17 @@ export async function updateTask(
     // A split with nothing before it is the same as editing the whole series.
     const split = scope === 'following' && occ ? splitRule(rule, occ.originalDate) : null;
     if (split?.before && occ) {
+      // The new series starts later than the old one, so an "after n times" end can now pass the goal's limit:
+      // it is ended on the limit instead of refusing the edit.
+      const followingGoal = goalId ? await getEntity(ctx.db, 'goals', goalId, ctx.ownerId) : null;
+      const repeat =
+        draft.repeat && followingGoal
+          ? clampRuleToGoal(
+              { ...draft.repeat, startDate: draft.date ?? occ.originalDate },
+              goalRepeatLimit(followingGoal, day),
+              day,
+            )
+          : draft.repeat;
       // End the old series the day before; forget its future occurrences.
       await writeEntity(ctx, 'recurrenceRules', { ...rule, ...split.before });
       for (const e of await exceptionsFrom(ctx, task.id, occ.originalDate)) await tombstone(ctx, 'occurrences', e.id);
@@ -386,8 +438,8 @@ export async function updateTask(
         status: 'open',
         completedAt: null,
       });
-      if (draft.repeat && newRuleId) {
-        await writeRule(ctx, newId, { ...draft.repeat, startDate: start }, newRuleId);
+      if (repeat && newRuleId) {
+        await writeRule(ctx, newId, { ...repeat, startDate: start }, newRuleId);
         regenerate.push(newId);
       }
       await syncSubtasks(
@@ -422,6 +474,8 @@ export async function updateTask(
     }
 
     const nextCore: RuleCore = { ...draft.repeat, startDate: rule.startDate };
+    // Checked even when the schedule is unchanged: the goal link itself may be new.
+    await assertGoalRepeat(ctx, goalId, nextCore);
     await writeEntity(ctx, 'tasks', { ...task, ...taskFields({ ...draft, date: rule.startDate }) });
     if (!sameSchedule(rule, nextCore)) {
       await writeEntity(ctx, 'recurrenceRules', { ...rule, ...nextCore });

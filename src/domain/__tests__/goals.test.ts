@@ -1,12 +1,17 @@
 import {
+  clampRuleToGoal,
   computeProgress,
   daysLeft,
   defaultPeriodStart,
+  defaultRepeatEnd,
   dueDateOf,
   endedPeriodsSince,
+  goalRepeatIssue,
   goalSection,
+  lastRepeatDate,
   periodContaining,
   progressRange,
+  repeatLimitOf,
   type LinkedTask,
 } from '../goals';
 import type { RuleCore } from '../models';
@@ -159,5 +164,106 @@ describe('goal completion percentage', () => {
     expect(goalSection({ ...base, due: '2026-11-20', status: 'achieved' })).toBe('completed');
     expect(goalSection({ ...base, period: 'weekly', due: '2026-11-09' })).toBe('active');
     expect(goalSection({ ...base, percent: 0, total: 0, due: null })).toBe('active');
+  });
+});
+
+describe('repeating tasks in a goal must end', () => {
+  const ending = (rule: RuleCore, endDate: string): RuleCore => ({ ...rule, endType: 'onDate', endDate });
+  const times = (rule: RuleCore, count: number): RuleCore => ({ ...rule, endType: 'afterCount', count });
+  const timing = { startDate: null, targetDate: null, createdOn: '2026-11-01' };
+
+  it('limit: due date of a one-time goal, end of the current period of a periodic goal', () => {
+    expect(repeatLimitOf({ ...timing, period: 'once', targetDate: '2026-11-21' }, '2026-11-09')).toBe('2026-11-21');
+    expect(repeatLimitOf({ ...timing, period: 'once' }, '2026-11-09')).toBeNull();
+    expect(repeatLimitOf({ ...timing, period: 'daily', startDate: '2026-11-01' }, '2026-11-09')).toBe('2026-11-09');
+    expect(repeatLimitOf({ ...timing, period: 'weekly', startDate: '2026-11-02' }, '2026-11-11')).toBe('2026-11-15');
+    expect(repeatLimitOf({ ...timing, period: 'monthly', startDate: '2026-11-01' }, '2026-11-11')).toBe('2026-11-30');
+    expect(repeatLimitOf({ ...timing, period: 'yearly', startDate: '2026-01-01' }, '2026-11-11')).toBe('2026-12-31');
+  });
+
+  it('last repeat date: none for "never", the end date, or the n-th occurrence', () => {
+    expect(lastRepeatDate(daily('2026-11-09'))).toBeNull();
+    expect(lastRepeatDate(ending(daily('2026-11-09'), '2026-11-20'))).toBe('2026-11-20');
+    expect(lastRepeatDate(times(daily('2026-11-09'), 3))).toBe('2026-11-11');
+    // Mon + Thu from Monday 2 Nov, 5 times: 2, 5, 9, 12, 16.
+    expect(lastRepeatDate(times(weekly([1, 4]), 5))).toBe('2026-11-16');
+    expect(lastRepeatDate(times({ ...daily('2026-01-31'), freq: 'monthly' }, 2))).toBe('2026-02-28');
+  });
+
+  it('refuses "never" always, and an end after the goal limit', () => {
+    const rule = daily('2026-11-09');
+    expect(goalRepeatIssue(rule, '2026-11-21')).toBe('repeatNeverInGoal');
+    expect(goalRepeatIssue(rule, null)).toBe('repeatNeverInGoal');
+    expect(goalRepeatIssue(ending(rule, '2026-11-21'), '2026-11-21')).toBeNull();
+    expect(goalRepeatIssue(ending(rule, '2026-11-22'), '2026-11-21')).toBe('repeatAfterGoalEnd');
+    expect(goalRepeatIssue(times(rule, 13), '2026-11-21')).toBeNull(); // 9 .. 21 Nov
+    expect(goalRepeatIssue(times(rule, 14), '2026-11-21')).toBe('repeatAfterGoalEnd');
+    // A goal without a due date only asks for an end.
+    expect(goalRepeatIssue(ending(rule, '2030-01-01'), null)).toBeNull();
+    expect(goalRepeatIssue(times(rule, 999), null)).toBeNull();
+  });
+
+  it('a series starting after the limit may keep its first occurrence only', () => {
+    const late = daily('2026-11-25');
+    expect(goalRepeatIssue(ending(late, '2026-11-25'), '2026-11-21')).toBeNull();
+    expect(goalRepeatIssue(times(late, 1), '2026-11-21')).toBeNull();
+    expect(goalRepeatIssue(ending(late, '2026-11-26'), '2026-11-21')).toBe('repeatAfterGoalEnd');
+    expect(clampRuleToGoal(late, '2026-11-21', '2026-11-09')).toMatchObject({
+      endType: 'onDate',
+      endDate: '2026-11-25',
+    });
+  });
+
+  it('clamps to the limit, keeps an allowed end untouched and never extends it', () => {
+    const rule = daily('2026-11-09');
+    expect(clampRuleToGoal(rule, '2026-11-21', '2026-11-09')).toEqual(ending(rule, '2026-11-21'));
+    expect(clampRuleToGoal(times(rule, 99), '2026-11-21', '2026-11-09')).toEqual(ending(rule, '2026-11-21'));
+    expect(clampRuleToGoal(ending(rule, '2026-12-31'), '2026-11-21', '2026-11-09').endDate).toBe('2026-11-21');
+    const short = ending(rule, '2026-11-12');
+    expect(clampRuleToGoal(short, '2026-11-21', '2026-11-09')).toBe(short);
+    const counted = times(rule, 3);
+    expect(clampRuleToGoal(counted, '2026-11-21', '2026-11-09')).toBe(counted);
+  });
+
+  it('without a goal limit a never-ending rule ends a month after its start, or after today for an old series', () => {
+    expect(defaultRepeatEnd('2026-11-09', '2026-11-09')).toBe('2026-12-09');
+    expect(clampRuleToGoal(daily('2026-11-20'), null, '2026-11-09').endDate).toBe('2026-12-20');
+    expect(clampRuleToGoal(daily('2025-01-31'), null, '2026-01-31').endDate).toBe('2026-02-28');
+  });
+
+  it('progress counts occurrences only up to the end of the rule and of the goal', () => {
+    const range = { start: '2026-11-09', end: '2026-11-21' };
+    const series = (rule: RuleCore, done: string[] = []): LinkedTask => ({
+      id: 's',
+      status: 'open',
+      date: rule.startDate,
+      rule,
+      occurrences: new Map(done.map((d) => [d, 'done' as const])),
+    });
+    // Ends on the goal's due date: 9 .. 21 Nov = 13 occurrences.
+    expect(computeProgress([series(ending(daily('2026-11-09'), '2026-11-21'))], range, false).total).toBe(13);
+    // Ends earlier: only its own 4 occurrences count, 2 of them done.
+    expect(
+      computeProgress([series(ending(daily('2026-11-09'), '2026-11-12'), ['2026-11-09', '2026-11-10'])], range, false),
+    ).toEqual({ done: 2, total: 4, percent: 50 });
+    expect(computeProgress([series(times(daily('2026-11-09'), 3), ['2026-11-09'])], range, false)).toEqual({
+      done: 1,
+      total: 3,
+      percent: 33,
+    });
+    // A done occurrence after the end is not counted.
+    expect(computeProgress([series(ending(daily('2026-11-09'), '2026-11-10'), ['2026-11-15'])], range, false)).toEqual({
+      done: 0,
+      total: 2,
+      percent: 0,
+    });
+    // Periodic goal: the current period bounds the count even when the rule ends later.
+    expect(
+      computeProgress(
+        [series(ending(daily('2026-11-02'), '2026-11-30'))],
+        { start: '2026-11-09', end: '2026-11-15' },
+        true,
+      ).total,
+    ).toBe(7);
   });
 });

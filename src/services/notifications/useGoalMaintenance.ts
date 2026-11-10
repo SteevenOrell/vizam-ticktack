@@ -10,7 +10,7 @@ import { AppState } from 'react-native';
 
 import i18n from '../../i18n';
 import { subscribeDataChanges } from '../../data/changes';
-import { rollGoalHistory } from '../../data/goals';
+import { enforceGoalRepeats, rollGoalHistory } from '../../data/goals';
 import type { DataContext } from '../../data/store';
 import { usePreferences } from '../../state/preferences';
 import {
@@ -26,6 +26,7 @@ const translate: Translate = (key, vars) => i18n.t(key as never, vars as never) 
 
 export async function maintainGoals(ctx: DataContext): Promise<void> {
   try {
+    await enforceGoalRepeats(ctx);
     await rollGoalHistory(ctx);
   } catch (e) {
     console.warn('Goal history update failed', e instanceof Error ? e.name : 'unknown');

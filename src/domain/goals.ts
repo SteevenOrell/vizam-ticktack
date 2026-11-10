@@ -146,6 +146,51 @@ export function computeProgress(tasks: readonly LinkedTask[], range: PeriodRange
   return { done, total, percent: total === 0 ? 0 : Math.floor((done / total) * 100) };
 }
 
+// ---------- repeating tasks in a goal must end ----------
+
+/**
+ * Last day a repeating task linked to the goal may run: the due date of a one-time goal (null when it has none),
+ * the end of the current period for a periodic goal.
+ */
+export const repeatLimitOf = (goal: GoalTiming, today: LocalDate): LocalDate | null => dueDateOf(goal, today);
+
+/** Last date a rule can produce an occurrence on: its end date, its n-th occurrence, or null when it never ends. */
+export function lastRepeatDate(rule: RuleCore): LocalDate | null {
+  if (rule.endType === 'onDate') return rule.endDate;
+  if (rule.endType === 'afterCount') {
+    return occurrencesBetween(rule, rule.startDate, '9999-12-31', MAX_COUNTED_OCCURRENCES).at(-1) ?? rule.startDate;
+  }
+  return null;
+}
+
+export type GoalRepeatIssue = 'repeatNeverInGoal' | 'repeatAfterGoalEnd';
+
+/**
+ * Why a rule is not allowed on a goal-linked task, or null when it is fine. "Never" is always refused; an end is
+ * refused when it lies after the goal's limit. A series that starts after the limit may still hold its first
+ * occurrence (the bound is `max(limit, startDate)`), like a one-off task dated after the due date.
+ */
+export function goalRepeatIssue(rule: RuleCore, limit: LocalDate | null): GoalRepeatIssue | null {
+  const last = lastRepeatDate(rule);
+  if (last === null) return 'repeatNeverInGoal';
+  if (limit && last > maxDate(limit, rule.startDate)) return 'repeatAfterGoalEnd';
+  return null;
+}
+
+/** Default end when the goal gives no limit (one-time goal without a due date): a month from the start or today. */
+export const defaultRepeatEnd = (startDate: LocalDate, today: LocalDate): LocalDate =>
+  addMonthsClamped(maxDate(startDate, today), 1);
+
+/**
+ * The rule made valid for a goal: a never-ending or too-long rule ends on the goal's limit (or on the default end
+ * when the goal has no limit). Returns the same object when nothing has to change; an allowed end is never extended.
+ */
+export function clampRuleToGoal<T extends RuleCore>(rule: T, limit: LocalDate | null, today: LocalDate): T {
+  if (!goalRepeatIssue(rule, limit)) return rule;
+  const endDate = limit ? maxDate(limit, rule.startDate) : defaultRepeatEnd(rule.startDate, today);
+  return { ...rule, endType: 'onDate', endDate, count: null };
+}
+
 export type GoalSection = 'active' | 'completed' | 'overdue';
 
 /** List section: completed when marked done or at 100 %, overdue when a one-time goal passed its due date. */

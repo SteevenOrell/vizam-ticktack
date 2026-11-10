@@ -1,17 +1,23 @@
+import { randomUUID } from 'crypto';
+
 import { ZodError } from 'zod';
 
 import { context, count, freshDb, NOW, TODAY } from '../../../tests/support/db';
 import { DEFAULT_GOAL_REMINDERS } from '../../domain/models';
 import { occurrenceId } from '../../domain/recurrence/generator';
 import type { SqlDriver } from '../db/driver';
+import { buildDemoData, insertDemoData } from '../seed/demoData';
 import {
   createGoal,
   deleteGoal,
+  enforceGoalRepeats,
   getGoalDetail,
   getGoalList,
+  getGoalOptions,
   getLinkableTasks,
   goalLeftEmptyBy,
   GoalNeedsTaskError,
+  GoalRepeatError,
   linkTasks,
   loadGoalForm,
   rollGoalHistory,
@@ -21,7 +27,7 @@ import {
   type GoalDraft,
 } from '../goals';
 import { getEntity } from '../store';
-import { createTask, deleteTask, emptyDraft, setDone, type TaskDraft } from '../tasks';
+import { createTask, deleteTask, emptyDraft, setDone, updateTask, type TaskDraft } from '../tasks';
 
 let db: SqlDriver;
 beforeEach(async () => {
@@ -258,5 +264,230 @@ describe('period history', () => {
     const detail = (await getGoalDetail(db, 'local', g.id, '2026-11-16'))!;
     expect(detail.history[0]).toMatchObject({ start: '2026-11-09', end: '2026-11-15', percent: 0, total: 1 });
     expect(detail.summary.progress.total).toBe(0);
+  });
+});
+
+describe('repeating tasks in a goal must end', () => {
+  const never: NonNullable<TaskDraft['repeat']> = {
+    freq: 'daily',
+    interval: 1,
+    byWeekday: null,
+    byMonthDay: null,
+    weekStartsOn: 1,
+    endType: 'never',
+    endDate: null,
+    count: null,
+  };
+  const until = (endDate: string): NonNullable<TaskDraft['repeat']> => ({ ...never, endType: 'onDate', endDate });
+  const ruleOf = (seriesId: string) =>
+    db.first<{ end_type: string; end_date: string | null; count: number | null }>(
+      'SELECT end_type, end_date, count FROM recurrence_rules WHERE series_id = ? AND deleted = 0',
+      [seriesId],
+    );
+  /** A goal due 21 Nov with one plain task. */
+  async function goalWithTask(over: Partial<GoalDraft> = {}) {
+    const ctx = context(db);
+    const plain = await createTask(ctx, task({ title: 'Plain' }));
+    return createGoal(ctx, goal({ linkTaskIds: [plain.id], ...over }));
+  }
+
+  it('task editor path: refuses "never" and an end after the due date, accepts an end by the due date', async () => {
+    const ctx = context(db);
+    const g = await goalWithTask();
+    const before = await count(db, 'SELECT COUNT(*) AS n FROM tasks');
+
+    const zod = await createTask(ctx, task({ goalId: g.id, repeat: never })).catch((e: unknown) => e);
+    expect(zod).toBeInstanceOf(ZodError);
+    expect((zod as ZodError).issues.map((i) => i.message)).toContain('repeatNeverInGoal');
+
+    const late = await createTask(ctx, task({ goalId: g.id, repeat: until('2026-11-22') })).catch((e: unknown) => e);
+    expect(late).toBeInstanceOf(GoalRepeatError);
+    expect((late as GoalRepeatError).issue).toBe('repeatAfterGoalEnd');
+    const counted = await createTask(
+      ctx,
+      task({ goalId: g.id, repeat: { ...never, endType: 'afterCount', count: 14 } }),
+    ).catch((e: unknown) => e);
+    expect((counted as GoalRepeatError).issue).toBe('repeatAfterGoalEnd');
+    // Refused saves leave nothing behind.
+    expect(await count(db, 'SELECT COUNT(*) AS n FROM tasks')).toBe(before);
+    expect(await count(db, 'SELECT COUNT(*) AS n FROM recurrence_rules')).toBe(0);
+
+    const ok = await createTask(ctx, task({ goalId: g.id, repeat: until('2026-11-21') }));
+    expect(await ruleOf(ok.id)).toMatchObject({ end_type: 'onDate', end_date: '2026-11-21' });
+    await createTask(ctx, task({ goalId: g.id, repeat: { ...never, endType: 'afterCount', count: 13 } }));
+  });
+
+  it('a goal created by name from the task editor (no due date) still needs an end', async () => {
+    const ctx = context(db);
+    const zod = await createTask(ctx, task({ newGoalTitle: 'Read more', repeat: never })).catch((e: unknown) => e);
+    expect((zod as ZodError).issues.map((i) => i.message)).toContain('repeatNeverInGoal');
+    expect(await count(db, 'SELECT COUNT(*) AS n FROM goals')).toBe(0);
+    const ok = await createTask(ctx, task({ newGoalTitle: 'Read more', repeat: until('2027-06-30') }));
+    expect(ok.goalId).toBeTruthy();
+  });
+
+  it('editing a linked series: "never" and a later end are refused, also when the goal is left untouched', async () => {
+    const ctx = context(db);
+    const g = await goalWithTask();
+    const series = await createTask(ctx, task({ title: 'Stretch', goalId: g.id, repeat: until('2026-11-15') }));
+    // `goalId: undefined` keeps the stored link (quick edit and "all occurrences" edits).
+    const draft = (repeat: TaskDraft['repeat']): TaskDraft => ({
+      ...task({ title: 'Stretch', repeat }),
+      goalId: undefined,
+    });
+    await expect(updateTask(ctx, series.id, draft(never))).rejects.toMatchObject({ issue: 'repeatNeverInGoal' });
+    await expect(updateTask(ctx, series.id, draft(until('2026-12-01')))).rejects.toMatchObject({
+      issue: 'repeatAfterGoalEnd',
+    });
+    expect(await ruleOf(series.id)).toMatchObject({ end_type: 'onDate', end_date: '2026-11-15' });
+    await updateTask(ctx, series.id, draft(until('2026-11-21')));
+    expect(await ruleOf(series.id)).toMatchObject({ end_date: '2026-11-21' });
+  });
+
+  it('picking a goal in the task editor for a task that repeats forever is refused until it has an end', async () => {
+    const ctx = context(db);
+    const g = await goalWithTask();
+    const series = await createTask(ctx, task({ title: 'Free', repeat: never }));
+    const linked = (repeat: TaskDraft['repeat']) => task({ title: 'Free', goalId: g.id, repeat });
+    await expect(updateTask(ctx, series.id, linked(never))).rejects.toBeInstanceOf(ZodError);
+    // A one-off task turned into a series while linked.
+    const one = await createTask(ctx, task({ title: 'One', goalId: g.id }));
+    await expect(updateTask(ctx, one.id, linked(until('2026-11-30')))).rejects.toBeInstanceOf(GoalRepeatError);
+    await updateTask(ctx, series.id, linked(until('2026-11-21')));
+    expect((await getEntity(db, 'tasks', series.id, 'local'))?.goalId).toBe(g.id);
+  });
+
+  it('linking a never-ending series ends it on the due date and drops later occurrences', async () => {
+    const ctx = context(db);
+    const g = await goalWithTask();
+    const series = await createTask(ctx, task({ title: 'Stretch', repeat: never }));
+    expect(
+      await count(
+        db,
+        "SELECT COUNT(*) AS n FROM task_occurrences WHERE series_id = ? AND original_date > '2026-11-21'",
+        [series.id],
+      ),
+    ).toBeGreaterThan(0);
+    await linkTasks(ctx, g.id, [series.id]);
+    expect(await ruleOf(series.id)).toEqual({ end_type: 'onDate', end_date: '2026-11-21', count: null });
+    expect(
+      await count(
+        db,
+        "SELECT COUNT(*) AS n FROM task_occurrences WHERE series_id = ? AND original_date > '2026-11-21'",
+        [series.id],
+      ),
+    ).toBe(0);
+    // Occurrences up to the end are still there, and the rule change is queued for sync.
+    expect(
+      await count(db, 'SELECT COUNT(*) AS n FROM task_occurrences WHERE series_id = ? AND original_date = ?', [
+        series.id,
+        '2026-11-21',
+      ]),
+    ).toBe(1);
+    expect(await count(db, "SELECT COUNT(*) AS n FROM outbox WHERE entity_type = 'recurrenceRules'")).toBe(1);
+    // 13 occurrences (9 .. 21 Nov) + the plain task.
+    const [summary] = await getGoalList(db, 'local', TODAY);
+    expect(summary?.progress).toEqual({ done: 0, total: 14, percent: 0 });
+  });
+
+  it('linking keeps an end that is already allowed, and clamps an "after n times" end that runs too long', async () => {
+    const ctx = context(db);
+    const short = await createTask(ctx, task({ title: 'Short', repeat: until('2026-11-12') }));
+    const long = await createTask(ctx, task({ title: 'Long', repeat: { ...never, endType: 'afterCount', count: 60 } }));
+    const fits = await createTask(ctx, task({ title: 'Fits', repeat: { ...never, endType: 'afterCount', count: 3 } }));
+    await createGoal(ctx, goal({ linkTaskIds: [short.id, long.id, fits.id] }));
+    expect(await ruleOf(short.id)).toMatchObject({ end_type: 'onDate', end_date: '2026-11-12' });
+    expect(await ruleOf(long.id)).toEqual({ end_type: 'onDate', end_date: '2026-11-21', count: null });
+    expect(await ruleOf(fits.id)).toMatchObject({ end_type: 'afterCount', count: 3 });
+  });
+
+  it('periodic goal: a linked series ends with the current period', async () => {
+    const ctx = context(db);
+    const series = await createTask(ctx, task({ title: 'Tidy', repeat: never }));
+    const g = await createGoal(
+      ctx,
+      goal({ period: 'weekly', startDate: TODAY, dueDate: null, linkTaskIds: [series.id] }),
+    );
+    expect(await ruleOf(series.id)).toMatchObject({ end_type: 'onDate', end_date: '2026-11-15' });
+    expect((await getGoalDetail(db, 'local', g.id, TODAY))?.summary.progress.total).toBe(7);
+    await expect(createTask(ctx, task({ goalId: g.id, repeat: until('2026-11-16') }))).rejects.toMatchObject({
+      issue: 'repeatAfterGoalEnd',
+    });
+    // In a later period the limit has moved on: the old end is still valid, a new one may reach the new period end.
+    const later = context(db, 'local', () => new Date(2026, 10, 17, 9, 0));
+    expect(await enforceGoalRepeats(later)).toBe(0);
+    await createTask(later, task({ date: '2026-11-17', goalId: g.id, repeat: until('2026-11-22') }));
+  });
+
+  it('moving the due date earlier (or changing the period) clamps linked series; a later date extends nothing', async () => {
+    const ctx = context(db);
+    const g = await goalWithTask();
+    const series = await createTask(ctx, task({ title: 'Stretch', goalId: g.id, repeat: until('2026-11-21') }));
+    const form = (await loadGoalForm(ctx, g.id))!;
+
+    await updateGoal(ctx, g.id, { ...form.draft, dueDate: '2026-11-14' });
+    expect(await ruleOf(series.id)).toMatchObject({ end_type: 'onDate', end_date: '2026-11-14' });
+    expect(
+      await count(
+        db,
+        "SELECT COUNT(*) AS n FROM task_occurrences WHERE series_id = ? AND original_date > '2026-11-14'",
+        [series.id],
+      ),
+    ).toBe(0);
+
+    await updateGoal(ctx, g.id, { ...form.draft, dueDate: '2026-12-31' });
+    expect(await ruleOf(series.id)).toMatchObject({ end_date: '2026-11-14' });
+
+    await updateGoal(ctx, g.id, { ...form.draft, period: 'daily', startDate: TODAY, dueDate: null });
+    expect(await ruleOf(series.id)).toMatchObject({ end_date: TODAY });
+  });
+
+  it('repair pass ends series linked before the rule existed, once', async () => {
+    const ctx = context(db);
+    const g = await goalWithTask();
+    const open = await goalWithTask({ title: 'No due date' });
+    await db.run('UPDATE goals SET target_date = NULL WHERE id = ?', [open.id]);
+    const a = await createTask(ctx, task({ title: 'Old forever', repeat: never }));
+    const b = await createTask(ctx, task({ title: 'Old too long', repeat: until('2027-01-01') }));
+    const c = await createTask(ctx, task({ title: 'Old open-ended', repeat: never }));
+    const free = await createTask(ctx, task({ title: 'Not in a goal', repeat: never }));
+    // Written the way an older build (or another device) left them: linked without an end.
+    await db.run('UPDATE tasks SET goal_id = ? WHERE id IN (?, ?)', [g.id, a.id, b.id]);
+    await db.run('UPDATE tasks SET goal_id = ? WHERE id = ?', [open.id, c.id]);
+
+    expect(await enforceGoalRepeats(ctx)).toBe(3);
+    expect(await ruleOf(a.id)).toMatchObject({ end_type: 'onDate', end_date: '2026-11-21' });
+    expect(await ruleOf(b.id)).toMatchObject({ end_type: 'onDate', end_date: '2026-11-21' });
+    // No due date: a month from today.
+    expect(await ruleOf(c.id)).toMatchObject({ end_type: 'onDate', end_date: '2026-12-09' });
+    expect(await ruleOf(free.id)).toMatchObject({ end_type: 'never' });
+    const outbox = await count(db, 'SELECT COUNT(*) AS n FROM outbox');
+    expect(await enforceGoalRepeats(ctx)).toBe(0);
+    expect(await count(db, 'SELECT COUNT(*) AS n FROM outbox')).toBe(outbox);
+  });
+
+  it('goal options carry the end a linked repeat must respect', async () => {
+    const ctx = context(db);
+    const once = await goalWithTask();
+    const weekly = await goalWithTask({ title: 'Weekly', period: 'weekly', startDate: TODAY, dueDate: null });
+    const options = await getGoalOptions(db, 'local', TODAY);
+    expect(options.find((o) => o.id === once.id)?.repeatEnd).toBe('2026-11-21');
+    expect(options.find((o) => o.id === weekly.id)?.repeatEnd).toBe('2026-11-15');
+    const named = await createTask(ctx, task({ newGoalTitle: 'By name' }));
+    expect((await getGoalOptions(db, 'local', TODAY)).find((o) => o.id === named.goalId)?.repeatEnd).toBeNull();
+  });
+
+  it('demo data follows the rule: the race goal reads 6 of 12, not 1 of 37', async () => {
+    await insertDemoData(db, buildDemoData({ today: NOW, newId: randomUUID, language: 'en' }));
+    expect(await enforceGoalRepeats(context(db))).toBe(0);
+    const race = (await getGoalList(db, 'local', TODAY)).find((g) => g.title === 'Run a 10 km race');
+    expect(race?.progress).toEqual({ done: 6, total: 12, percent: 50 });
+    expect(
+      await count(
+        db,
+        `SELECT COUNT(*) AS n FROM recurrence_rules r JOIN tasks t ON t.recurrence_rule_id = r.id
+         WHERE t.goal_id IS NOT NULL AND r.end_type = 'never'`,
+      ),
+    ).toBe(0);
   });
 });
