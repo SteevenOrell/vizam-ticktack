@@ -217,16 +217,24 @@ Goals round — `docs/screenshots/phase-3-goals/` (`node scripts/screenshots-goa
 for the keyboard), `light-day-en-goal-detail`, `sweep-{240,768,1440}-{goals,calendar-month,goal-detail}`.
 
 ## Pending (priority order)
+0. **Goal fix (Steeven, 2026-11-10, before phase 4):** "A goal can include repeating tasks but they should not be
+   infinite." A repeating task linked to a goal must have an end: block "Never" for goal-linked series (editor, goal
+   form inline tasks, task picker, quick edit, linking an existing never-ending series) and default/clamp the end to
+   the goal's due date (Once) or the end of the current period (periodic), with a short explanation; enforce in the
+   repository + rules tests; migrate demo data (the "Run a 10 km race" goal showed "1 of 37"); progress counts only
+   occurrences up to the end. Branch `feat/phase-3-goal-repeats` from `feat/phase-3-goals`.
 1. Phase 4 per `docs/MILESTONES.md`: task/routine reminders on the existing scheduler, background task, Android
    exact-alarm decision, task details, drag reschedule, history/overdue views, milestones, routines editing and
    runner, settings (week start, capacity, categories, failed-sync list), desktop max width.
 2. Phases 5–6.
 
 ## Next step
-Steeven tests `feat/phase-3-goals` on his phone (Expo Go; `npx expo start --clear` from this worktree, on a port
-other than his own server): swipe months/weeks/days, keyboard on the task editor, quick edit, sign-in and goal form,
-create / edit / delete a goal, turn on a reminder (permission prompt) and wait for one. After his OK, start phase 4
-on `feat/phase-4-features` from `feat/phase-3-goals`.
+1. Pending item 0 (goal repeats must end) on `feat/phase-3-goal-repeats`.
+2. Steeven tests it on his phone (Expo Go: `npx expo start --tunnel --clear` from that worktree; his Wi-Fi is a Public
+   network with Node blocked by the firewall, so LAN mode times out; he is logged in with
+   `npx expo login --no-browser`): swipe months/weeks/days, keyboard on the forms, create / edit / delete a goal,
+   repeating tasks in goals, turn on a reminder and wait for one.
+3. After his OK, phase 4 on `feat/phase-4-features` from the last approved branch.
 
 ## Waiting for approval (Needs from Steeven)
 1. In the Firebase console: confirm **Authentication → Email/Password** is enabled and **Firestore** (native mode,
@@ -235,6 +243,6 @@ on `feat/phase-4-features` from `feat/phase-3-goals`.
    `firestore.rules` (goal fields): signed-in sync of goals fails against the real project until it is redeployed.**
    `npx --yes firebase-tools@15.35.0 login` then
    `npx --yes firebase-tools@15.35.0 deploy --only firestore:rules,firestore:indexes --config firebase/firebase.json --project <your project id>`.
-3. Expo account (free) for EAS dev builds — needed in phase 4 for notifications and on-device checks.
+3. Expo account: **done** (Steeven created it and is logged in; EAS dev builds in phase 4 still need his go-ahead).
 4. Android exact-alarm approach (phase 4); optional Firestore TTL for tombstones; optional Apple Developer Program.
 5. Review the phase 3 deviations above.
