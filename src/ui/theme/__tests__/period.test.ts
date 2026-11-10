@@ -41,6 +41,6 @@ describe('theme resolution', () => {
   it('builds all four scheme × period combinations', () => {
     expect(buildTheme('dark', 'night').header).toBe(headerThemes.dark.night);
     expect(buildTheme('light', 'day').colors.bg).toBe('#F4F1EC');
-    expect(buildTheme('dark', 'day').header.header.colors).toContain('#C9480F');
+    expect(buildTheme('dark', 'day').header.header.colors).toContain('#B83D0B');
   });
 });

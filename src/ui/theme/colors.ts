@@ -102,8 +102,13 @@ const sageLight = '#E3E8E6';
 export const headerThemes: Record<ColorScheme, Record<Period, HeaderTheme>> = {
   dark: {
     day: {
-      header: { colors: [sageDark, '#B83D0B', '#C9480F'], locations: [0, 0.62, 1], angle: 165 },
-      chip: { colors: ['#4E5B58', '#9A3A0E'], locations: [0, 1], angle: 135 },
+      // Gray first: sage holds the top half, a warm gray-brown bridges, orange is only the lower band.
+      header: {
+        colors: [sageDark, sageDark, '#6E5A4E', '#9A4418', '#B83D0B'],
+        locations: [0, 0.48, 0.7, 0.88, 1],
+        angle: 165,
+      },
+      chip: { colors: ['#4E5B58', '#4E5B58', '#8A3E14'], locations: [0, 0.5, 1], angle: 135 },
       on: {
         text: white,
         textSecondary: white,
@@ -134,8 +139,8 @@ export const headerThemes: Record<ColorScheme, Record<Period, HeaderTheme>> = {
   },
   light: {
     day: {
-      header: { colors: [sageLight, '#FFD9BF'], locations: [0, 1], angle: 165 },
-      chip: { colors: ['#DCE3E1', '#F6D2B8'], locations: [0, 1], angle: 135 },
+      header: { colors: [sageLight, sageLight, '#EDE3DA', '#FFDCC4'], locations: [0, 0.5, 0.78, 1], angle: 165 },
+      chip: { colors: ['#DCE3E1', '#DCE3E1', '#F2D3BD'], locations: [0, 0.5, 1], angle: 135 },
       on: {
         text: charcoal,
         textSecondary: '#5A6664',
@@ -166,9 +171,18 @@ export const headerThemes: Record<ColorScheme, Record<Period, HeaderTheme>> = {
   },
 };
 
-/** Splash "ember flow" stops (DESIGN.md section 3, Splash). Rendered to images by scripts/render-splash.mjs. */
+/**
+ * Splash stops (DESIGN.md section 3, Splash), rendered to images by scripts/render-brand.mjs. Day is a light
+ * white -> orange gradient (charcoal wordmark); night keeps the dark blue ember flow (white wordmark).
+ */
+/** Wordmark, tagline and concept-label colours per splash. */
+export const splashInk: Record<Period, { wordmark: string; tagline: string; concept: string }> = {
+  day: { wordmark: charcoal, tagline: charcoal, concept: charcoal },
+  night: { wordmark: white, tagline: white, concept: charcoal },
+};
+
 export const splashStops: Record<Period, readonly string[]> = {
-  day: ['#0B0B0C', '#17191B', '#7A1E06', '#C2410C', '#FF7A24', '#FDBA3B', '#FFF1C9'],
+  day: ['#FFFFFF', '#FFF1E6', '#FFC9A1', '#FF7A24'],
   night: ['#0B0B0C', '#17191B', '#1E3A8A', '#2B4FB0', '#5B8FD6', '#9DBEEA', '#E6F0FF'],
 };
 

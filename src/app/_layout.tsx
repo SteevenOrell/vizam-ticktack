@@ -83,7 +83,9 @@ function AppShell() {
 
   return (
     <View style={[styles.flex, { backgroundColor: theme.colors.bg }]}>
-      <StatusBar style={splashGone ? (theme.scheme === 'dark' ? 'light' : 'dark') : 'light'} />
+      <StatusBar
+        style={splashGone ? (theme.scheme === 'dark' ? 'light' : 'dark') : theme.period === 'day' ? 'dark' : 'light'}
+      />
       <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: theme.colors.bg } }}>
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="onboarding" options={{ gestureEnabled: false }} />

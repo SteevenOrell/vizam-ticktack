@@ -6,7 +6,7 @@ import { useTranslation } from 'react-i18next';
 
 import { Wordmark } from '../../ui/brand/Wordmark';
 import { Text } from '../../ui/Text';
-import { charcoal, white, type Period } from '../../ui/theme/colors';
+import { charcoal, splashInk, splashStops, type Period } from '../../ui/theme/colors';
 import { space } from '../../ui/theme/layout';
 import { useNativeDriver } from '../../ui/platform';
 
@@ -16,7 +16,8 @@ const backgrounds = {
 } as const;
 
 /**
- * In-app splash: the pre-rendered ember flow (day or night) with the wordmark and tagline at the exact centre.
+ * In-app splash: day = white -> orange gradient with the charcoal wordmark; night = blue ember flow with the white
+ * wordmark. Wordmark and tagline at the exact centre.
  * Shown after the native splash (which can only be a centred image on a solid colour) until the app is ready.
  */
 export function AppSplash({ period, visible, onHidden }: { period: Period; visible: boolean; onHidden?: () => void }) {
@@ -42,6 +43,7 @@ export function AppSplash({ period, visible, onHidden }: { period: Period; visib
   }, [visible, opacity, onHidden]);
 
   const wordmarkWidth = Math.min(width * 0.75, 380);
+  const ink = splashInk[period];
 
   return (
     <Animated.View
@@ -49,20 +51,31 @@ export function AppSplash({ period, visible, onHidden }: { period: Period; visib
       accessible
       accessibilityLabel={t('app.splashLabel')}
       accessibilityRole="image"
-      style={[StyleSheet.absoluteFill, styles.root, { opacity }]}
+      style={[
+        StyleSheet.absoluteFill,
+        styles.root,
+        // Shown until the image decodes: the colour of the splash centre.
+        { opacity, backgroundColor: period === 'day' ? (splashStops.day[1] as string) : charcoal },
+      ]}
       pointerEvents={visible ? 'auto' : 'none'}
     >
       <Image source={backgrounds[period]} style={StyleSheet.absoluteFill} contentFit="cover" transition={0} />
       <View style={styles.centre}>
-        <Wordmark width={wordmarkWidth} />
-        <Text variant="label" weight={400} color={white} align="center" style={styles.tagline}>
+        <Wordmark width={wordmarkWidth} color={ink.wordmark} />
+        <Text
+          variant="label"
+          weight={period === 'day' ? 500 : 400}
+          color={ink.tagline}
+          align="center"
+          style={styles.tagline}
+        >
           {t('app.tagline')}
         </Text>
       </View>
       <Text
         variant="caption"
         weight={500}
-        color={charcoal}
+        color={ink.concept}
         align="center"
         style={[styles.concept, { bottom: insets.bottom + space.xl }]}
       >
@@ -73,7 +86,7 @@ export function AppSplash({ period, visible, onHidden }: { period: Period; visib
 }
 
 const styles = StyleSheet.create({
-  root: { backgroundColor: charcoal, zIndex: 10 },
+  root: { zIndex: 10 },
   centre: { ...StyleSheet.absoluteFill, alignItems: 'center', justifyContent: 'center', paddingHorizontal: space.lg },
   tagline: { marginTop: 8, fontSize: 13 },
   concept: { position: 'absolute', left: space.lg, right: space.lg },

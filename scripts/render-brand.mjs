@@ -97,16 +97,46 @@ function wordmarkSvg({ width, color = WHITE, handColor = ORANGE, x0 = 0, y0 = 0 
 const wordmarkAspect = viewBox[3] / viewBox[2];
 
 // ---------------------------------------------------------------------------------------------------------------
-// 2. Splash "ember flow" (DESIGN.md section 3). The centre falls on the deep ember / deep blue zone.
+// 2. Splashes (DESIGN.md section 3): day white -> orange (charcoal wordmark), night blue ember flow (white wordmark).
 // ---------------------------------------------------------------------------------------------------------------
 const W = 1290;
 const H = 2796;
 const stops = {
-  day: ['#0B0B0C', '#17191B', '#7A1E06', '#C2410C', '#FF7A24', '#FDBA3B', '#FFF1C9'],
   night: ['#0B0B0C', '#17191B', '#1E3A8A', '#2B4FB0', '#5B8FD6', '#9DBEEA', '#E6F0FF'],
 };
 
+// Day splash (phase 3 feedback): light white -> orange gradient, orange at the bottom, soft warm blooms and the same
+// fine grain. The centre stays near #FFF1E6 so the charcoal wordmark reads at full contrast.
+const DAY = ['#FFFFFF', '#FFF1E6', '#FFC9A1', '#FF7A24'];
+function splashDaySvg() {
+  const [white, cream, peach, orange] = DAY;
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
+  <defs>
+    <linearGradient id="base" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="${white}"/>
+      <stop offset="0.42" stop-color="${cream}"/>
+      <stop offset="0.74" stop-color="${peach}"/>
+      <stop offset="1" stop-color="${orange}"/>
+    </linearGradient>
+    <filter id="blur" filterUnits="userSpaceOnUse" x="-400" y="-400" width="${W + 800}" height="${H + 800}"><feGaussianBlur stdDeviation="170"/></filter>
+    <filter id="grain" x="0" y="0" width="100%" height="100%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" seed="7" result="noise"/>
+      <feColorMatrix type="saturate" values="0"/>
+    </filter>
+  </defs>
+  <rect width="${W}" height="${H}" fill="url(#base)"/>
+  <g filter="url(#blur)">
+    <ellipse cx="300" cy="300" rx="700" ry="300" fill="${white}" opacity="0.9"/>
+    <ellipse cx="1180" cy="2050" rx="700" ry="260" transform="rotate(-18 1180 2050)" fill="${peach}" opacity="0.8"/>
+    <ellipse cx="200" cy="2600" rx="900" ry="300" transform="rotate(-10 200 2600)" fill="${orange}" opacity="0.55"/>
+    <ellipse cx="1100" cy="2800" rx="900" ry="280" fill="${orange}" opacity="0.8"/>
+  </g>
+  <rect width="${W}" height="${H}" filter="url(#grain)" opacity="0.05"/>
+</svg>`;
+}
+
 function splashSvg(period) {
+  if (period === 'day') return splashDaySvg();
   const [black, charcoal, deep, strong, bright, warm, cream] = stops[period];
   // Blobs: a deep streak entering from the top right, bending down-left through the centre, then the bright bands
   // sweep back to the right and end in a cream glow at the bottom right.
@@ -155,12 +185,12 @@ for (const period of ['day', 'night']) {
     const wh = ww * wordmarkAspect;
     const svg = splashSvg(period).replace(
       '</svg>',
-      `${wordmarkSvg({ width: ww, x0: (W - ww) / 2, y0: H / 2 - wh / 2 })}</svg>`,
+      `${wordmarkSvg({ width: ww, x0: (W - ww) / 2, y0: H / 2 - wh / 2, color: period === 'day' ? CHARCOAL : WHITE })}</svg>`,
     );
     await sharp(new Resvg(svg).render().asPng())
       .resize({ width: 645 })
       .webp({ quality: 80 })
-      .toFile(out(`docs/screenshots/phase-2/brand-preview-${period}.webp`));
+      .toFile(out(`docs/screenshots/phase-3-feedback/brand-preview-${period}.webp`));
   }
 }
 
@@ -171,7 +201,7 @@ for (const period of ['day', 'night']) {
   const S = 1152;
   const ww = S * 0.62;
   const wh = ww * wordmarkAspect;
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${S}" height="${S}">${wordmarkSvg({ width: ww, x0: (S - ww) / 2, y0: (S - wh) / 2 })}</svg>`;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${S}" height="${S}">${wordmarkSvg({ width: ww, x0: (S - ww) / 2, y0: (S - wh) / 2, color: CHARCOAL })}</svg>`;
   writeFileSync(out('assets/splash-wordmark.png'), new Resvg(svg).render().asPng());
 }
 

@@ -38,9 +38,9 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     [
       'expo-splash-screen',
       {
-        // Android 12+ only allows a centred icon on a solid colour, so the native splash is the wordmark on the
-        // charcoal top of the ember flow; the full-bleed ember image follows in-app (src/features/splash).
-        backgroundColor: '#17191B',
+        // Android 12+ only allows a centred icon on a solid colour, so the native splash is the charcoal wordmark on
+        // the cream centre of the day splash; the full-bleed gradient follows in-app (src/features/splash).
+        backgroundColor: '#FFF1E6',
         image: './assets/splash-wordmark.png',
         imageWidth: 288,
         resizeMode: 'contain',

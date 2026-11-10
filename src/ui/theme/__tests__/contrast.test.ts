@@ -1,4 +1,14 @@
-import { charcoal, darkPalette, headerThemes, lightPalette, white, type ColorScheme, type Period } from '../colors';
+import {
+  charcoal,
+  darkPalette,
+  headerThemes,
+  lightPalette,
+  splashInk,
+  splashStops,
+  white,
+  type ColorScheme,
+  type Period,
+} from '../colors';
 import { composite, contrastRatio, gradientSamples, mix } from '../contrast';
 
 const AA = 4.5;
@@ -117,12 +127,39 @@ describe('header and chip gradients (ends and midpoints)', () => {
   });
 });
 
-describe('splash', () => {
-  it.each(['#7A1E06', '#9A2A08', '#1E3A8A', '#2B4FB0'])('white wordmark and tagline on %s', (bg) => {
-    expect(contrastRatio(white, bg)).toBeGreaterThanOrEqual(AA);
+describe('day header reads gray first (phase 3 feedback)', () => {
+  it('keeps sage over the top half and orange only as the lower band', () => {
+    const { header, chip } = headerThemes.dark.day;
+    expect(header.colors[0]).toBe('#5F6F6C');
+    expect(header.colors[1]).toBe('#5F6F6C');
+    expect(header.locations[1]).toBeGreaterThanOrEqual(0.45);
+    expect(header.colors.at(-1)).toBe('#B83D0B');
+    expect(chip.locations[1]).toBeGreaterThanOrEqual(0.5);
+    expect(headerThemes.light.day.header.locations[1]).toBeGreaterThanOrEqual(0.45);
   });
 
-  it.each(['#FFF1C9', '#E6F0FF'])('charcoal concept label on %s', (bg) => {
+  it('white header text keeps at least 5:1 on every new stop and midpoint', () => {
+    for (const sample of gradientSamples(headerThemes.dark.day.header.colors)) {
+      expect(contrastRatio(white, sample)).toBeGreaterThanOrEqual(5);
+    }
+  });
+});
+
+describe('splash', () => {
+  it.each(splashStops.day)('day: charcoal wordmark, tagline and concept label on %s', (bg) => {
+    expect(contrastRatio(splashInk.day.wordmark, bg)).toBeGreaterThanOrEqual(AA);
+    expect(contrastRatio(splashInk.day.concept, bg)).toBeGreaterThanOrEqual(AA);
+  });
+
+  it.each(gradientSamples(splashStops.day as [string, string, ...string[]]))('day midpoint %s stays AA', (bg) => {
     expect(contrastRatio(charcoal, bg)).toBeGreaterThanOrEqual(AA);
+  });
+
+  it.each(['#1E3A8A', '#2B4FB0'])('night: white wordmark and tagline on %s', (bg) => {
+    expect(contrastRatio(splashInk.night.wordmark, bg)).toBeGreaterThanOrEqual(AA);
+  });
+
+  it('night: charcoal concept label on the bottom glow', () => {
+    expect(contrastRatio(charcoal, '#E6F0FF')).toBeGreaterThanOrEqual(AA);
   });
 });
