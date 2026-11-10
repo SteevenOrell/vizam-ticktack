@@ -22,6 +22,7 @@ import { categoryColorSchema, DEFAULT_GOAL_REMINDERS, type CategoryColor } from 
 import { defaultWeekStartsOn, shortDate } from '../../i18n/dates';
 import { formatClock, formatMinutes, noonOf } from '../../lib/dates';
 import { Button } from '../../ui/Button';
+import { columnStyle } from '../../ui/Centered';
 import { CategoryDot } from '../../ui/Checkbox';
 import { Icon } from '../../ui/Icon';
 import { KeyboardAwareScrollView, KeyboardSafeView, RevealTarget } from '../../ui/keyboard';
@@ -557,13 +558,14 @@ const styles = StyleSheet.create({
   root: { flex: 1 },
   flex: { flex: 1, minWidth: 0 },
   bar: {
+    ...columnStyle,
     flexDirection: 'row',
     alignItems: 'center',
     gap: space.md,
     paddingHorizontal: space.lg,
     paddingBottom: space.md,
   },
-  content: { paddingHorizontal: space.lg, gap: space.lg, paddingBottom: space.xl },
+  content: { ...columnStyle, paddingHorizontal: space.lg, gap: space.lg, paddingBottom: space.xl },
   section: { gap: space.xs },
   pills: { flexDirection: 'row', flexWrap: 'wrap', gap: space.xs, alignItems: 'center' },
   swatch: {
@@ -587,6 +589,7 @@ const styles = StyleSheet.create({
   timeRow: { flexDirection: 'row', alignItems: 'flex-start', gap: space.sm, flexWrap: 'wrap' },
   timeCell: { flex: 1, minWidth: 140 },
   footer: {
+    ...columnStyle,
     borderTopWidth: StyleSheet.hairlineWidth,
     paddingHorizontal: space.lg,
     paddingTop: space.sm,

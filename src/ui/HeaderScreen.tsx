@@ -4,6 +4,7 @@ import {
   useContext,
   useMemo,
   useRef,
+  useState,
   type ComponentRef,
   type ReactElement,
   type ReactNode,
@@ -11,6 +12,7 @@ import {
 import { ScrollView, StyleSheet, View, type RefreshControlProps } from 'react-native';
 
 import { DeckPanel } from './Card';
+import { Centered } from './Centered';
 import { GradientHeader } from './GradientHeader';
 import { KeyboardAwareScrollView, KeyboardSafeView } from './keyboard';
 import { Text } from './Text';
@@ -20,9 +22,11 @@ import { useTheme } from './theme/ThemeProvider';
 interface HeaderScroll {
   /** Scrolls the screen so that `y` px inside `node` lands `margin` px below the top of the viewport. */
   scrollToIn: (node: ComponentRef<typeof View> | null, y: number, margin?: number) => void;
+  /** Freezes the screen scroll while a block is dragged on the timeline, so the drag is not taken as a scroll. */
+  setScrollEnabled: (enabled: boolean) => void;
 }
 
-const ScrollCtx = createContext<HeaderScroll>({ scrollToIn: () => undefined });
+const ScrollCtx = createContext<HeaderScroll>({ scrollToIn: () => undefined, setScrollEnabled: () => undefined });
 export const useHeaderScroll = () => useContext(ScrollCtx);
 
 /**
@@ -40,6 +44,7 @@ export function HeaderScreen({
   testID,
   refreshControl,
   footer,
+  maxWidth,
 }: {
   title: string;
   action?: ReactNode;
@@ -50,10 +55,13 @@ export function HeaderScreen({
   refreshControl?: ReactElement<RefreshControlProps>;
   /** Content after the deck panel, outside the scroll view (floating actions). */
   footer?: ReactNode;
+  /** Width of the centred content column on wide screens (default 720; the week hour grid asks for more). */
+  maxWidth?: number;
 }) {
   const theme = useTheme();
   const scrollRef = useRef<ComponentRef<typeof ScrollView>>(null);
   const contentRef = useRef<ComponentRef<typeof View>>(null);
+  const [scrollEnabled, setScrollEnabled] = useState(true);
 
   const scrollToIn = useCallback((node: ComponentRef<typeof View> | null, y: number, margin: number = space.lg) => {
     const content = contentRef.current;
@@ -64,7 +72,7 @@ export function HeaderScreen({
       () => undefined,
     );
   }, []);
-  const scroll = useMemo(() => ({ scrollToIn }), [scrollToIn]);
+  const scroll = useMemo(() => ({ scrollToIn, setScrollEnabled }), [scrollToIn]);
 
   return (
     <KeyboardSafeView testID={testID} style={{ backgroundColor: theme.colors.bg }}>
@@ -74,20 +82,25 @@ export function HeaderScreen({
           style={styles.flex}
           contentContainerStyle={styles.scroll}
           bounces={!!refreshControl}
+          scrollEnabled={scrollEnabled}
           refreshControl={refreshControl}
           testID={testID ? `${testID}-scroll` : undefined}
         >
           <View ref={contentRef} collapsable={false} style={styles.flexGrow}>
             <GradientHeader>
-              <View style={styles.titleRow}>
-                <Text variant="title1" color={theme.header.on.text} accessibilityRole="header" style={styles.title}>
-                  {title}
-                </Text>
-                {action}
-              </View>
-              {header}
+              <Centered maxWidth={maxWidth}>
+                <View style={styles.titleRow}>
+                  <Text variant="title1" color={theme.header.on.text} accessibilityRole="header" style={styles.title}>
+                    {title}
+                  </Text>
+                  {action}
+                </View>
+                {header}
+              </Centered>
             </GradientHeader>
-            <DeckPanel>{children}</DeckPanel>
+            <DeckPanel>
+              <Centered maxWidth={maxWidth}>{children}</Centered>
+            </DeckPanel>
           </View>
         </KeyboardAwareScrollView>
       </ScrollCtx.Provider>

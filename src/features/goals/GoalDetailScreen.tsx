@@ -13,6 +13,7 @@ import { shortDate, weekdayNames } from '../../i18n/dates';
 import { formatClock, noonOf } from '../../lib/dates';
 import { remindersSupported } from '../../services/notifications/expoNotifications';
 import { Button } from '../../ui/Button';
+import { columnStyle } from '../../ui/Centered';
 import { Card } from '../../ui/Card';
 import { CategoryDot } from '../../ui/Checkbox';
 import { ConfirmDialog } from '../../ui/ConfirmDialog';
@@ -378,6 +379,7 @@ const styles = StyleSheet.create({
   root: { flex: 1 },
   flex: { flex: 1, minWidth: 0 },
   bar: {
+    ...columnStyle,
     flexDirection: 'row',
     alignItems: 'center',
     gap: space.xs,
@@ -385,7 +387,7 @@ const styles = StyleSheet.create({
     paddingBottom: space.xs,
   },
   iconButton: { width: sizes.touch, height: sizes.touch, alignItems: 'center', justifyContent: 'center' },
-  content: { paddingHorizontal: space.lg, paddingTop: space.xs },
+  content: { ...columnStyle, paddingHorizontal: space.lg, paddingTop: space.xs },
   stack: { gap: space.lg },
   titleBlock: { gap: space.xxs },
   hero: { flexDirection: 'row', alignItems: 'center', gap: space.lg, flexWrap: 'wrap', padding: space.lg },

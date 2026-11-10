@@ -11,6 +11,7 @@ import { LOCAL_OWNER } from '../../domain/models';
 import { usePreferences } from '../../state/preferences';
 import { useSession } from '../../state/session';
 import { Button } from '../../ui/Button';
+import { innerColumnStyle } from '../../ui/Centered';
 import { DeckPanel } from '../../ui/Card';
 import { GradientHeader } from '../../ui/GradientHeader';
 import { decorativeProps } from '../../ui/platform';
@@ -171,11 +172,11 @@ const styles = StyleSheet.create({
   root: { flex: 1 },
   flex: { flex: 1 },
   scroll: { flexGrow: 1 },
-  brand: { alignItems: 'flex-start' },
-  hero: { flexDirection: 'row', alignItems: 'center', gap: space.md, marginTop: space.xl },
+  brand: { ...innerColumnStyle, alignItems: 'flex-start' },
+  hero: { ...innerColumnStyle, flexDirection: 'row', alignItems: 'center', gap: space.md, marginTop: space.xl },
   numeral: { fontVariant: ['tabular-nums'] },
   panel: { paddingBottom: space.xxl },
-  block: { gap: space.sm },
+  block: { ...innerColumnStyle, gap: space.sm },
   dots: { flexDirection: 'row', gap: 6, marginVertical: space.sm },
   dot: { height: 8, borderRadius: 4 },
   actions: { gap: space.xs, marginTop: space.sm },

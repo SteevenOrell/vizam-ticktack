@@ -13,6 +13,15 @@ export const space = {
 
 export const screenPadding = space.lg;
 
+/** Window width (pt) from which the tablet / desktop layout applies (week hour grid). */
+export const WIDE_BREAKPOINT = 768;
+
+/**
+ * Maximum content width on wide screens (DESIGN.md section 5): backgrounds stay full width, the content column is
+ * centred. `text` for lists, forms and details; `grid` for the week hour grid, which needs the room.
+ */
+export const contentWidth = { text: 720, grid: 1120 } as const;
+
 export const radii = {
   panel: 28,
   card: 20,

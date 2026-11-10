@@ -23,6 +23,7 @@ import type { EditScope } from '../../domain/recurrence/seriesEdit';
 import { defaultWeekStartsOn, shortDate } from '../../i18n/dates';
 import { noonOf } from '../../lib/dates';
 import { Button } from '../../ui/Button';
+import { columnStyle } from '../../ui/Centered';
 import { Checkbox } from '../../ui/Checkbox';
 import { ConfirmDialog, type DialogAction } from '../../ui/ConfirmDialog';
 import { Icon } from '../../ui/Icon';
@@ -531,13 +532,14 @@ const styles = StyleSheet.create({
   root: { flex: 1 },
   flex: { flex: 1 },
   bar: {
+    ...columnStyle,
     flexDirection: 'row',
     alignItems: 'center',
     gap: space.md,
     paddingHorizontal: space.lg,
     paddingBottom: space.md,
   },
-  content: { paddingHorizontal: space.lg, gap: space.lg },
+  content: { ...columnStyle, paddingHorizontal: space.lg, gap: space.lg },
   section: { gap: space.xs },
   pills: { flexDirection: 'row', flexWrap: 'wrap', gap: space.xs },
   timeRow: { flexDirection: 'row', alignItems: 'flex-start', gap: space.sm, flexWrap: 'wrap' },
@@ -552,6 +554,7 @@ const styles = StyleSheet.create({
   },
   iconButton: { width: sizes.touch, height: sizes.touch, alignItems: 'center', justifyContent: 'center' },
   footer: {
+    ...columnStyle,
     borderTopWidth: StyleSheet.hairlineWidth,
     paddingHorizontal: space.lg,
     paddingTop: space.sm,
