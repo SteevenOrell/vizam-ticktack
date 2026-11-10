@@ -15,11 +15,15 @@ export interface HideMatch {
   key?: string;
   taskId?: string;
   fromDate?: LocalDate;
+  /** A goal (goal deletes). */
+  goalId?: string;
 }
 
 export interface PendingDelete {
   id: string;
   label: string;
+  /** What was deleted (snackbar text). */
+  kind?: 'task' | 'goal';
   hide: HideMatch;
   /** The delete has run; the rows stay hidden briefly while screens refresh. */
   committed?: boolean;
@@ -59,7 +63,7 @@ async function commit(id: string, onError?: (e: unknown) => void) {
 
 /** Hides the rows and schedules the delete. A newer delete commits the older ones (one snackbar at a time). */
 export function scheduleDelete(
-  input: { label: string; hide: HideMatch; run: () => Promise<void> },
+  input: { label: string; hide: HideMatch; run: () => Promise<void>; kind?: 'task' | 'goal' },
   onError?: (e: unknown) => void,
 ): string {
   for (const id of [...runners.keys()]) void commit(id, onError);
@@ -67,7 +71,9 @@ export function scheduleDelete(
   const id = `del-${counter}`;
   const timer = setTimeout(() => void commit(id, onError), UNDO_MS);
   runners.set(id, { run: input.run, timer });
-  usePendingDeletes.setState((s) => ({ pending: [...s.pending, { id, label: input.label, hide: input.hide }] }));
+  usePendingDeletes.setState((s) => ({
+    pending: [...s.pending, { id, label: input.label, hide: input.hide, kind: input.kind ?? 'task' }],
+  }));
   return id;
 }
 
@@ -90,4 +96,9 @@ export function isHidden(item: { key: string; taskId: string; date: LocalDate },
     if (hide.taskId && hide.taskId === item.taskId) return !hide.fromDate || item.date >= hide.fromDate;
     return false;
   });
+}
+
+/** True while a goal delete is pending (the goal is hidden from lists until it commits or is undone). */
+export function isGoalHidden(goalId: string, pending: readonly PendingDelete[]) {
+  return pending.some(({ hide }) => hide.goalId === goalId);
 }

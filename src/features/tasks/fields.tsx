@@ -11,6 +11,7 @@ import { formatClock, formatMinutes } from '../../lib/dates';
 import { Button } from '../../ui/Button';
 import { CategoryDot } from '../../ui/Checkbox';
 import { Icon } from '../../ui/Icon';
+import { RevealTarget, RevealWhen } from '../../ui/keyboard';
 import { Pill } from '../../ui/Pill';
 import { SelectField, type SelectOption } from '../../ui/SelectField';
 import { Text } from '../../ui/Text';
@@ -123,7 +124,9 @@ export function CategoryField({
   const tooLong = (clean?.length ?? 0) > CATEGORY_NAME_MAX;
 
   return (
-    <View style={styles.gap}>
+    // The field and its suggestions stay above the keyboard together.
+    <RevealTarget style={styles.gap}>
+      <RevealWhen token={suggestions.length} active={focused} />
       <TextField
         testID={testID}
         label={t('editor.category')}
@@ -160,7 +163,7 @@ export function CategoryField({
           ))}
         </View>
       ) : null}
-    </View>
+    </RevealTarget>
   );
 }
 

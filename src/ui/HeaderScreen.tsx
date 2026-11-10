@@ -12,6 +12,7 @@ import { ScrollView, StyleSheet, View, type RefreshControlProps } from 'react-na
 
 import { DeckPanel } from './Card';
 import { GradientHeader } from './GradientHeader';
+import { KeyboardAwareScrollView, KeyboardSafeView } from './keyboard';
 import { Text } from './Text';
 import { space } from './theme/layout';
 import { useTheme } from './theme/ThemeProvider';
@@ -28,6 +29,8 @@ export const useHeaderScroll = () => useContext(ScrollCtx);
  * Screen layout: gradient header (title, optional action, extra header content) with a deck panel below. The whole
  * screen is one vertical scroll view; content must not nest another vertical scroller (it would trap the gesture
  * on phones), so long content such as the day timeline grows inside this scroll and uses `useHeaderScroll`.
+ * Forms (sign-in, sign-up, reset) stay usable with the keyboard open: the screen pads above it and scrolls the
+ * focused field into view.
  */
 export function HeaderScreen({
   title,
@@ -64,15 +67,14 @@ export function HeaderScreen({
   const scroll = useMemo(() => ({ scrollToIn }), [scrollToIn]);
 
   return (
-    <View testID={testID} style={[styles.flex, { backgroundColor: theme.colors.bg }]}>
+    <KeyboardSafeView testID={testID} style={{ backgroundColor: theme.colors.bg }}>
       <ScrollCtx.Provider value={scroll}>
-        <ScrollView
+        <KeyboardAwareScrollView
           ref={scrollRef}
           style={styles.flex}
           contentContainerStyle={styles.scroll}
           bounces={!!refreshControl}
           refreshControl={refreshControl}
-          keyboardShouldPersistTaps="handled"
           testID={testID ? `${testID}-scroll` : undefined}
         >
           <View ref={contentRef} collapsable={false} style={styles.flexGrow}>
@@ -87,10 +89,10 @@ export function HeaderScreen({
             </GradientHeader>
             <DeckPanel>{children}</DeckPanel>
           </View>
-        </ScrollView>
+        </KeyboardAwareScrollView>
       </ScrollCtx.Provider>
       {footer}
-    </View>
+    </KeyboardSafeView>
   );
 }
 

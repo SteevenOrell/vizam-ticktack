@@ -9,6 +9,21 @@ jest.mock('expo-crypto', () => ({
   randomUUID: () => require('crypto').randomUUID(),
 }));
 
+// Local notifications: a small stand-in for expo-notifications (tests drive permissions per case).
+jest.mock('expo-notifications', () => ({
+  getAllScheduledNotificationsAsync: jest.fn(async () => []),
+  scheduleNotificationAsync: jest.fn(async () => 'id'),
+  cancelScheduledNotificationAsync: jest.fn(async () => undefined),
+  getPermissionsAsync: jest.fn(async () => ({ granted: false, status: 'undetermined', canAskAgain: true })),
+  requestPermissionsAsync: jest.fn(async () => ({ granted: true, status: 'granted', canAskAgain: true })),
+  setNotificationHandler: jest.fn(),
+  setNotificationChannelAsync: jest.fn(async () => null),
+  getLastNotificationResponseAsync: jest.fn(async () => null),
+  addNotificationResponseReceivedListener: jest.fn(() => ({ remove: jest.fn() })),
+  AndroidImportance: { HIGH: 6 },
+  SchedulableTriggerInputTypes: { DATE: 'date' },
+}));
+
 // UI flows that save through SQLite can exceed the default 1 s waitFor on a cold, uncached run.
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 require('@testing-library/react-native').configure({ asyncUtilTimeout: 5000 });

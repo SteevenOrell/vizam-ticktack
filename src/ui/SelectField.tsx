@@ -217,7 +217,8 @@ const styles = StyleSheet.create({
     gap: space.xs,
   },
   triggerCompact: { minHeight: sizes.touch },
-  list: { flexGrow: 0 },
+  // Shrinks above the keyboard so the content under the list (e.g. "New goal") stays reachable.
+  list: { flexGrow: 0, flexShrink: 1 },
   option: {
     height: ROW,
     flexDirection: 'row',

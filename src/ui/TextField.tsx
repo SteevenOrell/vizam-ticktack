@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { StyleSheet, TextInput, View, type TextInputProps } from 'react-native';
 
+import { useKeyboardReveal } from './keyboard';
 import { Text } from './Text';
 import { radii, sizes, space } from './theme/layout';
 import { useTheme } from './theme/ThemeProvider';
@@ -19,6 +20,7 @@ export interface TextFieldProps extends Omit<TextInputProps, 'style'> {
 export function TextField({ label, error, hint, large, multiline, testID, onFocus, onBlur, ...rest }: TextFieldProps) {
   const { colors } = useTheme();
   const [focused, setFocused] = useState(false);
+  const reveal = useKeyboardReveal();
   const borderColor = error ? colors.danger : focused ? colors.focus : colors.border;
   return (
     <View style={styles.wrap}>
@@ -34,6 +36,8 @@ export function TextField({ label, error, hint, large, multiline, testID, onFocu
         multiline={multiline}
         onFocus={(e) => {
           setFocused(true);
+          // Keep the field (and its group, see RevealTarget) above the keyboard.
+          reveal();
           onFocus?.(e);
         }}
         onBlur={(e) => {

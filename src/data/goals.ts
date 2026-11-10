@@ -415,7 +415,8 @@ export async function getGoalDetail(
   return {
     goal,
     summary: summarize(goal, linked, today),
-    items,
+    // The goal is the screen itself: rows leave its name out to keep room for date and category.
+    items: items.map((i) => ({ ...i, goalTitle: null })),
     linkedIds: linked.map((t) => t.id),
     history: [...goal.history].reverse(),
   };

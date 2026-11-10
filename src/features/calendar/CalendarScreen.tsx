@@ -23,6 +23,7 @@ import { Pill } from '../../ui/Pill';
 import { SegmentedControl } from '../../ui/SegmentedControl';
 import { AsyncContent, EmptyState } from '../../ui/states';
 import { Stepper } from '../../ui/Stepper';
+import { SwipePager } from '../../ui/SwipePager';
 import { Text } from '../../ui/Text';
 import { radii, space } from '../../ui/theme/layout';
 import { useTheme } from '../../ui/theme/ThemeProvider';
@@ -136,13 +137,15 @@ export function CalendarScreen({ now = new Date(), initialView = 'day' }: { now?
             if (view === 'day') {
               const allDay = items.filter((i) => !i.startTime);
               return (
-                <View style={styles.day}>
-                  {items.length === 0 ? (
-                    <EmptyState icon="calendar" title={t('calendar.emptyTitle')} body={t('calendar.emptyBody')} />
-                  ) : null}
-                  <AllDayStrip items={allDay} label={t('calendar.allDay')} />
-                  <DayTimeline items={items} isToday={selected === today} now={now} dayKey={selected} />
-                </View>
+                <SwipePager onPage={move} testID="calendar-pager-day" accessibilityHint={t('calendar.swipeHint_day')}>
+                  <View style={styles.day}>
+                    {items.length === 0 ? (
+                      <EmptyState icon="calendar" title={t('calendar.emptyTitle')} body={t('calendar.emptyBody')} />
+                    ) : null}
+                    <AllDayStrip items={allDay} label={t('calendar.allDay')} />
+                    <DayTimeline items={items} isToday={selected === today} now={now} dayKey={selected} />
+                  </View>
+                </SwipePager>
               );
             }
 
@@ -151,7 +154,13 @@ export function CalendarScreen({ now = new Date(), initialView = 'day' }: { now?
               const byDay = loads.filter((l) => l.total > 0);
               return (
                 <View style={styles.week}>
-                  <DateStrip days={loads} selected={selected} today={today} onSelect={setSelected} />
+                  <SwipePager
+                    onPage={move}
+                    testID="calendar-pager-week"
+                    accessibilityHint={t('calendar.swipeHint_week')}
+                  >
+                    <DateStrip days={loads} selected={selected} today={today} onSelect={setSelected} />
+                  </SwipePager>
                   {byDay.length === 0 ? (
                     <EmptyState
                       icon="calendar"
@@ -198,33 +207,39 @@ export function CalendarScreen({ now = new Date(), initialView = 'day' }: { now?
             const dayItems = items.filter((i) => i.date === selected);
             return (
               <View style={styles.week}>
-                <Card style={styles.monthCard}>
-                  <Calendar
-                    key={`${lang}-${theme.scheme}-${selected.slice(0, 7)}`}
-                    current={selected}
-                    firstDay={weekStartsOn}
-                    hideArrows
-                    disableMonthChange
-                    renderHeader={() => null}
-                    markedDates={marked}
-                    onDayPress={(d: { dateString: string }) => setSelected(d.dateString)}
-                    theme={{
-                      calendarBackground: 'transparent',
-                      dayTextColor: colors.text,
-                      monthTextColor: colors.text,
-                      textSectionTitleColor: colors.textSecondary,
-                      selectedDayBackgroundColor: colors.accent,
-                      selectedDayTextColor: colors.onAccent,
-                      todayTextColor: colors.accentText,
-                      dotColor: colors.accent,
-                      selectedDotColor: colors.onAccent,
-                      textDisabledColor: colors.textTertiary,
-                      textDayFontFamily: fontFamilies.textMedium,
-                      textMonthFontFamily: fontFamilies.displaySemiBold,
-                      textDayHeaderFontFamily: fontFamilies.textMedium,
-                    }}
-                  />
-                </Card>
+                <SwipePager
+                  onPage={move}
+                  testID="calendar-pager-month"
+                  accessibilityHint={t('calendar.swipeHint_month')}
+                >
+                  <Card style={styles.monthCard}>
+                    <Calendar
+                      key={`${lang}-${theme.scheme}-${selected.slice(0, 7)}`}
+                      current={selected}
+                      firstDay={weekStartsOn}
+                      hideArrows
+                      disableMonthChange
+                      renderHeader={() => null}
+                      markedDates={marked}
+                      onDayPress={(d: { dateString: string }) => setSelected(d.dateString)}
+                      theme={{
+                        calendarBackground: 'transparent',
+                        dayTextColor: colors.text,
+                        monthTextColor: colors.text,
+                        textSectionTitleColor: colors.textSecondary,
+                        selectedDayBackgroundColor: colors.accent,
+                        selectedDayTextColor: colors.onAccent,
+                        todayTextColor: colors.accentText,
+                        dotColor: colors.accent,
+                        selectedDotColor: colors.onAccent,
+                        textDisabledColor: colors.textTertiary,
+                        textDayFontFamily: fontFamilies.textMedium,
+                        textMonthFontFamily: fontFamilies.displaySemiBold,
+                        textDayHeaderFontFamily: fontFamilies.textMedium,
+                      }}
+                    />
+                  </Card>
+                </SwipePager>
                 <View style={styles.dayBlock} testID="month-preview">
                   <Text variant="label" color={colors.textSecondary} accessibilityRole="header">
                     {shortDate(noonOf(selected), lang)} · {t('calendar.itemCount', { count: dayItems.length })}

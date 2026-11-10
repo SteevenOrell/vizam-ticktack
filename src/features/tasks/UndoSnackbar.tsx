@@ -32,7 +32,9 @@ export function UndoSnackbar({ bottom }: { bottom: number }) {
     <View style={[styles.wrap, { bottom }]} pointerEvents="box-none">
       <View style={[styles.bar, { backgroundColor: bg }]} testID="undo-snackbar" accessibilityLiveRegion="polite">
         <Text variant="bodySm" weight={500} color={fg} style={styles.flex} numberOfLines={2}>
-          {t('tasks.deleted', { title: latest.label })}
+          {latest.kind === 'goal'
+            ? t('goals.deleted', { title: latest.label })
+            : t('tasks.deleted', { title: latest.label })}
         </Text>
         <Button
           testID="undo-delete"

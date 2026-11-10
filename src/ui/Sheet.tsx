@@ -1,15 +1,17 @@
 import type { ReactNode } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
+import { Modal, Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Icon } from './Icon';
+import { KeyboardAwareScrollView, KeyboardSafeView } from './keyboard';
 import { Text } from './Text';
 import { radii, sizes, space } from './theme/layout';
 import { useTheme } from './theme/ThemeProvider';
 
 /**
  * Bottom sheet (phones) / centred panel (wide web) on a dimmed backdrop. Tapping the backdrop, the close button,
- * Android back or Escape on web closes it. RN Modal, so it also works on web.
+ * Android back or Escape on web closes it. RN Modal, so it also works on web. The panel rises above the keyboard
+ * (KeyboardSafeView) and its scroll keeps the focused field visible; the footer stays pinned above the keyboard.
  */
 export function Sheet({
   visible,
@@ -38,7 +40,7 @@ export function Sheet({
   const wide = width >= 700;
   return (
     <Modal visible={visible} transparent animationType={wide ? 'fade' : 'slide'} onRequestClose={onClose}>
-      <View style={[styles.root, wide ? styles.rootWide : null]}>
+      <KeyboardSafeView style={[styles.root, wide ? styles.rootWide : null]}>
         <Pressable
           style={[StyleSheet.absoluteFill, styles.backdrop]}
           onPress={onClose}
@@ -70,15 +72,19 @@ export function Sheet({
             </Pressable>
           </View>
           {scroll ? (
-            <ScrollView style={styles.scroll} contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
+            <KeyboardAwareScrollView
+              frameStyle={styles.scroll}
+              style={styles.scroll}
+              contentContainerStyle={styles.body}
+            >
               {children}
-            </ScrollView>
+            </KeyboardAwareScrollView>
           ) : (
             <View style={[styles.body, styles.scroll]}>{children}</View>
           )}
           {footer ? <View style={styles.footer}>{footer}</View> : null}
         </View>
-      </View>
+      </KeyboardSafeView>
     </Modal>
   );
 }
@@ -90,6 +96,7 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   panel: {
     width: '100%',
+    flexShrink: 1,
     borderTopLeftRadius: radii.panel,
     borderTopRightRadius: radii.panel,
     paddingTop: space.xs,

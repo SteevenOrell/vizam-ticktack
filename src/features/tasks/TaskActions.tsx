@@ -4,12 +4,14 @@ import { useTranslation } from 'react-i18next';
 import { Platform, StyleSheet, View } from 'react-native';
 
 import type { AgendaItem } from '../../data/queries/agenda';
+import { archiveGoal } from '../../data/goals';
 import { deleteTask, setDone, setSubtaskDone } from '../../data/tasks';
 import type { EditScope } from '../../domain/recurrence/seriesEdit';
 import { Button } from '../../ui/Button';
 import { ConfirmDialog, type DialogAction } from '../../ui/ConfirmDialog';
 import { Sheet } from '../../ui/Sheet';
 import { space } from '../../ui/theme/layout';
+import { useLastTaskGuard } from '../goals/useLastTaskGuard';
 import { useDataContext } from '../session/SessionProvider';
 import { scheduleDelete, type HideMatch } from './pendingDeletes';
 import { QuickEditSheet } from './QuickEditSheet';
@@ -73,8 +75,9 @@ export function TaskActionsProvider({
     [onError],
   );
 
-  const schedule = useCallback(
-    (item: AgendaItem, scope: EditScope) => {
+  const guard = useLastTaskGuard();
+  const scheduleNow = useCallback(
+    (item: AgendaItem, scope: EditScope, archiveGoalId: string | null) => {
       if (!ctx) return;
       const hide: HideMatch =
         scope === 'this' || !item.recurring
@@ -86,12 +89,24 @@ export function TaskActionsProvider({
         {
           label: item.title,
           hide,
-          run: () => deleteTask(ctx, { taskId: item.taskId, occurrenceId: item.occurrenceId }, scope),
+          run: async () => {
+            await deleteTask(ctx, { taskId: item.taskId, occurrenceId: item.occurrenceId }, scope);
+            if (archiveGoalId) await archiveGoal(ctx, archiveGoalId);
+          },
         },
         fail,
       );
     },
     [ctx, fail],
+  );
+  // Deleting the last task of a goal asks first (keep the empty goal, archive it, or cancel).
+  const { check } = guard;
+  const schedule = useCallback(
+    (item: AgendaItem, scope: EditScope) => {
+      if (scope === 'all' || !item.recurring) void check(item.taskId, (archive) => scheduleNow(item, scope, archive));
+      else scheduleNow(item, scope, null);
+    },
+    [check, scheduleNow],
   );
 
   const api = useMemo<TaskActionsApi>(
@@ -194,6 +209,7 @@ export function TaskActionsProvider({
           ) : null}
         </View>
       </Sheet>
+      {guard.dialog}
       <ConfirmDialog
         visible={scopeItem !== null}
         title={t('editor.deleteSeriesTitle')}

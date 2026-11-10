@@ -20,6 +20,8 @@ export const preferencesSchema = z.object({
   dayEnd: hhmm,
   /** Onboarding finished on this device (guest or account). */
   onboardingDone: z.boolean(),
+  /** Reminders were turned on with permission on this device: keep reconciling the OS schedule (cleans up after a wipe). */
+  remindersUsed: z.boolean(),
 });
 
 export type Preferences = z.infer<typeof preferencesSchema>;
@@ -32,6 +34,7 @@ export const defaultPreferences: Preferences = {
   dayStart: DEFAULT_DAY_START,
   dayEnd: DEFAULT_DAY_END,
   onboardingDone: false,
+  remindersUsed: false,
 };
 
 interface PreferencesState extends Preferences {
@@ -39,6 +42,7 @@ interface PreferencesState extends Preferences {
   setLanguage: (language: LanguagePreference) => void;
   setDayWindow: (dayStart: string, dayEnd: string) => void;
   setOnboardingDone: (done: boolean) => void;
+  setRemindersUsed: (used: boolean) => void;
 }
 
 export const PREFERENCES_STORAGE_KEY = 'ticktack.preferences';
@@ -51,17 +55,19 @@ export const usePreferences = create<PreferencesState>()(
       setLanguage: (language) => set({ language: languagePreferenceSchema.parse(language) }),
       setDayWindow: (dayStart, dayEnd) => set({ dayStart: hhmm.parse(dayStart), dayEnd: hhmm.parse(dayEnd) }),
       setOnboardingDone: (onboardingDone) => set({ onboardingDone }),
+      setRemindersUsed: (remindersUsed) => set({ remindersUsed }),
     }),
     {
       name: PREFERENCES_STORAGE_KEY,
       version: 1,
       storage: createJSONStorage(() => AsyncStorage),
-      partialize: ({ theme, language, dayStart, dayEnd, onboardingDone }) => ({
+      partialize: ({ theme, language, dayStart, dayEnd, onboardingDone, remindersUsed }) => ({
         theme,
         language,
         dayStart,
         dayEnd,
         onboardingDone,
+        remindersUsed,
       }),
       // Stored data is untrusted: keep only valid fields, fall back to defaults otherwise.
       merge: (persisted, current) => {

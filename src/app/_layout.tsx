@@ -19,9 +19,10 @@ import { DatabaseProvider, useDatabase } from '../data/DatabaseProvider';
 import { openExpoDriver } from '../data/db/expoDriver';
 import { migrate } from '../data/db/migrate';
 import { devWebFlag, maybeSeedDemo } from '../data/devSeed';
-import { SessionProvider } from '../features/session/SessionProvider';
+import { SessionProvider, useDataContext } from '../features/session/SessionProvider';
 import { AppSplash } from '../features/splash/AppSplash';
 import { getFirebase } from '../services/firebase';
+import { useGoalMaintenance } from '../services/notifications/useGoalMaintenance';
 import i18n, { initI18n, resolveLanguage } from '../i18n';
 import { usePreferences } from '../state/preferences';
 import { ThemeProvider, useTheme } from '../ui/theme/ThemeProvider';
@@ -62,6 +63,12 @@ function LanguageSync() {
   return null;
 }
 
+/** Goal history and the rolling reminder window (start, foreground, after changes). */
+function GoalMaintenance() {
+  useGoalMaintenance(useDataContext());
+  return null;
+}
+
 function AppShell() {
   const theme = useTheme();
   const database = useDatabase();
@@ -91,9 +98,13 @@ function AppShell() {
         <Stack.Screen name="onboarding" options={{ gestureEnabled: false }} />
         <Stack.Screen name="task/new" options={{ presentation: 'modal' }} />
         <Stack.Screen name="task/[id]" options={{ presentation: 'modal' }} />
+        <Stack.Screen name="goal/new" options={{ presentation: 'modal' }} />
+        <Stack.Screen name="goal/[id]" />
+        <Stack.Screen name="goal/edit/[id]" options={{ presentation: 'modal' }} />
         <Stack.Screen name="account/delete" options={{ presentation: 'modal' }} />
         <Stack.Screen name="+not-found" />
       </Stack>
+      <GoalMaintenance />
       {splashGone ? null : <AppSplash period={theme.period} visible={!ready} onHidden={onHidden} />}
     </View>
   );

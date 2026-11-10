@@ -1,7 +1,7 @@
 import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { ZodError } from 'zod';
 
@@ -26,6 +26,7 @@ import { Button } from '../../ui/Button';
 import { Checkbox } from '../../ui/Checkbox';
 import { ConfirmDialog, type DialogAction } from '../../ui/ConfirmDialog';
 import { Icon } from '../../ui/Icon';
+import { KeyboardAwareScrollView, KeyboardSafeView } from '../../ui/keyboard';
 import { Pill } from '../../ui/Pill';
 import { ErrorState, Skeleton } from '../../ui/states';
 import { Stepper } from '../../ui/Stepper';
@@ -33,6 +34,8 @@ import { Text } from '../../ui/Text';
 import { TextField } from '../../ui/TextField';
 import { radii, sizes, space } from '../../ui/theme/layout';
 import { useTheme } from '../../ui/theme/ThemeProvider';
+import { archiveGoal } from '../../data/goals';
+import { useLastTaskGuard } from '../goals/useLastTaskGuard';
 import { useDataContext } from '../session/SessionProvider';
 import { CategoryField, DurationSelect, GoalField, TimeSelect } from './fields';
 import { RepeatEditor } from './RepeatEditor';
@@ -198,10 +201,17 @@ export function TaskEditorScreen({
     if (!ctx || !taskId || !d) return;
     void run(() => updateTask(ctx, taskId, d, { scope, occurrenceId }));
   };
+  const guard = useLastTaskGuard();
   const deleteWithScope = (scope: EditScope) => {
     setDialog(null);
     if (!ctx || !taskId) return;
-    void run(() => deleteTask(ctx, { taskId, occurrenceId }, scope));
+    const go = (archiveGoalId: string | null) =>
+      void run(async () => {
+        await deleteTask(ctx, { taskId, occurrenceId }, scope);
+        if (archiveGoalId) await archiveGoal(ctx, archiveGoalId);
+      });
+    if (scope === 'all' || !isSeries) void guard.check(taskId, go);
+    else go(null);
   };
 
   const dialogActions: DialogAction[] = useMemo(() => {
@@ -255,7 +265,7 @@ export function TaskEditorScreen({
   const dateLabel = draft.date ? shortDate(noonOf(draft.date), lang) : t('editor.noDate');
 
   return (
-    <View style={[styles.root, { backgroundColor: colors.bg }]} testID="screen-task-editor">
+    <KeyboardSafeView style={{ backgroundColor: colors.bg }} testID="screen-task-editor">
       <View style={[styles.bar, { paddingTop: insets.top + space.md }]}>
         <Text variant="title1" accessibilityRole="header" style={styles.flex}>
           {title}
@@ -263,7 +273,7 @@ export function TaskEditorScreen({
         <Button label={t('modal.close')} variant="secondary" size="compact" icon="close" onPress={close} />
       </View>
 
-      <ScrollView contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + space.huge }]}>
+      <KeyboardAwareScrollView contentContainerStyle={[styles.content, { paddingBottom: space.xl }]}>
         {isSeries && occurrenceId ? (
           <View style={[styles.banner, { backgroundColor: colors.surface }]}>
             <Icon name="repeat" size={18} color={colors.accentText} />
@@ -430,19 +440,6 @@ export function TaskEditorScreen({
           </View>
         </Section>
 
-        {errors.form ? (
-          <Text variant="body" color={colors.danger} accessibilityLiveRegion="polite">
-            {errors.form}
-          </Text>
-        ) : null}
-
-        <Button
-          testID="save-task"
-          label={saving ? t('editor.saving') : t('editor.save')}
-          onPress={() => void onSave()}
-          disabled={saving || !ctx}
-          fullWidth
-        />
         {taskId ? (
           <Button
             testID="delete-task"
@@ -454,8 +451,30 @@ export function TaskEditorScreen({
             fullWidth
           />
         ) : null}
-      </ScrollView>
+      </KeyboardAwareScrollView>
 
+      {/* Pinned above the keyboard so Save is always reachable. */}
+      <View
+        style={[
+          styles.footer,
+          { borderColor: colors.border, backgroundColor: colors.bg, paddingBottom: Math.max(insets.bottom, space.sm) },
+        ]}
+      >
+        {errors.form ? (
+          <Text variant="bodySm" color={colors.danger} accessibilityLiveRegion="polite">
+            {errors.form}
+          </Text>
+        ) : null}
+        <Button
+          testID="save-task"
+          label={saving ? t('editor.saving') : t('editor.save')}
+          onPress={() => void onSave()}
+          disabled={saving || !ctx}
+          fullWidth
+        />
+      </View>
+
+      {guard.dialog}
       <ConfirmDialog
         visible={dialog !== null}
         title={
@@ -476,7 +495,7 @@ export function TaskEditorScreen({
         onCancel={() => setDialog(null)}
         cancelLabel={t('editor.cancel')}
       />
-    </View>
+    </KeyboardSafeView>
   );
 }
 
@@ -504,5 +523,11 @@ const styles = StyleSheet.create({
     paddingRight: space.xxs,
   },
   iconButton: { width: sizes.touch, height: sizes.touch, alignItems: 'center', justifyContent: 'center' },
+  footer: {
+    borderTopWidth: StyleSheet.hairlineWidth,
+    paddingHorizontal: space.lg,
+    paddingTop: space.sm,
+    gap: space.xs,
+  },
   addRow: { flexDirection: 'row', alignItems: 'flex-end', gap: space.sm },
 });

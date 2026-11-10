@@ -34,11 +34,18 @@ export function ConfirmDialog({
   const { colors } = useTheme();
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onCancel}>
-      <Pressable style={styles.backdrop} onPress={onCancel} accessibilityLabel={cancelLabel} accessibilityRole="button">
+      {/* Backdrop and card are siblings: no button inside a button (invalid HTML on web). */}
+      <View style={styles.backdrop}>
         <Pressable
+          style={[StyleSheet.absoluteFill, styles.dim]}
+          onPress={onCancel}
+          accessibilityLabel={cancelLabel}
+          accessibilityRole="button"
+        />
+        <View
           style={[styles.card, { backgroundColor: colors.surface }]}
-          onPress={() => undefined}
           accessibilityViewIsModal
+          aria-modal
           testID="confirm-dialog"
         >
           <Text variant="title2" accessibilityRole="header">
@@ -62,16 +69,16 @@ export function ConfirmDialog({
             ))}
             <Button label={cancelLabel} variant="ghost" onPress={onCancel} fullWidth />
           </View>
-        </Pressable>
-      </Pressable>
+        </View>
+      </View>
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
+  dim: { backgroundColor: 'rgba(0,0,0,0.55)' },
   backdrop: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.55)',
     alignItems: 'center',
     justifyContent: 'center',
     padding: space.lg,
