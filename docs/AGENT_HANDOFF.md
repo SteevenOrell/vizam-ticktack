@@ -1,6 +1,6 @@
 # Agent handoff — TickTack (VIZAM portfolio concept)
 
-_Last updated: 2026-11-10 (local time) by vizam-fullstack-developer, phase 3 goals round (second feedback round)_
+_Last updated: 2026-11-10 (local time) by vizam-fullstack-developer, step 0 "goal repeats must end"_
 
 ## Objective
 Offline-first mobile planner (Today, calendar, recurring tasks, reminders, routines, goals) built with Expo, SQLite as
@@ -17,6 +17,59 @@ local source of truth and Firebase (Auth + Firestore) for sync. Portfolio concep
 - **Goals round (second feedback):** branch `feat/phase-3-goals` from `feat/phase-3-feedback` (`136967d`), worked in
   worktree `.claude\worktrees\agent-a976d2411a03e53b9`. Commits: goal data layer + rules, goals UI + reminders + swipe
   + keyboard, docs + screenshots (`git log --oneline 136967d..`). Not pushed, not merged.
+- **Step 0, goal repeats must end:** based on `feat/phase-3-goals` (`76dfedd`). The agent's harness pinned it to its
+  own worktree `.claude\worktrees\agent-ab6e3c45cb9a9e728`, so the commits are on the branch
+  `worktree-agent-ab6e3c45cb9a9e728` (`git log --oneline 76dfedd..`), not yet on `feat/phase-3-goal-repeats` (still at
+  `76dfedd`, checked out in worktree `agent-a976d2411a03e53b9`). To bring it over, in that worktree: delete its
+  untracked `docs/PROJECT_PLAN.md` (the committed copy replaces it), then
+  `git merge --ff-only worktree-agent-ab6e3c45cb9a9e728`. Not pushed, not merged.
+- `docs/PROJECT_PLAN.md` is the approved remaining plan (step 0 ticked).
+
+## Step 0: repeating tasks in a goal must end (2026-11-10) — done
+**Rule.** A repeating task linked to a goal may not repeat forever and may not run past the goal's _limit_: the due
+date of a one-time goal, the end of the current period of a periodic goal (`repeatLimitOf` = `dueDateOf`). A one-time
+goal without a due date (created by name in the task editor) has no limit, but the repeat still needs an end.
+Pure logic in `src/domain/goals.ts`: `lastRepeatDate`, `goalRepeatIssue`, `clampRuleToGoal`, `defaultRepeatEnd`.
+
+**Decisions (simplest consistent behaviour).**
+1. Task side validates, goal side clamps, nothing prompts.
+   - Saving a task (`createTask` / `updateTask` in `src/data/tasks.ts`): "never" on a goal-linked draft is a Zod issue
+     (`repeatNeverInGoal`); an end after the limit throws `GoalRepeatError` (`issue: 'repeatNeverInGoal' |
+     'repeatAfterGoalEnd'`, in `src/data/goalBase.ts`) inside the transaction, so nothing is written. Checked also
+     when the draft leaves the goal untouched (`goalId: undefined`, quick edit) and when the schedule is unchanged
+     but the goal link is new. "This occurrence" edits do not touch the rule and are not checked.
+   - Linking from the goal side (`createGoal`, `updateGoal`, `linkTasks` in `src/data/goals.ts`) and changing a
+     goal's due date or period: every linked series with no end or a too-late end is ended on the limit
+     (`clampSeriesToGoal`): rule becomes "on date", occurrences after it are dropped, the change is queued for sync.
+   - An end that is already allowed is kept. **A later due date never extends a series** (the user chose that end).
+   - "This and following" on a linked series: the new series starts later, so an "after n times" end that would now
+     pass the limit is clamped instead of refused.
+2. Bound is `max(limit, series start)`: a series starting after the due date keeps its first occurrence, like a
+   one-off task dated after the due date. The edit is never impossible to save.
+3. No goal limit (goal without due date): default end = one month after the start, or after today for an old series.
+4. Periodic goals: the series ends with the **current** period. In the next period the old end is still valid and
+   new repeats may reach the new period end, but nothing is extended automatically, so a weekly goal fed only by a
+   repeating task shows 0 tasks next week until the user extends or re-adds the repeat (see Known issues).
+5. Older data and data pulled from another device: `enforceGoalRepeats` (repair pass, idempotent, write-free when
+   clean) runs with the goal maintenance (`useGoalMaintenance`: start, foreground, 1.5 s after changes), before the
+   history roll. **No SQL migration** (period ends cannot be computed in SQL and the fix has to go through the
+   outbox). **No Firestore rules change**: a rule document does not know its task's goal; checking it would need two
+   `get()` calls per write, would depend on push order (rule before task) and on the client's "today" for periodic
+   goals. Nothing to redeploy for this step.
+6. Progress needed no formula change: `computeProgress` already counts a series only inside the goal range and the
+   rule's own end; with every linked rule ended by the limit the count stops there (tests added).
+
+**UI.** `RepeatEditor` takes `goal?: GoalRepeatBound`: "Never" is disabled (hint for screen readers), a caption
+explains why and names the date (`repeat.goalEndHint` / `goalEndHintOpen`), a new repeat starts with the end on the
+limit, the end-date stepper and the "after n times" stepper stop at the limit, "After" starts with a count that fits.
+`TaskEditorScreen` derives the shown and saved repeat from the draft and the selected goal (`getGoalOptions` now
+returns `repeatEnd`), so picking a goal for a forever task ends it on the limit and removing the goal restores what
+the user had. The quick-edit sheet has no repeat or goal controls; it shows the specific error if a save is refused.
+Goal form and task picker show `goals.repeatEndNote` when repeating tasks are involved. Inline tasks in the goal form
+cannot repeat. EN/FR strings added.
+
+**Demo data.** The stretch series of "Run a 10 km race" is a two-week block (ends today + 6) and last week's five
+breaks are seeded as done occurrences (`task_occurrences` added to `DemoData`): the goal reads 6 of 12 (50 %).
 
 ## Phase 3 goals round (Steeven's second phone test, 2026-11-10) — done
 1. **Swipe between pages** (`src/ui/SwipePager.tsx`, used in `CalendarScreen.tsx`): month grid, week strip and day
@@ -103,7 +156,19 @@ Demo data gained notes, a third subtask, a goal link and an overlapping "Team ch
 - Web: 250 px lock (`src/ui/webLayout.ts`, pans at 500 px), focus ring only for keyboard focus on web (fixes the
   phase 2 known issue).
 
-## Last verified checks (2026-11-10, goals round, branch feat/phase-3-goals)
+## Last verified checks (2026-11-10, step 0, branch worktree-agent-ab6e3c45cb9a9e728)
+| Check | Command | Result |
+|---|---|---|
+| Typecheck | `npx tsc --noEmit` | pass |
+| Lint | `npx expo lint` | pass (0 problems) |
+| Format | `npx prettier --check .` | pass (a fresh worktree checks out CRLF; `npx prettier --write .` first, it leaves no content diff) |
+| Unit/data/sync/UI tests | `npx jest` | pass — 20 suites, 460 tests (439 before; +7 domain, +11 data, +3 UI) |
+| Rules + sync on emulators | `npm run test:rules` | pass — 2 suites, 45 tests (rules unchanged) |
+| Emulator seed | `npm run seed:emulator` | pass — 34 rows seeded, 34 documents uploaded through the rules (incl. the 5 done stretch occurrences) |
+| Screenshots / browser sweep | `node scripts/screenshots-goals.mjs` | not run (needs the web bundle and the root `.env`; editor state is covered by `tests/ui/goals.test.tsx`) |
+| Expo doctor, Android bundle, npm audit | | not run in this step (no dependency or config change) |
+
+### Previous round (goals, branch feat/phase-3-goals)
 | Check | Command | Result |
 |---|---|---|
 | Typecheck | `npx tsc --noEmit` | pass |
@@ -156,7 +221,11 @@ Demo data gained notes, a third subtask, a goal link and an overlapping "Team ch
   inexact on Android without the exact-alarm permission.
 - Linking a task that belongs to another goal moves it (the picker shows "In “X”"); that other goal can end up with
   no tasks. Changing a task's goal in the task editor is not blocked by the ≥ 1 task rule (only deletes warn).
-- Demo "Run a 10 km race" shows 1 of 37 because its weekly stretch series counts every occurrence until the due date.
+- Step 0: a periodic goal whose only tasks repeat has nothing to count in the next period (the series ended with the
+  period it was linked in). Product question for Steeven: keep, or let a periodic goal's repeats roll forward.
+- Step 0: a goal that is not active (achieved / archived) is not in the editor's goal list, so the editor shows no
+  limit for it; the repository still refuses a too-late end and the editor shows that message.
+- Step 0: not verified in a browser or on a device (no screenshots taken); covered by unit, data and UI tests.
 
 ## Deviations from the spec (for review)
 1. Week view = DateStrip (7 columns with load dots) + stacked 7-day agenda instead of a 7-column agenda grid
@@ -217,20 +286,18 @@ Goals round — `docs/screenshots/phase-3-goals/` (`node scripts/screenshots-goa
 for the keyboard), `light-day-en-goal-detail`, `sweep-{240,768,1440}-{goals,calendar-month,goal-detail}`.
 
 ## Pending (priority order)
-0. **Goal fix (Steeven, 2026-11-10, before phase 4):** "A goal can include repeating tasks but they should not be
-   infinite." A repeating task linked to a goal must have an end: block "Never" for goal-linked series (editor, goal
-   form inline tasks, task picker, quick edit, linking an existing never-ending series) and default/clamp the end to
-   the goal's due date (Once) or the end of the current period (periodic), with a short explanation; enforce in the
-   repository + rules tests; migrate demo data (the "Run a 10 km race" goal showed "1 of 37"); progress counts only
-   occurrences up to the end. Branch `feat/phase-3-goal-repeats` from `feat/phase-3-goals`.
-1. Phase 4 per `docs/MILESTONES.md`: task/routine reminders on the existing scheduler, background task, Android
+0. Done: goal repeats must end (see "Step 0" above).
+1. Phase 4 per `docs/PROJECT_PLAN.md` (slices 4a, 4b, 4c) and `docs/MILESTONES.md`: task/routine reminders on the
+   existing scheduler, background task, Android
    exact-alarm decision, task details, drag reschedule, history/overdue views, milestones, routines editing and
    runner, settings (week start, capacity, categories, failed-sync list), desktop max width.
 2. Phases 5–6.
 
 ## Next step
-1. Pending item 0 (goal repeats must end) on `feat/phase-3-goal-repeats`.
-2. Steeven tests it on his phone (Expo Go: `npx expo start --tunnel --clear` from that worktree; his Wi-Fi is a Public
+1. **Phase 4a** (task details screen, drag to reschedule, overdue and history views, week hour grid on tablet and
+   desktop, desktop maximum width) on a new branch stacked on the step 0 tip (fast-forward
+   `feat/phase-3-goal-repeats` first, see Repository).
+2. Steeven tests step 0 on his phone (Expo Go: `npx expo start --tunnel --clear` from that worktree; his Wi-Fi is a Public
    network with Node blocked by the firewall, so LAN mode times out; he is logged in with
    `npx expo login --no-browser`): swipe months/weeks/days, keyboard on the forms, create / edit / delete a goal,
    repeating tasks in goals, turn on a reminder and wait for one.
