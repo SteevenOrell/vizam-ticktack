@@ -74,10 +74,18 @@ Contrast (night): white on `#5F6F6C` 5.28, midpoint 5.90, `#3F5F8A` 6.53; chips 
 when the app comes to the foreground and once a minute while open, and cross-fades over 600 ms (instant with Reduce
 Motion). Day start/end are the existing settings in Me > Planning.
 
-**Splash (Steeven, 2026-11-09).** A soft, blurred "mesh" gradient on warm paper `#F4F1EC`: two or three large,
-heavily blurred blobs (sage `#70807D` plus orange `#FF7A24` by day, sage plus blue `#5B8FD6` by night), with a faint
-grain. The `ticktack` wordmark is charcoal `#17191B`, centred; the tagline sits 8 pt below it in Manrope 400, 13 pt,
--0.4 tracking, `#5A6664`. The backgrounds are pre-rendered images (day and night, 1290 x 2796, WebP for the in-app
+**Splash (Steeven, 2026-11-09, revised).** A soft "ember" flow: near-black charcoal at the top that bends diagonally
+(top-right to bottom-left, then sweeping back right) through deep ember, a strong orange band and amber into a pale
+cream glow at the bottom right. Heavily blurred, faint grain, no hard edges.
+
+- Day stops: `#0B0B0C` → `#17191B` → `#7A1E06` → `#C2410C` → `#FF7A24` → `#FDBA3B` → `#FFF1C9`.
+- Night stops: `#0B0B0C` → `#17191B` → `#1E3A8A` → `#2B4FB0` → `#5B8FD6` → `#9DBEEA` → `#E6F0FF`.
+- The `ticktack` wordmark (white, orange hand) and the tagline sit together at the exact centre of the screen; the
+  tagline is 6 pt under the wordmark in Manrope 400, 13 pt, -0.4 tracking, white. The flow is placed so the centre
+  falls on the deep ember / deep blue zone: white on `#7A1E06` 10.42, on `#9A2A08` 7.75, on `#1E3A8A` 10.36, on
+  `#2B4FB0` 7.37. The orange band runs just below and right of the logo, so it stays the most visible colour.
+- "VIZAM portfolio concept" sits at the bottom in charcoal on the cream glow (`#17191B` on `#FFF1C9` 15.68, on
+  `#E6F0FF` 15.34). The backgrounds are pre-rendered images (day and night, 1290 x 2796, WebP for the in-app
 splash, PNG for the native one), not drawn live. Limitation: the native splash is a single static image shown before
 any code runs, so it always uses the day image; the in-app splash that follows picks day or night.
 
