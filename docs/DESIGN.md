@@ -80,8 +80,8 @@ cream glow at the bottom right. Heavily blurred, faint grain, no hard edges.
 
 - Day stops: `#0B0B0C` → `#17191B` → `#7A1E06` → `#C2410C` → `#FF7A24` → `#FDBA3B` → `#FFF1C9`.
 - Night stops: `#0B0B0C` → `#17191B` → `#1E3A8A` → `#2B4FB0` → `#5B8FD6` → `#9DBEEA` → `#E6F0FF`.
-- The `ticktack` wordmark (white, orange hand) and the tagline sit together at the exact centre of the screen; the
-  tagline is 6 pt under the wordmark in Manrope 400, 13 pt, -0.4 tracking, white. The flow is placed so the centre
+- The `ticktack` wordmark (white, orange hand, Space Grotesk 500 at 68 pt, about 75% of the screen width) and the
+  tagline sit together at the exact centre of the screen; the tagline is 8 pt under the wordmark in Manrope 400, 13 pt, -0.4 tracking, white. The flow is placed so the centre
   falls on the deep ember / deep blue zone: white on `#7A1E06` 10.42, on `#9A2A08` 7.75, on `#1E3A8A` 10.36, on
   `#2B4FB0` 7.37. The orange band runs just below and right of the logo, so it stays the most visible colour.
 - "VIZAM portfolio concept" sits at the bottom in charcoal on the cream glow (`#17191B` on `#FFF1C9` 15.68, on
