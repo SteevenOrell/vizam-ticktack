@@ -136,6 +136,6 @@ describe('synthetic seed', () => {
       "SELECT count(*) AS n FROM tasks WHERE owner_id = 'local' AND date = ? AND deleted = 0",
       ['2026-11-09'],
     );
-    expect(today?.n).toBe(5);
+    expect(today?.n).toBe(6); // five one-off tasks plus the overlapping "Team check-in"
   });
 });

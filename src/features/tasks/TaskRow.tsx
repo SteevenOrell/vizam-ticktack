@@ -294,9 +294,10 @@ const styles = StyleSheet.create({
   body: { flex: 1, minWidth: 0 },
   main: { minHeight: sizes.touch, justifyContent: 'center', gap: 2, paddingTop: 2 },
   done: { textDecorationLine: 'line-through' },
-  metaRow: { flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' },
-  metaText: { fontVariant: ['tabular-nums'], flexShrink: 1 },
-  goal: { flexDirection: 'row', alignItems: 'center', gap: 3, flexShrink: 1 },
+  // One line: the text parts truncate, the dot and icons keep their size.
+  metaRow: { flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'nowrap', minWidth: 0 },
+  metaText: { fontVariant: ['tabular-nums'], flexShrink: 1, minWidth: 0 },
+  goal: { flexDirection: 'row', alignItems: 'center', gap: 3, flexShrink: 2, minWidth: 0 },
   shrink: { flexShrink: 1 },
   preview: { gap: 3, paddingTop: space.xxs, paddingBottom: space.xxs, minHeight: 32, justifyContent: 'center' },
   subLine: { flexDirection: 'row', alignItems: 'center', gap: 6 },

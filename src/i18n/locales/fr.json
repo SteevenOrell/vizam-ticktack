@@ -160,7 +160,8 @@
     "swipeReopen": "À faire",
     "deleted": "« {{title}} » supprimée",
     "undo": "Annuler",
-    "doneState": "faite"
+    "doneState": "faite",
+    "moreSubtasks_many": "+{{count}} autres"
   },
   "dates": {
     "previousDay": "Jour précédent",

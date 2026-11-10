@@ -122,7 +122,8 @@ export function DayTimeline({
   const byKey = useMemo(() => new Map(timed.map((i) => [i.key, i])), [timed]);
   const nowMin = now.getHours() * 60 + now.getMinutes();
   const firstMin = blocks.length ? Math.min(...blocks.map((b) => b.startMin)) : 8 * 60;
-  const target = isToday ? Math.max(0, Math.min(nowMin, firstMin) - 30) : Math.max(0, firstMin - 30);
+  // One hour of context above now / the first item.
+  const target = Math.max(0, (isToday ? Math.min(nowMin, firstMin) : firstMin) - 60);
 
   // Scroll the screen to now / the first item once the grid is laid out (and again when the day changes).
   const scrolledFor = useRef<string | null>(null);

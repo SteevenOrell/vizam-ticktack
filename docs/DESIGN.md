@@ -66,13 +66,16 @@ light) is a separate choice.
 
 | Period | When | Dark theme | Light theme |
 |---|---|---|---|
-| Day | from the user's *day start* (default 06:00) to *day end* (default 19:00) | sage → orange `linear-gradient(165deg, #5F6F6C 0%, #B83D0B 62%, #C9480F 100%)`, chips `#4E5B58 → #9A3A0E` | `#E3E8E6 → #FFD9BF` |
+| Day | from the user's *day start* (default 06:00) to *day end* (default 19:00) | gray first, orange lower band: `linear-gradient(165deg, #5F6F6C 0%, #5F6F6C 48%, #6E5A4E 70%, #9A4418 88%, #B83D0B 100%)`, chips `linear-gradient(135deg, #4E5B58 0%, #4E5B58 50%, #8A3E14 100%)` | `linear-gradient(165deg, #E3E8E6 0%, #E3E8E6 50%, #EDE3DA 78%, #FFDCC4 100%)`, chips `#DCE3E1` 0–50% → `#F2D3BD` |
 | Night | the rest | sage → dusk blue `#5F6F6C → #3F5F8A`, chips `#4E5B58 → #3E4F6B` | `#E3E8E6 → #D6E2F2` |
 
-**Day orange must read clearly as orange (Steeven, 2026-11-09)** — this replaces the earlier sage → clay day gradient
-and the `gradientSage` / `gradientChip` day values above. Contrast (day): white on `#5F6F6C` 5.28, `#B83D0B` 5.66,
-`#C9480F` 4.75; chips white on `#9A3A0E` 7.03; light day `#17191B` on `#FFD9BF` 13.37, `#5A6664` 4.53. Because the
-bottom of the day header is now orange, elements sitting on it change: the round action (bell), the selected
+**Morning reads gray first, orange second (Steeven, phase 3 feedback, 2026-11-10)** — replaces the 2026-11-09 "day
+orange" gradient (`#5F6F6C → #B83D0B 62% → #C9480F`). Sage holds the top half, a warm gray-brown bridges, orange is
+only the lower band. Contrast (day, every stop and midpoint, asserted in `src/ui/theme/__tests__/contrast.test.ts`):
+white on `#5F6F6C` 5.28, midpoint `#67655D` 5.84, `#6E5A4E` 6.49, midpoint `#844F33` 6.67, `#9A4418` 6.53, midpoint
+`#A94112` 6.08, `#B83D0B` 5.66 (minimum 5.28; the test floor is 5.0); chips white on `#4E5B58` 7.09, midpoint `#6C4D36`
+7.63, `#8A3E14` 7.55; light day `#17191B` 14.23 → 13.67 and `#5A6664` 4.82 → 4.63 (end `#FFDCC4`); light chips
+`#17191B` 13.53 → 12.45. Because the bottom of the day header is now orange, elements sitting on it change: the round action (bell), the selected
 segment and the selected date become charcoal `#17191B` with orange text or icon, and the workload bar / progress fills on the header are white on a 35% charcoal track.
 
 Contrast (night): white on `#5F6F6C` 5.28, midpoint 5.90, `#3F5F8A` 6.53; chips 7.09 / 7.67 / 8.28; light night
@@ -80,20 +83,26 @@ Contrast (night): white on `#5F6F6C` 5.28, midpoint 5.90, `#3F5F8A` 6.53; chips 
 when the app comes to the foreground and once a minute while open, and cross-fades over 600 ms (instant with Reduce
 Motion). Day start/end are the existing settings in Me > Planning.
 
-**Splash (Steeven, 2026-11-09, revised).** A soft "ember" flow: near-black charcoal at the top that bends diagonally
-(top-right to bottom-left, then sweeping back right) through deep ember, a strong orange band and amber into a pale
-cream glow at the bottom right. Heavily blurred, faint grain, no hard edges.
+**Splash (Steeven, 2026-11-09, revised; day revised again in the phase 3 feedback, 2026-11-10).**
 
-- Day stops: `#0B0B0C` → `#17191B` → `#7A1E06` → `#C2410C` → `#FF7A24` → `#FDBA3B` → `#FFF1C9`.
+- **Day:** a light white → orange gradient, orange at the bottom: `#FFFFFF` 0% → `#FFF1E6` 42% → `#FFC9A1` 74% →
+  `#FF7A24` 100%, with soft warm blooms near the bottom and faint grain. Because the background is light, the wordmark
+  is charcoal `#17191B` with the orange hand over the ı, and the tagline is charcoal (Manrope 500; same size and centre
+  as before). Charcoal contrast: on `#FFFFFF` 17.63, `#FFF1E6` 15.93, `#FFC9A1` 11.85, `#FF7A24` 6.77 (midpoints are
+  tested too), so "VIZAM portfolio concept" on the orange bottom stays readable. Native splash: the charcoal wordmark
+  on cream `#FFF1E6` (the colour of the in-app splash centre).
+- **Night (unchanged):** the blue "ember" flow: near-black charcoal at the top bending diagonally through deep blue
+  into a pale glow at the bottom right. Kept as approved: light morning / dark evening matches the header's day/night
+  logic, so the pair does not look inconsistent.
 - Night stops: `#0B0B0C` → `#17191B` → `#1E3A8A` → `#2B4FB0` → `#5B8FD6` → `#9DBEEA` → `#E6F0FF`.
-- The `ticktack` wordmark (white, orange hand, Space Grotesk 500 at 68 pt, about 75% of the screen width) and the
+- Night: the `ticktack` wordmark (white, orange hand, Space Grotesk 500 at 68 pt, about 75% of the screen width) and the
   tagline sit together at the exact centre of the screen; the tagline is 8 pt under the wordmark in Manrope 400, 13 pt, -0.4 tracking, white. The flow is placed so the centre
-  falls on the deep ember / deep blue zone: white on `#7A1E06` 10.42, on `#9A2A08` 7.75, on `#1E3A8A` 10.36, on
-  `#2B4FB0` 7.37. The orange band runs just below and right of the logo, so it stays the most visible colour.
-- "VIZAM portfolio concept" sits at the bottom in charcoal on the cream glow (`#17191B` on `#FFF1C9` 15.68, on
-  `#E6F0FF` 15.34). The backgrounds are pre-rendered images (day and night, 1290 x 2796, WebP for the in-app
+  falls on the deep blue zone: white on `#1E3A8A` 10.36, on `#2B4FB0` 7.37.
+- Night: "VIZAM portfolio concept" sits at the bottom in charcoal on the pale glow (`#17191B` on `#E6F0FF` 15.34).
+- The backgrounds are pre-rendered images (day and night, 1290 x 2796, WebP for the in-app
 splash, PNG for the native one), not drawn live. Limitation: the native splash is a single static image shown before
-any code runs, so it always uses the day image; the in-app splash that follows picks day or night.
+any code runs, so it is always the cream day version; the in-app splash that follows picks day or night (at night
+the cream native splash hands over to the dark blue one).
 
 **Language.** English and French (`fr-CA` wording, works for `fr-FR`). See section 8.
 
@@ -176,17 +185,38 @@ Every screen has explicit loading (skeleton), empty, error and success states.
 3. **Today** (tab) — gradient header with `DayFace`, workload bar and round bell action (reminders); `DeckPanel`
    below with groups: *Overdue* (collapsible, danger label), *Scheduled* (timed tasks in time order), *Anytime*,
    *Routines* (compact routine cards with step count), *Done* (collapsed). Floating `RoundAction` "+" opens quick add.
-   Swipe right complete, swipe left reschedule (Tomorrow / Pick date). Pull to sync.
-4. **Calendar** (tab) — `SegmentedControl` Day / Week / Month. *Day:* vertical timeline with `TimelineBlock`s, now line,
-   all-day row on top; drag a block to move it (also an accessible "Move" action). *Week:* `DateStrip` with big numerals
-   plus a 7-column compact agenda. *Month:* grid with load dots per day; tapping a day previews its items in a deck panel
+   Pull to sync. **Task row (phase 3 feedback):** a 64 pt left time column with the start time in Space Grotesk 600
+   17 pt (`8:30` + small `AM` in English, `08:30` in French) and the duration under it; untimed rows show "Anytime" /
+   "N’importe quand". Then the check, the title, a meta line (category dot + name, subtask count, goal with the goals
+   icon, priority flag, repeat icon) and a compact preview: the first two subtasks with their state, "+N more" in
+   accent text and a one-line note excerpt. Tapping the preview expands it in place (every subtask tickable, full
+   note, "Hide"); no navigation. A "⋯" button (and long press) opens the row menu: Mark done, Quick edit, Open full
+   editor, Delete. Swipe right = complete, swipe left = Edit / Delete. Deletes are held 5 s behind an "Undo" snackbar
+   above the tab bar and the "+" button; series ask This / Following / All first. **Quick edit** is a bottom sheet:
+   title, date (No date / Today / Tomorrow + stepper), start time and duration dropdowns, category field, "Save task"
+   and "Open full editor". Every screen keeps room under its last row for the "+" button and the undo bar.
+4. **Calendar** (tab) — `SegmentedControl` Day / Week / Month. *Day (phase 3 feedback):* 24 hour rows of 60 pt that
+   grow inside the screen's single scroll (no nested scroller), timed tasks at their start with a height proportional
+   to their duration (44 pt minimum), overlapping tasks side by side in equal columns, a category-coloured left bar, an
+   orange "now" line with a knob on today and an all-day strip of chips above the grid; the screen scrolls to one hour
+   before now (today) or before the first task. Dragging a block to move it stays phase 4. *Week:* `DateStrip` with big
+   numerals plus the stacked 7-day agenda whose rows show the time column, in time order (no 7-column hour grid at
+   ≥ 768 pt yet). *Month:* grid with load dots per day; tapping a day previews its items in a deck panel
    (upcoming preview).
-5. **Task create / edit** (sheet that expands to full screen) — title field large, then pills row: date, time,
-   duration, priority, category, repeat, reminder, goal; notes; subtasks checklist. Save is the large orange button.
+5. **Task create / edit** (sheet that expands to full screen) — title field large, date pills, then **start time and
+   duration dropdowns** side by side (a field-like button with a chevron that opens a bottom-sheet list on phones and a
+   centred panel on wide web, scrolled to the selected value or around now; web keyboard: Tab / arrows / Home / End,
+   Enter, Escape). Start time: "All day", then every 15 min across 24 h (24 h clock in French). Duration: None, 5, 10,
+   15, 20, 30, 45 min, every 15 min to 4 h, every 30 min to 8 h, then 9–12 h. Priority pills; **category as free text**
+   with suggestion pills (dot + name) and a "New category … will be created" hint (trimmed, case-insensitive de-dup,
+   40 characters; a new category takes the least-used palette colour in the order ember, sky, moss, plum, sand, rose,
+   sage, slate); **goal dropdown** (No goal, active goals, and a "New goal" name field in the sheet); repeat; notes;
+   subtasks checklist. Save is the large orange button.
 6. **Task details** — header with big start time numerals and date; status toggle; pills; notes; subtasks; linked goal
    card; reminder list; for series: "This occurrence / Whole series" choice on edit and delete.
 7. **Recurrence settings** (sheet) — frequency segmented (Daily / Weekly / Monthly), "Every [n]" stepper, weekday pill
-   row (weekly), day-of-month picker (monthly), ends (Never / On date / After n times), live preview "Next: Tue 10, Thu
+   row (weekly), day-of-month picker (monthly), ends (**Never** by default, "Repeats with no end date." / On date /
+   After n times), live preview "Next: Tue 10, Thu
    12, Tue 17".
 8. **Goals dashboard** (tab) — active goals as stacked cards with large `%` numeral, `ProgressBar`, deadline countdown
    ("41 days"); achieved goals collapsed below.

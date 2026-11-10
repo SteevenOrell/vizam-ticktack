@@ -32,9 +32,12 @@ function createSwipe(setSide: (side: Side) => void) {
     },
     responder: null as unknown as ReturnType<typeof PanResponder.create>,
   };
+  const horizontal = (g: { dx: number; dy: number }) =>
+    state.props.enabled && Math.abs(g.dx) > 14 && Math.abs(g.dx) > Math.abs(g.dy) * 2;
   state.responder = PanResponder.create({
-    onMoveShouldSetPanResponder: (_, g) =>
-      state.props.enabled && Math.abs(g.dx) > 14 && Math.abs(g.dx) > Math.abs(g.dy) * 2,
+    // Capture phase: the row takes the gesture from the pressables inside it once the drag is clearly horizontal.
+    onMoveShouldSetPanResponderCapture: (_, g) => horizontal(g),
+    onMoveShouldSetPanResponder: (_, g) => horizontal(g),
     onPanResponderGrant: () => x.stopAnimation(),
     onPanResponderMove: (_, g) => {
       let next = state.offset + g.dx;

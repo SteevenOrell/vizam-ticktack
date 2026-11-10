@@ -26,8 +26,18 @@ _Phase 1 output, 2026-11-09. One fresh agent and one branch (`feat/phase-<n>-<na
   drag-to-reschedule, swipe actions, reminders/notifications, goals/routines editing.
 - Exit: all checks pass; rules tests pass in the emulator; screenshots in `docs/screenshots/phase-3/`.
 
+### Phase 3 feedback round (`feat/phase-3-feedback`) — done 2026-11-10
+Steeven's phone test (Expo Go), 12 items: duration and start-time dropdowns (to 12 h; 15-min times), free-text
+categories with suggestions, row previews (2 subtasks + note, expand in place), real day timeline (hour grid,
+overlaps, now line, all-day strip) and times on week rows, scroll fix (nested Timeline scroller removed), never-ending
+repeat confirmed + tested, goal selector with create, gray-first day header, white → orange day splash, delete from
+the row (swipe / "⋯" / long press, Undo 5 s, series scopes), quick-edit sheet, start-time column on rows.
+Swipe actions moved forward from phase 4 (complete / Edit / Delete; "Tomorrow / Pick date" swipe stays phase 4).
+Screenshots: `docs/screenshots/phase-3-feedback/`.
+
 ## Phase 4 — Feature completion (`feat/phase-4-features`)
-- Drag-to-reschedule and swipe actions (Today: complete / Tomorrow / Pick date), task details screen, overdue
+- Drag-to-reschedule and reschedule actions (Tomorrow / Pick date; complete / edit / delete swipes exist), task
+  details screen, week hour grid at ≥ 768 px, desktop max content width, overdue
   view, history (done / missed / cancelled).
 - Goals, milestones, linked tasks, derived progress; routines and routine runner.
 - Reminders: permission flow, reconcile engine, deep links, background task; Android exact-alarm decision applied.
