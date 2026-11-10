@@ -30,7 +30,7 @@ Versions were read from the npm registry on 2026-11-09. Native module versions a
 | IDs | `expo-crypto` `randomUUID()` | `~58.0.7` | Client-generated UUID v4 for every record. |
 | Secure values | `expo-secure-store` | `~58.0.2` | Small device secrets (device ID, local DB key if SQLCipher is enabled later). |
 | Dates | `date-fns` (+ `@date-fns/tz` if needed) | `^4.4.0` | Own recurrence generator (below); `rrule` is not used (old, larger than our needs). |
-| Languages (EN, FR) | `i18next`, `react-i18next`, `date-fns` (`fr` locale) | latest compatible, checked in phase 2 | Device language by default, override in settings; key-parity test. See DESIGN.md section 9. |
+| Languages (EN, FR) | `i18next`, `react-i18next`, `date-fns` (`fr` locale) | latest compatible, checked in phase 2 | Device language by default, override in settings; key-parity test. See DESIGN.md section 8. |
 | Gradients | `expo-linear-gradient` | per SDK 58 manifest | Day/night header gradients; splash backgrounds are pre-rendered images. |
 | Fonts | `@expo-google-fonts/space-grotesk`, `@expo-google-fonts/manrope`, `expo-font` | `0.4.x`, `~58.0.11` | Both SIL Open Font License. |
 | Haptics, locale, date picker | `expo-haptics`, `expo-localization`, `@react-native-community/datetimepicker` | `~58.0.7`, `~58.0.5`, `9.2.1` | |

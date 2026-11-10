@@ -81,7 +81,7 @@ grain. The `ticktack` wordmark is charcoal `#17191B`, centred; the tagline sits 
 splash, PNG for the native one), not drawn live. Limitation: the native splash is a single static image shown before
 any code runs, so it always uses the day image; the in-app splash that follows picks day or night.
 
-**Language.** English and French (`fr-CA` wording, works for `fr-FR`). See section 9.
+**Language.** English and French (`fr-CA` wording, works for `fr-FR`). See section 8.
 
 ### Light theme ("paper")
 
@@ -188,7 +188,7 @@ Every screen has explicit loading (skeleton), empty, error and success states.
     start, day start/end and capacity, categories manager, sync status and failed items, data export (later), About (concept
     label, licences), sign out, delete account.
 
-## 9. Language (English and French)
+## 8. Language (English and French)
 
 - Every user-visible string goes through `i18next` / `react-i18next` with `en.json` and `fr.json`; no hard-coded text
   in components. A unit test fails when a key exists in one file but not the other.
@@ -200,7 +200,7 @@ Every screen has explicit loading (skeleton), empty, error and success states.
   French before a phase is reported done. Reminder notification text is localised at scheduling time.
 - Onboarding, store listing and the "VIZAM portfolio concept" note exist in both languages.
 
-## 8. Imagery
+## 9. Imagery
 
 The UI is type- and data-led and needs no photos. Onboarding uses abstract shapes drawn in SVG (arcs, bars) in the
 palette. If a photo is wanted later (store listing, portfolio), use the `site-media` workflow (stock first, audited,
