@@ -25,6 +25,7 @@ import { readFileSync } from 'fs';
 import { join } from 'path';
 
 import type { EntityType } from '../../src/data/entities';
+import { DEFAULT_GOAL_REMINDERS } from '../../src/domain/models';
 import { toRemote } from '../../src/sync/mappers';
 
 const PROJECT_ID = 'demo-ticktack';
@@ -154,9 +155,13 @@ function entity(type: EntityType, ownerId: string, id: string): Record<string, u
         targetDate: '2026-12-20',
         status: 'active',
         color: 'moss',
-        progressMode: 'milestones',
+        progressMode: 'tasks',
         manualProgress: 0,
         achievedAt: null,
+        period: 'once',
+        startDate: '2026-11-01',
+        reminders: { ...DEFAULT_GOAL_REMINDERS, beforeDue: [0, 7], eachStep: true },
+        history: [],
       };
     case 'milestones':
       return { ...b, goalId: 'goal-1', title: 'Run 5 km', dueDate: null, completedAt: null, sortOrder: 0 };
@@ -320,6 +325,59 @@ describe('write validation', () => {
     await assertSucceeds(
       setDoc(ref('categories'), docData('categories', 'alice', 'categories-1', { name: 'Été project 2' })),
     );
+  });
+
+  describe('goals: period, due date, reminders and history', () => {
+    const goal = (patch: Record<string, unknown>) => setDoc(ref('goals'), docData('goals', 'alice', 'goals-1', patch));
+    const weekly = { period: 'weekly', startDate: '2026-11-02', targetDate: null };
+    const entry = { start: '2026-11-02', end: '2026-11-08', percent: 50, done: 1, total: 2 };
+
+    it('accepts one-time and periodic goals with reminders and history', async () => {
+      await assertSucceeds(goal({}));
+      await assertSucceeds(goal({ ...weekly, history: [entry] }));
+      await assertSucceeds(
+        goal({ ...weekly, reminders: { ...DEFAULT_GOAL_REMINDERS, monthlyDay: 31, periodic: true } }),
+      );
+    });
+
+    it('denies a bad period, a periodic goal without start or with a stored due date, due before start', async () => {
+      await assertFails(goal({ period: 'hourly' }));
+      await assertFails(goal({ ...weekly, startDate: null }));
+      await assertFails(goal({ ...weekly, targetDate: '2026-12-01' }));
+      await assertFails(goal({ startDate: '2026-12-31', targetDate: '2026-12-20' }));
+      await assertFails(goal({ targetDate: '20/12/2026' }));
+    });
+
+    it('denies malformed reminder settings', async () => {
+      const r = (patch: Record<string, unknown>) => goal({ reminders: { ...DEFAULT_GOAL_REMINDERS, ...patch } });
+      await assertFails(r({ beforeDue: [2] }));
+      await assertFails(r({ beforeDue: [0, 1, 7, 0] }));
+      await assertFails(r({ beforeDueTime: '9:00' }));
+      await assertFails(r({ monthlyDay: 32 }));
+      await assertFails(r({ periodicWeekday: 7 }));
+      await assertFails(r({ eachStep: 'yes' }));
+      await assertFails(r({ extra: true }));
+      await assertFails(goal({ reminders: null }));
+    });
+
+    it('denies a malformed or oversized history', async () => {
+      await assertFails(goal({ ...weekly, history: [{ ...entry, percent: 101 }] }));
+      await assertFails(goal({ ...weekly, history: [{ ...entry, done: 3, total: 2 }] }));
+      await assertFails(goal({ ...weekly, history: [{ ...entry, end: '2026-11-01' }] }));
+      await assertFails(goal({ ...weekly, history: [{ ...entry, note: 'x' }] }));
+      await assertFails(goal({ ...weekly, history: Array.from({ length: 61 }, () => entry) }));
+      await assertFails(goal({ ...weekly, history: 'none' }));
+    });
+
+    it('denies bob creating or editing a goal under alice', async () => {
+      await seed('alice', 'goals');
+      await assertFails(
+        setDoc(doc(bob(), path('alice', 'goals')), docData('goals', 'alice', 'goals-1', { title: 'Hijacked' })),
+      );
+      await assertFails(
+        updateDoc(doc(bob(), path('alice', 'goals')), { history: [entry], updatedAt: serverTimestamp() }),
+      );
+    });
   });
 
   it('denies an occurrence whose ID is not seriesId_YYYYMMDD of its original date', async () => {

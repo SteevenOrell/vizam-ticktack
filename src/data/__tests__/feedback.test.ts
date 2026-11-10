@@ -5,7 +5,7 @@ import { occurrenceId } from '../../domain/recurrence/generator';
 import { context, count, freshDb, NOW, TODAY } from '../../../tests/support/db';
 import { CategoryNameError } from '../categories';
 import type { SqlDriver } from '../db/driver';
-import { createGoal, getGoalOptions } from '../goals';
+import { getGoalOptions } from '../goals';
 import { getAgenda, getCategoryOptions, getTodayView } from '../queries/agenda';
 import { writeEntity, mutate } from '../store';
 import { createTask, deleteTask, emptyDraft, loadTaskForm, setSubtaskDone, updateTask, type TaskDraft } from '../tasks';
@@ -91,13 +91,12 @@ describe('free-text categories', () => {
 });
 
 describe('goals', () => {
-  it('creates a goal by name and links a task to it', async () => {
+  it('creates a goal by name together with the task that links to it', async () => {
     const ctx = context(db);
-    const goal = await createGoal(ctx, '  Run a 10K ');
-    expect(goal.title).toBe('Run a 10K');
-    expect(await getGoalOptions(db, 'local')).toEqual([{ id: goal.id, title: 'Run a 10K' }]);
-    const task = await createTask(ctx, draft({ goalId: goal.id }));
-    expect(task.goalId).toBe(goal.id);
+    const task = await createTask(ctx, draft({ newGoalTitle: '  Run a 10K ' }));
+    const [goal] = await getGoalOptions(db, 'local');
+    expect(goal?.title).toBe('Run a 10K');
+    expect(task.goalId).toBe(goal?.id);
     const view = await getTodayView(db, 'local', TODAY);
     expect(view.anytime[0]?.goalTitle).toBe('Run a 10K');
   });
@@ -108,11 +107,11 @@ describe('goals', () => {
 
   it('keeps the goal link when an update does not mention it', async () => {
     const ctx = context(db);
-    const goal = await createGoal(ctx, 'Read more');
-    const task = await createTask(ctx, draft({ goalId: goal.id }));
+    const task = await createTask(ctx, draft({ newGoalTitle: 'Read more' }));
     const { goalId: _omit, ...rest } = (await loadTaskForm(ctx, task.id))!.draft;
     await updateTask(ctx, task.id, { ...rest, title: 'Renamed' });
-    expect((await loadTaskForm(ctx, task.id))!.task.goalId).toBe(goal.id);
+    expect((await loadTaskForm(ctx, task.id))!.task.goalId).toBe(task.goalId);
+    expect(task.goalId).toBeTruthy();
   });
 });
 

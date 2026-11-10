@@ -142,15 +142,66 @@ export const reminderSchema = baseSchema.extend({
 });
 export type Reminder = z.infer<typeof reminderSchema>;
 
+export const goalPeriodSchema = z.enum(['once', 'daily', 'weekly', 'monthly', 'yearly']);
+
+/**
+ * Goal reminder settings (synced with the goal; the OS schedule itself stays local). `beforeDue` lists day offsets
+ * before the due date (0 = on the day); `monthlyDay` null = no monthly check-in; `periodic` = the daily / weekly
+ * reminder of a daily / weekly goal.
+ */
+export const goalRemindersSchema = z.object({
+  beforeDue: z
+    .array(z.union([z.literal(0), z.literal(1), z.literal(7)]))
+    .max(3)
+    .refine((a) => new Set(a).size === a.length, 'duplicate offset'),
+  beforeDueTime: hhmmSchema,
+  eachStep: z.boolean(),
+  monthlyDay: int(1, 31).nullable(),
+  monthlyTime: hhmmSchema,
+  periodic: z.boolean(),
+  periodicTime: hhmmSchema,
+  periodicWeekday: int(0, 6),
+});
+export type GoalReminders = z.infer<typeof goalRemindersSchema>;
+
+export const DEFAULT_GOAL_REMINDERS: GoalReminders = {
+  beforeDue: [],
+  beforeDueTime: '09:00',
+  eachStep: false,
+  monthlyDay: null,
+  monthlyTime: '09:00',
+  periodic: false,
+  periodicTime: '09:00',
+  periodicWeekday: 1,
+};
+
+/** One ended period of a periodic goal and the share of its linked work that was done. */
+export const goalHistoryEntrySchema = z.object({
+  start: localDateSchema,
+  end: localDateSchema,
+  percent: int(0, 100),
+  done: int(0, 100000),
+  total: int(0, 100000),
+});
+export type GoalHistoryEntry = z.infer<typeof goalHistoryEntrySchema>;
+export const GOAL_HISTORY_MAX = 60;
+
 export const goalSchema = baseSchema.extend({
   title: trimmed(1, 120),
   description: z.string().max(2000).nullable(),
+  /** Due date of a one-time goal; null for periodic goals (their due date is the end of the current period). */
   targetDate: localDateSchema.nullable(),
   status: z.enum(['active', 'achieved', 'archived']),
   color: categoryColorSchema.nullable(),
   progressMode: z.enum(['milestones', 'tasks', 'manual']),
   manualProgress: int(0, 100),
   achievedAt: isoSchema.nullable(),
+  // Migration 002. Defaults keep documents written before it valid.
+  period: goalPeriodSchema.default('once'),
+  /** Start of the first period (periodic goals); optional start of a one-time goal. */
+  startDate: localDateSchema.nullable().default(null),
+  reminders: goalRemindersSchema.default(DEFAULT_GOAL_REMINDERS),
+  history: z.array(goalHistoryEntrySchema).max(GOAL_HISTORY_MAX).default([]),
 });
 export type Goal = z.infer<typeof goalSchema>;
 

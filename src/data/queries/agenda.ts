@@ -246,6 +246,28 @@ export async function getAgenda(
   return items.sort(compareAgenda);
 }
 
+/**
+ * Rows for given one-off tasks whatever their date (goal detail). Undated tasks get `date: ''` (shown under
+ * "No date"); rows keep the same preview data as Today.
+ */
+export async function getTaskItems(db: SqlDriver, ownerId: string, ids: readonly string[]): Promise<AgendaItem[]> {
+  const items: AgendaItem[] = [];
+  for (let i = 0; i < ids.length; i += 400) {
+    const chunk = ids.slice(i, i + 400);
+    const rows = await db.all<Omit<TaskRow, 'date'> & { date: string | null }>(
+      `SELECT ${TASK_COLUMNS}
+       FROM tasks t
+       ${TASK_JOINS}
+       WHERE t.owner_id = ? AND t.deleted = 0 AND t.parent_task_id IS NULL AND t.recurrence_rule_id IS NULL
+         AND t.id IN (${chunk.map(() => '?').join(', ')})`,
+      [ownerId, ...chunk],
+    );
+    items.push(...rows.map((r) => taskItem({ ...r, date: r.date ?? '' })));
+  }
+  await attachSubtasks(db, ownerId, items, new Map());
+  return items;
+}
+
 export interface TodayView {
   date: LocalDate;
   overdue: AgendaItem[];

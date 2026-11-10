@@ -245,7 +245,7 @@ describe('Task editor dropdowns, categories and goals', () => {
     expect(await screen.findByText('No goals yet. Name one to link this task to it.')).toBeTruthy();
     await fireEvent.changeText(screen.getByTestId('field-new-goal'), 'Half marathon');
     await fireEvent.press(screen.getByTestId('create-goal'));
-    await waitFor(() => expect(screen.getByTestId('field-goal')).toHaveTextContent('Half marathon'));
+    await waitFor(() => expect(screen.getByTestId('field-goal')).toHaveTextContent(/Half marathon/));
     await fireEvent.press(screen.getByTestId('save-task'));
     await waitFor(() => expect(mockRouter.back).toHaveBeenCalled());
     expect(

@@ -1,16 +1,58 @@
 /**
- * Minimal goal access for phase 3: list active goals for the task editor's goal selector and create a goal from a
- * name. Full goal screens (milestones, progress) are phase 4.
+ * Goal use cases: create (with at least one linked or new task), edit, link / unlink tasks, mark done, delete
+ * (linked tasks are kept and unlinked), period history, and the read models for the Goals list and detail.
+ * Every write goes through `writeEntity` (validation + outbox) inside `mutate`.
  */
-import { goalSchema, type Goal } from '../domain/models';
+import { z } from 'zod';
+
+import {
+  computeProgress,
+  daysLeft,
+  dueDateOf,
+  endedPeriodsSince,
+  goalSection,
+  progressRange,
+  type GoalSection,
+  type GoalTiming,
+  type LinkedTask,
+  type PeriodRange,
+  type Progress,
+} from '../domain/goals';
+import { addDays, localDateOf, type LocalDate } from '../domain/localDate';
+import {
+  categoryColorSchema,
+  GOAL_HISTORY_MAX,
+  goalPeriodSchema,
+  goalRemindersSchema,
+  goalSchema,
+  hhmmSchema,
+  idSchema,
+  localDateSchema,
+  type CategoryColor,
+  type Goal,
+  type GoalHistoryEntry,
+  type RuleCore,
+} from '../domain/models';
 import type { SqlDriver } from './db/driver';
-import { mutate, writeEntity, type DataContext } from './store';
+import { rowToEntity, type SqlRow } from './entities';
+import { insertGoal } from './goalBase';
+import { getAgenda, getTaskItems, type AgendaItem } from './queries/agenda';
+import { getEntity, listEntities, mutate, nowIso, tombstone, writeEntity, type DataContext } from './store';
+import { emptyDraft, insertTask } from './tasks';
+
+export class GoalNeedsTaskError extends Error {
+  constructor() {
+    super('A goal needs at least one task');
+    this.name = 'GoalNeedsTaskError';
+  }
+}
 
 export interface GoalOption {
   id: string;
   title: string;
 }
 
+/** Active goals for the task editor's goal selector. */
 export async function getGoalOptions(db: SqlDriver, ownerId: string): Promise<GoalOption[]> {
   return db.all<GoalOption>(
     `SELECT id, title FROM goals WHERE owner_id = ? AND deleted = 0 AND status = 'active'
@@ -21,20 +63,445 @@ export async function getGoalOptions(db: SqlDriver, ownerId: string): Promise<Go
 
 export const goalTitleSchema = goalSchema.shape.title;
 
-/** Creates an active goal with only a title (progress counted from linked tasks). */
-export async function createGoal(ctx: DataContext, title: string): Promise<Goal> {
-  const clean = goalTitleSchema.parse(title);
-  return mutate(ctx, () =>
-    writeEntity(ctx, 'goals', {
-      id: ctx.newId(),
-      title: clean,
-      description: null,
-      targetDate: null,
-      status: 'active',
-      color: null,
-      progressMode: 'tasks',
-      manualProgress: 0,
-      achievedAt: null,
-    }),
+/** A task created inline from the goal form. */
+export const newGoalTaskSchema = z.object({
+  title: z.string().trim().min(1, 'taskTitleRequired').max(200, 'titleTooLong'),
+  date: localDateSchema.nullable(),
+  startTime: hhmmSchema.nullable(),
+  durationMin: z.number().int().min(1).max(1440).nullable(),
+});
+export type NewGoalTask = z.infer<typeof newGoalTaskSchema>;
+
+/** What the goal form submits. `linkTaskIds` is the full set of existing tasks that should be linked. */
+export const goalDraftSchema = z
+  .object({
+    title: z.string().trim().min(1, 'titleRequired').max(120, 'titleTooLong'),
+    description: z.string().max(2000, 'descriptionTooLong').nullable(),
+    period: goalPeriodSchema,
+    startDate: localDateSchema.nullable(),
+    dueDate: localDateSchema.nullable(),
+    color: categoryColorSchema.nullable(),
+    reminders: goalRemindersSchema,
+    linkTaskIds: z.array(idSchema).max(200),
+    newTasks: z.array(newGoalTaskSchema).max(30),
+  })
+  .superRefine((d, ctx) => {
+    if (d.period === 'once' && !d.dueDate) ctx.addIssue({ code: 'custom', path: ['dueDate'], message: 'dueRequired' });
+    if (d.period !== 'once' && !d.startDate) {
+      ctx.addIssue({ code: 'custom', path: ['startDate'], message: 'startRequired' });
+    }
+    if (d.period === 'once' && d.startDate && d.dueDate && d.dueDate < d.startDate) {
+      ctx.addIssue({ code: 'custom', path: ['dueDate'], message: 'dueBeforeStart' });
+    }
+    if (new Set(d.linkTaskIds).size + d.newTasks.length === 0) {
+      ctx.addIssue({ code: 'custom', path: ['tasks'], message: 'needsTask' });
+    }
+  });
+export type GoalDraft = z.infer<typeof goalDraftSchema>;
+
+const todayOf = (ctx: Pick<DataContext, 'now'>) => localDateOf(ctx.now?.() ?? new Date());
+
+function goalFields(d: GoalDraft) {
+  return {
+    title: d.title.trim(),
+    description: d.description?.trim() ? d.description.trim() : null,
+    period: d.period,
+    startDate: d.startDate,
+    targetDate: d.period === 'once' ? d.dueDate : null,
+    color: d.color,
+    reminders: { ...d.reminders, beforeDue: [...new Set(d.reminders.beforeDue)].sort((a, b) => a - b) },
+  };
+}
+
+async function linkedTaskIds(db: SqlDriver, ownerId: string, goalId: string): Promise<string[]> {
+  const rows = await db.all<{ id: string }>(
+    `SELECT id FROM tasks WHERE owner_id = ? AND goal_id = ? AND deleted = 0 AND parent_task_id IS NULL`,
+    [ownerId, goalId],
   );
+  return rows.map((r) => r.id);
+}
+
+/** Links existing tasks and creates the new ones. Returns the ids of new series (occurrences generated after). */
+async function attachTasks(ctx: DataContext, goalId: string, link: readonly string[], create: readonly NewGoalTask[]) {
+  for (const id of link) {
+    const task = await getEntity(ctx.db, 'tasks', id, ctx.ownerId);
+    if (!task || task.parentTaskId) throw new Error('Task not found');
+    if (task.goalId !== goalId) await writeEntity(ctx, 'tasks', { ...task, goalId });
+  }
+  for (const n of create) {
+    const parsed = newGoalTaskSchema.parse(n);
+    await insertTask(ctx, {
+      ...emptyDraft(parsed.date),
+      title: parsed.title,
+      startTime: parsed.date ? parsed.startTime : null,
+      durationMin: parsed.durationMin,
+      goalId,
+    });
+  }
+}
+
+/** Creates a goal with its linked and new tasks in one transaction. At least one task is required. */
+export async function createGoal(ctx: DataContext, input: GoalDraft): Promise<Goal> {
+  const draft = goalDraftSchema.parse(input);
+  return mutate(ctx, async () => {
+    const goal = await insertGoal(ctx, goalFields(draft));
+    await attachTasks(ctx, goal.id, [...new Set(draft.linkTaskIds)], draft.newTasks);
+    if ((await linkedTaskIds(ctx.db, ctx.ownerId, goal.id)).length === 0) throw new GoalNeedsTaskError();
+    return goal;
+  });
+}
+
+/**
+ * Saves the goal form: fields, the full set of linked tasks (missing ones are unlinked, never deleted) and new
+ * tasks. A change of period or start clears the history (its periods no longer match).
+ */
+export async function updateGoal(ctx: DataContext, goalId: string, input: GoalDraft): Promise<Goal> {
+  const draft = goalDraftSchema.parse(input);
+  return mutate(ctx, async () => {
+    const goal = await getEntity(ctx.db, 'goals', goalId, ctx.ownerId);
+    if (!goal) throw new Error('Goal not found');
+    const keep = new Set(draft.linkTaskIds);
+    for (const id of await linkedTaskIds(ctx.db, ctx.ownerId, goalId)) {
+      if (keep.has(id)) continue;
+      const task = await getEntity(ctx.db, 'tasks', id, ctx.ownerId);
+      if (task) await writeEntity(ctx, 'tasks', { ...task, goalId: null });
+    }
+    await attachTasks(ctx, goalId, [...keep], draft.newTasks);
+    if ((await linkedTaskIds(ctx.db, ctx.ownerId, goalId)).length === 0) throw new GoalNeedsTaskError();
+    const fields = goalFields(draft);
+    const reset = fields.period !== goal.period || fields.startDate !== goal.startDate;
+    return writeEntity(ctx, 'goals', { ...goal, ...fields, history: reset ? [] : goal.history });
+  });
+}
+
+/** Links more existing tasks to a goal (from the detail screen). */
+export async function linkTasks(ctx: DataContext, goalId: string, taskIds: readonly string[]): Promise<void> {
+  await mutate(ctx, async () => {
+    if (!(await getEntity(ctx.db, 'goals', goalId, ctx.ownerId))) throw new Error('Goal not found');
+    await attachTasks(ctx, goalId, [...new Set(taskIds)], []);
+  });
+}
+
+/** Unlinks one task (the task is kept). Refuses to remove the goal's last task. */
+export async function unlinkTask(ctx: DataContext, goalId: string, taskId: string): Promise<void> {
+  await mutate(ctx, async () => {
+    const ids = await linkedTaskIds(ctx.db, ctx.ownerId, goalId);
+    if (!ids.includes(taskId)) return;
+    if (ids.length <= 1) throw new GoalNeedsTaskError();
+    const task = await getEntity(ctx.db, 'tasks', taskId, ctx.ownerId);
+    if (task) await writeEntity(ctx, 'tasks', { ...task, goalId: null });
+  });
+}
+
+/** Marks a goal done (Completed section) or active again. */
+export async function setGoalDone(ctx: DataContext, goalId: string, done: boolean): Promise<void> {
+  await mutate(ctx, async () => {
+    const goal = await getEntity(ctx.db, 'goals', goalId, ctx.ownerId);
+    if (!goal) throw new Error('Goal not found');
+    await writeEntity(ctx, 'goals', {
+      ...goal,
+      status: done ? 'achieved' : 'active',
+      achievedAt: done ? (goal.achievedAt ?? nowIso(ctx)) : null,
+    });
+  });
+}
+
+/** Archives a goal (hidden from the list; tasks keep their link). Used when its last task is deleted. */
+export async function archiveGoal(ctx: DataContext, goalId: string): Promise<void> {
+  await mutate(ctx, async () => {
+    const goal = await getEntity(ctx.db, 'goals', goalId, ctx.ownerId);
+    if (goal) await writeEntity(ctx, 'goals', { ...goal, status: 'archived' });
+  });
+}
+
+/** Deletes a goal: linked tasks are kept and unlinked, goal reminders are removed, the goal is tombstoned. */
+export async function deleteGoal(ctx: DataContext, goalId: string): Promise<void> {
+  await mutate(ctx, async () => {
+    const goal = await getEntity(ctx.db, 'goals', goalId, ctx.ownerId);
+    if (!goal) return;
+    for (const task of await listEntities(ctx.db, 'tasks', ctx.ownerId, 'goal_id = ?', [goalId])) {
+      await writeEntity(ctx, 'tasks', { ...task, goalId: null });
+    }
+    const reminders = await listEntities(ctx.db, 'reminders', ctx.ownerId, "target_type = 'goal' AND target_id = ?", [
+      goalId,
+    ]);
+    for (const r of reminders) await tombstone(ctx, 'reminders', r.id);
+    await tombstone(ctx, 'goals', goalId);
+  });
+}
+
+/**
+ * The goal that deleting `taskId` would leave without any task (the task is its only live linked task), or null.
+ * Used to warn before a task delete.
+ */
+export async function goalLeftEmptyBy(db: SqlDriver, ownerId: string, taskId: string): Promise<GoalOption | null> {
+  const row = await db.first<{ id: string; title: string; others: number }>(
+    `SELECT g.id, g.title,
+       (SELECT COUNT(*) FROM tasks o WHERE o.owner_id = g.owner_id AND o.goal_id = g.id AND o.deleted = 0
+          AND o.parent_task_id IS NULL AND o.id != t.id) AS others
+     FROM tasks t JOIN goals g ON g.id = t.goal_id AND g.owner_id = t.owner_id AND g.deleted = 0
+     WHERE t.id = ? AND t.owner_id = ? AND t.deleted = 0 AND g.status != 'archived'`,
+    [taskId, ownerId],
+  );
+  return row && row.others === 0 ? { id: row.id, title: row.title } : null;
+}
+
+// ---------- progress ----------
+
+const timingOf = (goal: Goal): GoalTiming => ({
+  period: goal.period,
+  startDate: goal.startDate,
+  targetDate: goal.targetDate,
+  createdOn: localDateOf(new Date(goal.createdAt)),
+});
+
+interface LinkedRow {
+  id: string;
+  goal_id: string;
+  status: 'open' | 'done' | 'cancelled';
+  date: string | null;
+  recurrence_rule_id: string | null;
+}
+
+/** Linked tasks of the given goals with their rules and done / skipped occurrences, by goal id. */
+async function loadLinked(db: SqlDriver, ownerId: string, goalIds: readonly string[]) {
+  const byGoal = new Map<string, LinkedTask[]>();
+  if (goalIds.length === 0) return byGoal;
+  const rows: LinkedRow[] = [];
+  for (let i = 0; i < goalIds.length; i += 400) {
+    const chunk = goalIds.slice(i, i + 400);
+    rows.push(
+      ...(await db.all<LinkedRow>(
+        `SELECT id, goal_id, status, date, recurrence_rule_id FROM tasks
+         WHERE owner_id = ? AND deleted = 0 AND parent_task_id IS NULL
+           AND goal_id IN (${chunk.map(() => '?').join(', ')}) LIMIT 5000`,
+        [ownerId, ...chunk],
+      )),
+    );
+  }
+  const seriesIds = rows.filter((r) => r.recurrence_rule_id).map((r) => r.id);
+  const rules = new Map<string, RuleCore>();
+  const occ = new Map<string, Map<LocalDate, 'scheduled' | 'done' | 'skipped'>>();
+  for (let i = 0; i < seriesIds.length; i += 400) {
+    const chunk = seriesIds.slice(i, i + 400);
+    const marks = chunk.map(() => '?').join(', ');
+    for (const r of await db.all<SqlRow>(
+      `SELECT * FROM recurrence_rules WHERE owner_id = ? AND deleted = 0 AND series_id IN (${marks})`,
+      [ownerId, ...chunk],
+    )) {
+      const rule = rowToEntity('recurrenceRules', r);
+      rules.set(rule.seriesId, rule);
+    }
+    for (const o of await db.all<{ series_id: string; original_date: string; status: 'done' | 'skipped' }>(
+      `SELECT series_id, original_date, status FROM task_occurrences
+       WHERE owner_id = ? AND deleted = 0 AND status != 'scheduled' AND series_id IN (${marks}) LIMIT 20000`,
+      [ownerId, ...chunk],
+    )) {
+      const m = occ.get(o.series_id) ?? new Map();
+      m.set(o.original_date, o.status);
+      occ.set(o.series_id, m);
+    }
+  }
+  for (const r of rows) {
+    const list = byGoal.get(r.goal_id) ?? [];
+    list.push({
+      id: r.id,
+      status: r.status,
+      date: r.date,
+      rule: r.recurrence_rule_id ? (rules.get(r.id) ?? null) : null,
+      occurrences: occ.get(r.id),
+    });
+    byGoal.set(r.goal_id, list);
+  }
+  return byGoal;
+}
+
+export interface GoalSummary {
+  id: string;
+  title: string;
+  description: string | null;
+  period: Goal['period'];
+  status: Goal['status'];
+  color: CategoryColor | null;
+  due: LocalDate | null;
+  daysLeft: number | null;
+  range: PeriodRange;
+  progress: Progress;
+  section: GoalSection;
+  taskCount: number;
+}
+
+function summarize(goal: Goal, linked: readonly LinkedTask[], today: LocalDate): GoalSummary {
+  const timing = timingOf(goal);
+  const range = progressRange(timing, today);
+  const progress = computeProgress(linked, range, goal.period !== 'once');
+  const due = dueDateOf(timing, today);
+  return {
+    id: goal.id,
+    title: goal.title,
+    description: goal.description,
+    period: goal.period,
+    status: goal.status,
+    color: goal.color,
+    due,
+    daysLeft: due ? daysLeft(due, today) : null,
+    range,
+    progress,
+    section: goalSection({
+      status: goal.status,
+      period: goal.period,
+      percent: progress.percent,
+      total: progress.total,
+      due,
+      today,
+    }),
+    taskCount: linked.length,
+  };
+}
+
+const SECTION_ORDER: Record<GoalSection, number> = { overdue: 0, active: 1, completed: 2 };
+
+/** Goals list (archived goals are hidden): overdue, then active by due date, then completed. */
+export async function getGoalList(db: SqlDriver, ownerId: string, today: LocalDate): Promise<GoalSummary[]> {
+  const goals = await listEntities(db, 'goals', ownerId, "status != 'archived'");
+  const linked = await loadLinked(
+    db,
+    ownerId,
+    goals.map((g) => g.id),
+  );
+  return goals
+    .map((g) => summarize(g, linked.get(g.id) ?? [], today))
+    .sort(
+      (a, b) =>
+        SECTION_ORDER[a.section] - SECTION_ORDER[b.section] ||
+        (a.due ?? '9999').localeCompare(b.due ?? '9999') ||
+        a.title.localeCompare(b.title),
+    );
+}
+
+export interface GoalDetail {
+  goal: Goal;
+  summary: GoalSummary;
+  /** One row per linked task: one-off tasks, and for a series its next open occurrence (or the latest one). */
+  items: AgendaItem[];
+  linkedIds: string[];
+  history: GoalHistoryEntry[];
+}
+
+export async function getGoalDetail(
+  db: SqlDriver,
+  ownerId: string,
+  goalId: string,
+  today: LocalDate,
+): Promise<GoalDetail | null> {
+  const goal = await getEntity(db, 'goals', goalId, ownerId);
+  if (!goal) return null;
+  const linked = (await loadLinked(db, ownerId, [goalId])).get(goalId) ?? [];
+  const oneOff = linked.filter((t) => !t.rule).map((t) => t.id);
+  const series = new Set(linked.filter((t) => t.rule).map((t) => t.id));
+  const items = await getTaskItems(db, ownerId, oneOff);
+  if (series.size) {
+    const window = await getAgenda(db, ownerId, addDays(today, -14), addDays(today, 45), today);
+    for (const id of series) {
+      const occs = window.filter((i) => i.taskId === id);
+      const pick =
+        occs.find((i) => i.date >= today && !i.done) ??
+        occs.find((i) => i.date >= today) ??
+        occs.filter((i) => i.date < today).at(-1);
+      if (pick) items.push(pick);
+    }
+  }
+  items.sort((a, b) => (a.date || '9999').localeCompare(b.date || '9999') || a.title.localeCompare(b.title));
+  return {
+    goal,
+    summary: summarize(goal, linked, today),
+    items,
+    linkedIds: linked.map((t) => t.id),
+    history: [...goal.history].reverse(),
+  };
+}
+
+export interface GoalForm {
+  goal: Goal;
+  draft: GoalDraft;
+}
+
+/** Loads a goal into the form draft (linked tasks included). */
+export async function loadGoalForm(ctx: Pick<DataContext, 'db' | 'ownerId'>, goalId: string): Promise<GoalForm | null> {
+  const goal = await getEntity(ctx.db, 'goals', goalId, ctx.ownerId);
+  if (!goal) return null;
+  return {
+    goal,
+    draft: {
+      title: goal.title,
+      description: goal.description,
+      period: goal.period,
+      startDate: goal.startDate,
+      dueDate: goal.period === 'once' ? goal.targetDate : null,
+      color: goal.color,
+      reminders: goal.reminders,
+      linkTaskIds: await linkedTaskIds(ctx.db, ctx.ownerId, goalId),
+      newTasks: [],
+    },
+  };
+}
+
+export interface LinkableTask {
+  id: string;
+  title: string;
+  date: string | null;
+  start_time: string | null;
+  recurring: number;
+  done: number;
+  goal_id: string | null;
+  goal_title: string | null;
+}
+
+/** Tasks that can be linked (top-level, not deleted), newest first; filtered by a case-insensitive search. */
+export async function getLinkableTasks(db: SqlDriver, ownerId: string, search = ''): Promise<LinkableTask[]> {
+  const q = search.trim().toLowerCase().slice(0, 100);
+  return db.all<LinkableTask>(
+    `SELECT t.id, t.title, t.date, t.start_time, (t.recurrence_rule_id IS NOT NULL) AS recurring,
+       (t.status = 'done') AS done, t.goal_id, g.title AS goal_title
+     FROM tasks t LEFT JOIN goals g ON g.id = t.goal_id AND g.owner_id = t.owner_id AND g.deleted = 0
+     WHERE t.owner_id = ? AND t.deleted = 0 AND t.parent_task_id IS NULL AND t.status != 'cancelled'
+       AND (? = '' OR instr(lower(t.title), ?) > 0)
+     ORDER BY t.status = 'done', t.created_at DESC LIMIT 200`,
+    [ownerId, q, q],
+  );
+}
+
+// ---------- period history ----------
+
+/**
+ * Appends the ended periods of every active periodic goal to its history (period, % reached), at most 12 new
+ * periods per goal per run and 60 kept. Idempotent: periods already recorded are skipped. Returns how many goals
+ * changed. Runs on app start and when the app comes to the foreground.
+ */
+export async function rollGoalHistory(ctx: DataContext, today: LocalDate = todayOf(ctx)): Promise<number> {
+  const goals = await listEntities(ctx.db, 'goals', ctx.ownerId, "status = 'active' AND period != 'once'");
+  if (goals.length === 0) return 0;
+  const linked = await loadLinked(
+    ctx.db,
+    ctx.ownerId,
+    goals.map((g) => g.id),
+  );
+  const updates: Goal[] = [];
+  for (const goal of goals) {
+    const timing = timingOf(goal);
+    const anchor = goal.startDate ?? timing.createdOn;
+    const lastEnd = goal.history.at(-1)?.end ?? null;
+    const ended = endedPeriodsSince(goal.period, anchor, lastEnd, today);
+    if (ended.length === 0) continue;
+    const entries = ended.map((range) => {
+      const p = computeProgress(linked.get(goal.id) ?? [], range, true);
+      return { start: range.start, end: range.end, percent: p.percent, done: p.done, total: p.total };
+    });
+    updates.push({ ...goal, history: [...goal.history, ...entries].slice(-GOAL_HISTORY_MAX) });
+  }
+  if (updates.length === 0) return 0;
+  await mutate(ctx, async () => {
+    for (const g of updates) await writeEntity(ctx, 'goals', g);
+  });
+  return updates.length;
 }

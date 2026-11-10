@@ -2,7 +2,7 @@ import { useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { StyleSheet, View } from 'react-native';
 
-import { createGoal, getGoalOptions } from '../../data/goals';
+import { getGoalOptions, goalTitleSchema } from '../../data/goals';
 import type { CategoryOption } from '../../data/queries/agenda';
 import { useQuery } from '../../data/useQuery';
 import { categoryKey, CATEGORY_NAME_MAX, matchCategories, normalizeCategoryName } from '../../domain/categoryName';
@@ -164,14 +164,24 @@ export function CategoryField({
   );
 }
 
-/** Goal selector with an inline "create a goal" path (name only; goal screens come in phase 4). */
+const NEW_GOAL = '__new_goal__';
+
+/**
+ * Goal selector with an inline "New goal" path (name only). The new goal is created when the task is saved, in the
+ * same transaction, so a goal never exists without a task.
+ */
 export function GoalField({
   value,
   onChange,
+  newTitle,
+  onNewTitle,
   testID = 'field-goal',
 }: {
   value: string | null;
   onChange: (value: string | null) => void;
+  /** Pending new goal name (created on save). */
+  newTitle?: string | null;
+  onNewTitle?: (title: string | null) => void;
   testID?: string;
 }) {
   const { t } = useTranslation();
@@ -187,29 +197,34 @@ export function GoalField({
   const [error, setError] = useState<string | null>(null);
   const options: SelectOption<string | null>[] = [
     { value: null, label: t('editor.noGoal') },
+    ...(newTitle ? [{ value: NEW_GOAL, label: t('editor.newGoalPending', { title: newTitle }) }] : []),
     ...list.map((g) => ({ value: g.id, label: g.title })),
   ];
 
-  const create = async (close: () => void) => {
-    if (!ctx || !name.trim()) return;
-    try {
-      const goal = await createGoal(ctx, name);
-      setName('');
-      setError(null);
-      onChange(goal.id);
-      close();
-    } catch {
+  const create = (close: () => void) => {
+    const parsed = goalTitleSchema.safeParse(name);
+    if (!parsed.success) {
       setError(t('editor.errors.goalInvalid'));
+      return;
     }
+    setName('');
+    setError(null);
+    onChange(null);
+    onNewTitle?.(parsed.data);
+    close();
   };
 
   return (
     <SelectField
       testID={testID}
       label={t('editor.goal')}
-      value={value}
+      value={newTitle ? NEW_GOAL : value}
       options={options}
-      onChange={onChange}
+      onChange={(v) => {
+        if (v === NEW_GOAL) return;
+        onNewTitle?.(null);
+        onChange(v);
+      }}
       closeLabel={t('modal.close')}
       extra={(close) => (
         <View style={[styles.create, { borderColor: colors.border }]}>
@@ -228,7 +243,7 @@ export function GoalField({
                 onChangeText={setName}
                 maxLength={120}
                 error={error}
-                onSubmitEditing={() => void create(close)}
+                onSubmitEditing={() => create(close)}
               />
             </View>
             <Button
@@ -237,8 +252,8 @@ export function GoalField({
               variant="secondary"
               size="compact"
               icon="plus"
-              disabled={!name.trim() || !ctx}
-              onPress={() => void create(close)}
+              disabled={!name.trim()}
+              onPress={() => create(close)}
             />
           </View>
         </View>

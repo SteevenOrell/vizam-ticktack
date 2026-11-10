@@ -27,7 +27,9 @@ import {
 
 import { adoptGuestData } from '../../src/data/account';
 import type { SqlDriver } from '../../src/data/db/driver';
+import { createGoal, deleteGoal } from '../../src/data/goals';
 import { getEntity } from '../../src/data/store';
+import { DEFAULT_GOAL_REMINDERS } from '../../src/domain/models';
 import { createTask, deleteTask, emptyDraft, setDone, updateTask } from '../../src/data/tasks';
 import { localDateOf } from '../../src/domain/localDate';
 import { occurrenceId } from '../../src/domain/recurrence/generator';
@@ -113,6 +115,39 @@ it('uploads from one device and downloads on another', async () => {
   );
   expect(row?.dirty).toBe(0);
   expect(row?.server_updated_at).toBeGreaterThan(0);
+});
+
+it('syncs a periodic goal with its reminders, history and linked task; a delete unlinks on both devices', async () => {
+  const address = email();
+  const a = await device(address, true);
+  const b = await device(address);
+  const t = await createTask(ctx(a), draft('Tidy desk'));
+  const g = await createGoal(ctx(a), {
+    title: 'Keep the home tidy',
+    description: null,
+    period: 'weekly',
+    startDate: TODAY,
+    dueDate: null,
+    color: 'sand',
+    reminders: { ...DEFAULT_GOAL_REMINDERS, periodic: true, periodicTime: '18:00' },
+    linkTaskIds: [t.id],
+    newTasks: [],
+  });
+  const pushed = await syncOnce(deps(a));
+  expect(pushed.failed).toBe(0);
+  await syncOnce(deps(b));
+  const remote = await getEntity(b.db, 'goals', g.id, b.user.uid);
+  expect(remote).toMatchObject({ period: 'weekly', startDate: TODAY, history: [] });
+  expect(remote?.reminders.periodicTime).toBe('18:00');
+  expect((await getEntity(b.db, 'tasks', t.id, b.user.uid))?.goalId).toBe(g.id);
+  // Notification schedule state is local only: nothing about it reaches Firestore.
+  expect(await count(b.db, 'SELECT COUNT(*) AS n FROM scheduled_notifications')).toBe(0);
+
+  await deleteGoal(ctx(b), g.id);
+  expect((await syncOnce(deps(b))).failed).toBe(0);
+  await syncOnce(deps(a));
+  expect(await getEntity(a.db, 'goals', g.id, a.user.uid)).toBeNull();
+  expect((await getEntity(a.db, 'tasks', t.id, a.user.uid))?.goalId).toBeNull();
 });
 
 it('resolves a conflict by the last write the server accepted, on both devices', async () => {

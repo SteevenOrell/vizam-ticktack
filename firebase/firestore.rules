@@ -156,9 +156,40 @@ service cloud.firestore {
         && d.enabled is bool;
     }
 
+    function isTime(v) {
+      return v is string && v.matches('^([01][0-9]|2[0-3]):[0-5][0-9]$');
+    }
+
+    // Goal reminder settings (the OS schedule itself is local-only and never synced).
+    function goalRemindersOk(r) {
+      return r is map
+        && r.keys().hasAll(['beforeDue', 'beforeDueTime', 'eachStep', 'monthlyDay', 'monthlyTime', 'periodic',
+          'periodicTime', 'periodicWeekday'])
+        && r.keys().hasOnly(['beforeDue', 'beforeDueTime', 'eachStep', 'monthlyDay', 'monthlyTime', 'periodic',
+          'periodicTime', 'periodicWeekday'])
+        && r.beforeDue is list && r.beforeDue.size() <= 3 && r.beforeDue.hasOnly([0, 1, 7])
+        && isTime(r.beforeDueTime)
+        && r.eachStep is bool
+        && optInt(r.monthlyDay, 1, 31)
+        && isTime(r.monthlyTime)
+        && r.periodic is bool
+        && isTime(r.periodicTime)
+        && intIn(r.periodicWeekday, 0, 6);
+    }
+
+    // One period of a periodic goal's history (rules cannot loop, so the newest entry is the one checked).
+    function historyEntryOk(h) {
+      return h is map
+        && h.keys().hasAll(['start', 'end', 'percent', 'done', 'total'])
+        && h.keys().hasOnly(['start', 'end', 'percent', 'done', 'total'])
+        && isDate(h.start) && isDate(h.end) && h.start <= h.end
+        && intIn(h.percent, 0, 100) && intIn(h.done, 0, 100000) && intIn(h.total, 0, 100000)
+        && h.done <= h.total;
+    }
+
     function goalOk(d) {
       return exactKeys(d, ['title', 'description', 'targetDate', 'status', 'color', 'progressMode', 'manualProgress',
-          'achievedAt'])
+          'achievedAt', 'period', 'startDate', 'reminders', 'history'])
         && str(d.title, 1, 120)
         && optStr(d.description, 0, 2000)
         && optDate(d.targetDate)
@@ -166,7 +197,15 @@ service cloud.firestore {
         && (d.color == null || colorOk(d.color))
         && d.progressMode in ['milestones', 'tasks', 'manual']
         && intIn(d.manualProgress, 0, 100)
-        && optIso(d.achievedAt);
+        && optIso(d.achievedAt)
+        && d.period in ['once', 'daily', 'weekly', 'monthly', 'yearly']
+        && optDate(d.startDate)
+        // Periodic goals have a start (periods are aligned to it) and no stored due date (end of each period).
+        && (d.period == 'once' || (isDate(d.startDate) && d.targetDate == null))
+        && (d.period != 'once' || d.startDate == null || d.targetDate == null || d.startDate <= d.targetDate)
+        && goalRemindersOk(d.reminders)
+        && d.history is list && d.history.size() <= 60
+        && (d.history.size() == 0 || historyEntryOk(d.history[d.history.size() - 1]));
     }
 
     function milestoneOk(d) {

@@ -351,7 +351,12 @@ export function TaskEditorScreen({
           error={errors.categoryName}
         />
 
-        <GoalField value={draft.goalId ?? null} onChange={(goalId) => update({ goalId })} />
+        <GoalField
+          value={draft.goalId ?? null}
+          onChange={(goalId) => update({ goalId })}
+          newTitle={draft.newGoalTitle ?? null}
+          onNewTitle={(newGoalTitle) => update({ newGoalTitle })}
+        />
 
         <Section title={t('repeat.title')}>
           <RepeatEditor

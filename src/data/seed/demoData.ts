@@ -18,6 +18,8 @@ export const demoStrings = {
     goalRun: 'Run a 10 km race',
     goalRunDesc: 'Build up from three short runs a week.',
     goalCourse: 'Finish the design course',
+    goalHome: 'Keep the home tidy',
+    easyRun: 'Easy 3 km run',
     m3: 'Run 3 km without stopping',
     m5: 'Run 5 km',
     m8: 'Run 8 km',
@@ -50,6 +52,8 @@ export const demoStrings = {
     goalRun: 'Courir un 10 km',
     goalRunDesc: 'Progresser avec trois courtes sorties par semaine.',
     goalCourse: 'Terminer le cours de design',
+    goalHome: 'Garder la maison en ordre',
+    easyRun: 'Sortie facile de 3 km',
     m3: 'Courir 3 km sans arrêt',
     m5: 'Courir 5 km',
     m8: 'Courir 8 km',
@@ -129,7 +133,23 @@ export function buildDemoData(options: {
   ];
   const [focus, health, home, learning] = categories.map((c) => c.id as string) as [string, string, string, string];
 
+  const goalReminders = (over: Record<string, unknown> = {}) =>
+    JSON.stringify({
+      beforeDue: [],
+      beforeDueTime: '09:00',
+      eachStep: false,
+      monthlyDay: null,
+      monthlyTime: '09:00',
+      periodic: false,
+      periodicTime: '09:00',
+      periodicWeekday: 1,
+      ...over,
+    });
+  // Every demo goal has at least one linked task (the app's rule).
   const goalId = newId();
+  const courseGoalId = newId();
+  const homeGoalId = newId();
+  const weekStart = addDays(today, -((today.getDay() + 6) % 7)); // Monday of this week
   const goals: Row[] = [
     {
       ...base(goalId),
@@ -138,12 +158,16 @@ export function buildDemoData(options: {
       target_date: day(addDays(today, 41)),
       status: 'active',
       color: 'moss',
-      progress_mode: 'milestones',
+      progress_mode: 'tasks',
       manual_progress: 0,
       achieved_at: null,
+      period: 'once',
+      start_date: day(addDays(today, -14)),
+      reminders: goalReminders({ beforeDue: [1, 7], eachStep: true }),
+      history: '[]',
     },
     {
-      ...base(newId()),
+      ...base(courseGoalId),
       title: S.goalCourse,
       description: null,
       target_date: day(addDays(today, 90)),
@@ -152,6 +176,28 @@ export function buildDemoData(options: {
       progress_mode: 'tasks',
       manual_progress: 0,
       achieved_at: null,
+      period: 'once',
+      start_date: null,
+      reminders: goalReminders({ monthlyDay: 1 }),
+      history: '[]',
+    },
+    {
+      ...base(homeGoalId),
+      title: S.goalHome,
+      description: null,
+      target_date: null,
+      status: 'active',
+      color: 'sand',
+      progress_mode: 'tasks',
+      manual_progress: 0,
+      achieved_at: null,
+      period: 'weekly',
+      start_date: day(addDays(weekStart, -14)),
+      reminders: goalReminders({ periodic: true, periodicTime: '18:00', periodicWeekday: 0 }),
+      history: JSON.stringify([
+        { start: day(addDays(weekStart, -14)), end: day(addDays(weekStart, -8)), percent: 50, done: 1, total: 2 },
+        { start: day(addDays(weekStart, -7)), end: day(addDays(weekStart, -1)), percent: 100, done: 2, total: 2 },
+      ]),
     },
   ];
 
@@ -197,10 +243,10 @@ export function buildDemoData(options: {
     task(S.review, { start: '08:30', duration: 30, category: focus, priority: 2 }),
     task(S.outline, { start: '09:30', duration: 90, category: focus, priority: 3, notes: S.outlineNotes }),
     task(S.walk, { start: '12:30', duration: 30, category: health, notes: S.walkNotes, goal: goalId }),
-    task(S.plants, { category: home }),
-    task(S.read, { start: '20:00', duration: 40, category: learning }),
+    task(S.plants, { category: home, goal: homeGoalId }),
+    task(S.read, { start: '20:00', duration: 40, category: learning, goal: courseGoalId }),
     task(S.dentist, { date: addDays(today, -2), category: health, priority: 1 }),
-    task(S.weekend, { date: addDays(today, 3), category: home }),
+    task(S.weekend, { date: addDays(today, 3), category: home, goal: homeGoalId }),
     task(S.photos, { date: null }),
     task(S.checkin, { start: '10:00', duration: 30, category: focus }),
   ];
@@ -213,9 +259,14 @@ export function buildDemoData(options: {
     sort_order: sort,
   });
   tasks.push(subtask(S.outlineSub1, true, 0), subtask(S.outlineSub2, false, 1), subtask(S.outlineSub3, false, 2));
+  tasks.push({
+    ...task(S.easyRun, { date: addDays(today, -1), start: '07:30', duration: 25, category: health, goal: goalId }),
+    status: 'done',
+    completed_at: now,
+  });
   const stretchRuleId = newId();
   const stretch: Row = {
-    ...task(S.stretch, { date: addDays(today, -7), start: '15:00', duration: 15, category: health }),
+    ...task(S.stretch, { date: addDays(today, -7), start: '15:00', duration: 15, category: health, goal: goalId }),
     recurrence_rule_id: stretchRuleId,
   };
   tasks.push(stretch);

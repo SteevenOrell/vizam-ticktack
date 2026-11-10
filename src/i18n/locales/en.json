@@ -223,7 +223,8 @@
     "noGoal": "No goal",
     "goalEmpty": "No goals yet. Name one to link this task to it.",
     "newGoal": "New goal",
-    "newGoalPlaceholder": "For example: Run a 10K"
+    "newGoalPlaceholder": "For example: Run a 10K",
+    "newGoalPending": "{{title}} (new)"
   },
   "repeat": {
     "title": "Repeat",

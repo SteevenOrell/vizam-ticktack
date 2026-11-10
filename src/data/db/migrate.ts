@@ -1,5 +1,6 @@
 import type { SqlDriver } from './driver';
 import { migration001 } from './migrations/001_initial';
+import { migration002 } from './migrations/002_goal_periods';
 
 export interface Migration {
   version: number;
@@ -8,7 +9,10 @@ export interface Migration {
 }
 
 /** Ordered list; versions must be 1, 2, 3, ... with no gaps. */
-export const migrations: readonly Migration[] = [{ version: 1, name: '001_initial', sql: migration001 }];
+export const migrations: readonly Migration[] = [
+  { version: 1, name: '001_initial', sql: migration001 },
+  { version: 2, name: '002_goal_periods', sql: migration002 },
+];
 
 export async function getSchemaVersion(db: SqlDriver): Promise<number> {
   const row = await db.first<{ user_version: number }>('PRAGMA user_version');

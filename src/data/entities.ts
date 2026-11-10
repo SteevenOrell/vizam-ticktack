@@ -139,6 +139,10 @@ export const entities = {
     progressMode: ['progress_mode', 'text'],
     manualProgress: ['manual_progress', 'int'],
     achievedAt: ['achieved_at', 'text'],
+    period: ['period', 'text'],
+    startDate: ['start_date', 'text'],
+    reminders: ['reminders', 'json'],
+    history: ['history', 'json'],
   }),
   milestones: def('milestones', 'milestones', milestoneSchema, {
     goalId: ['goal_id', 'text'],

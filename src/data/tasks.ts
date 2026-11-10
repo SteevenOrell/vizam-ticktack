@@ -18,6 +18,7 @@ import { occurrenceId, parseOccurrenceId, producesDate } from '../domain/recurre
 import { orphanedExceptions, sameSchedule, splitRule, type EditScope } from '../domain/recurrence/seriesEdit';
 import { CATEGORY_NAME_MAX, normalizeCategoryName } from '../domain/categoryName';
 import { resolveCategoryName } from './categories';
+import { insertGoal } from './goalBase';
 import { defaultWindow, ensureOccurrences, resetGenerated } from './occurrences';
 import { getEntity, listEntities, mutate, nowIso, tombstone, writeEntity, type DataContext } from './store';
 
@@ -52,6 +53,8 @@ export const taskDraftSchema = z
       .refine((v) => (normalizeCategoryName(v)?.length ?? 0) <= CATEGORY_NAME_MAX, 'categoryTooLong'),
     /** Linked goal; undefined keeps the stored link on update. */
     goalId: z.string().min(1).max(128).nullable().optional(),
+    /** A new goal to create on save and link to this task ("New goal" in the editor); wins over `goalId`. */
+    newGoalTitle: z.string().trim().min(1).max(120, 'goalTooLong').nullable().optional(),
     date: localDateSchema.nullable(),
     startTime: hhmmSchema.nullable(),
     durationMin: z.number().int().min(1).max(1440).nullable(),
@@ -143,6 +146,11 @@ async function resolveRefs(ctx: DataContext, draft: TaskDraft): Promise<TaskDraf
   if (draft.categoryName !== undefined) {
     next = { ...next, categoryId: await resolveCategoryName(ctx, draft.categoryName) };
   }
+  if (draft.newGoalTitle) {
+    // Created in the same transaction as the task, so the goal is never left without a task.
+    const goal = await insertGoal(ctx, { title: draft.newGoalTitle });
+    return { ...next, goalId: goal.id, newGoalTitle: null };
+  }
   if (draft.goalId && !(await getEntity(ctx.db, 'goals', draft.goalId, ctx.ownerId))) {
     throw new Error('Goal not found');
   }
@@ -152,29 +160,37 @@ async function resolveRefs(ctx: DataContext, draft: TaskDraft): Promise<TaskDraf
 /** Creates a one-off task, or a recurring series (template task + rule) whose occurrences are generated. */
 export async function createTask(ctx: DataContext, input: TaskDraft): Promise<Task> {
   const parsed = taskDraftSchema.parse(input);
+  const task = await mutate(ctx, () => insertTask(ctx, parsed));
+  if (task.recurrenceRuleId) {
+    await ensureOccurrences(ctx.db, ctx.ownerId, defaultWindow(today(ctx)), { seriesId: task.id });
+  }
+  return task;
+}
+
+/**
+ * Writes a new task (with its rule and subtasks) inside the caller's `mutate` transaction. Callers that create a
+ * series run `ensureOccurrences` for it after the transaction.
+ */
+export async function insertTask(ctx: DataContext, parsed: TaskDraft): Promise<Task> {
   const id = ctx.newId();
   const ruleId = parsed.repeat ? ctx.newId() : null;
-  const task = await mutate(ctx, async () => {
-    const draft = await resolveRefs(ctx, parsed);
-    const t = await writeEntity(ctx, 'tasks', {
-      id,
-      goalId: null,
-      ...taskFields(draft),
-      status: 'open',
-      milestoneId: null,
-      parentTaskId: null,
-      sortOrder: 0,
-      completedAt: null,
-      recurrenceRuleId: ruleId,
-    });
-    if (draft.repeat && draft.date && ruleId) {
-      await writeRule(ctx, id, { ...draft.repeat, startDate: draft.date }, ruleId);
-    }
-    await syncSubtasks(ctx, t, draft.subtasks);
-    return t;
+  const draft = await resolveRefs(ctx, parsed);
+  const t = await writeEntity(ctx, 'tasks', {
+    id,
+    goalId: null,
+    ...taskFields(draft),
+    status: 'open',
+    milestoneId: null,
+    parentTaskId: null,
+    sortOrder: 0,
+    completedAt: null,
+    recurrenceRuleId: ruleId,
   });
-  if (ruleId) await ensureOccurrences(ctx.db, ctx.ownerId, defaultWindow(today(ctx)), { seriesId: id });
-  return task;
+  if (draft.repeat && draft.date && ruleId) {
+    await writeRule(ctx, id, { ...draft.repeat, startDate: draft.date }, ruleId);
+  }
+  await syncSubtasks(ctx, t, draft.subtasks);
+  return t;
 }
 
 export interface TaskForm {

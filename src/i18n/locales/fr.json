@@ -232,7 +232,8 @@
     "noGoal": "Aucun objectif",
     "goalEmpty": "Aucun objectif pour l’instant. Nommez-en un pour y lier cette tâche.",
     "newGoal": "Nouvel objectif",
-    "newGoalPlaceholder": "Par exemple : courir un 10 km"
+    "newGoalPlaceholder": "Par exemple : courir un 10 km",
+    "newGoalPending": "{{title}} (nouveau)"
   },
   "repeat": {
     "title": "Répétition",

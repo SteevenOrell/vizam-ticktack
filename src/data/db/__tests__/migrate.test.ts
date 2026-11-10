@@ -1,5 +1,7 @@
 import { randomUUID } from 'crypto';
 
+import { DEFAULT_GOAL_REMINDERS } from '../../../domain/models';
+import { parseEntity, rowToEntity, type SqlRow } from '../../entities';
 import { buildDemoData, insertDemoData } from '../../seed/demoData';
 import { openBetterSqliteDriver } from '../betterSqliteDriver';
 import type { SqlDriver } from '../driver';
@@ -20,9 +22,25 @@ const tables = async () =>
   );
 
 describe('migration runner', () => {
-  it('applies 001 on an empty database and sets user_version', async () => {
+  it('upgrades a version 1 database: existing goals get the 002 defaults and stay valid', async () => {
+    await migrate(db, migrations.slice(0, 1));
+    expect(await getSchemaVersion(db)).toBe(1);
+    await db.run(
+      `INSERT INTO goals (id, owner_id, created_at, client_updated_at, title, status, progress_mode)
+       VALUES ('g1', 'local', '2026-11-01T10:00:00.000Z', '2026-11-01T10:00:00.000Z', 'Legacy goal', 'active', 'tasks')`,
+    );
+    expect(await migrate(db)).toEqual([2]);
+    const row = await db.first<SqlRow>('SELECT * FROM goals WHERE id = ?', ['g1']);
+    const goal = parseEntity('goals', rowToEntity('goals', row!));
+    expect(goal).toMatchObject({ period: 'once', startDate: null, history: [], reminders: DEFAULT_GOAL_REMINDERS });
+    const cols = await db.all<{ name: string }>('PRAGMA table_info(scheduled_notifications)');
+    expect(cols.map((c) => c.name)).toContain('fingerprint');
+    await expect(db.run(`UPDATE goals SET period = 'hourly' WHERE id = 'g1'`)).rejects.toThrow();
+  });
+
+  it('applies every migration on an empty database and sets user_version', async () => {
     expect(await getSchemaVersion(db)).toBe(0);
-    expect(await migrate(db)).toEqual([1]);
+    expect(await migrate(db)).toEqual([1, 2]);
     expect(await getSchemaVersion(db)).toBe(migrations.length);
     expect(await tables()).toEqual(
       expect.arrayContaining([

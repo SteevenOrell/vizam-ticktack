@@ -50,6 +50,8 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     'expo-font',
     'expo-localization',
     'expo-secure-store',
+    // Local goal reminders only (no remote push, so no APNs entitlement). See src/services/notifications.
+    ['expo-notifications', { color: '#FF7A24', enableRemoteNotifications: false }],
   ],
   experiments: {
     typedRoutes: true,
