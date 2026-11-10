@@ -94,6 +94,11 @@ try {
       await page.evaluate(() => document.fonts.ready);
       await page.waitForTimeout(400);
       await shot(`${set.name}-${name}`);
+      if (name === 'calendar' && set.demo) {
+        await page.getByRole('tab', { name: set.language === 'fr' ? 'Mois' : 'Month' }).click();
+        await page.waitForTimeout(400);
+        await shot(`${set.name}-calendar-month`);
+      }
     }
     await context.close();
   }

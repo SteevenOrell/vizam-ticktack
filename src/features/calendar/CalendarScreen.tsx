@@ -45,6 +45,8 @@ export function CalendarScreen({ now = new Date() }: { now?: Date }) {
     verticalLine: { backgroundColor: colors.border },
     nowIndicatorLine: { backgroundColor: colors.accent },
     nowIndicatorKnob: { backgroundColor: colors.accent },
+    // The library wraps renderEvent in a bordered light box; keep only positioning.
+    event: { backgroundColor: 'transparent', borderWidth: 0, paddingLeft: 0, paddingTop: 0, paddingBottom: 2 },
   };
 
   return (
@@ -87,6 +89,8 @@ export function CalendarScreen({ now = new Date() }: { now?: Date }) {
                     start={5}
                     end={23}
                     format24h={i18n.language === 'fr'}
+                    timelineLeftInset={64}
+                    rightEdgeSpacing={space.lg}
                     showNowIndicator
                     scrollToFirst
                     theme={timelineTheme as never}
@@ -134,6 +138,7 @@ export function CalendarScreen({ now = new Date() }: { now?: Date }) {
 
 const styles = StyleSheet.create({
   segments: { marginTop: space.lg },
-  timeline: { height: 480, borderRadius: radii.card, overflow: 'hidden', borderWidth: StyleSheet.hairlineWidth },
+  // Full bleed: the Timeline sizes events from the screen width, so it must span the whole screen.
+  timeline: { height: 480, marginHorizontal: -space.lg, borderTopWidth: StyleSheet.hairlineWidth },
   event: { flex: 1, borderRadius: 10, borderLeftWidth: 3, padding: space.xs },
 });
