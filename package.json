@@ -73,7 +73,7 @@
     "format:check": "prettier --check .",
     "test": "jest",
     "test:watch": "jest --watch",
-    "test:rules": "npx --yes firebase-tools@15.35.0 emulators:exec --config firebase/firebase.json --only firestore --project demo-ticktack \"jest -c jest.rules.config.js\"",
+    "test:rules": "npx --yes firebase-tools@15.35.0 emulators:exec --config firebase/firebase.json --only firestore,auth --project demo-ticktack \"jest -c jest.rules.config.js\"",
     "doctor": "expo-doctor",
     "seed": "tsx scripts/seed.ts",
     "render:brand": "node scripts/render-brand.mjs",

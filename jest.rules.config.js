@@ -8,4 +8,6 @@ module.exports = {
   testRegex: String.raw`tests[\\/]rules[\\/].*\.test\.ts$`,
   transform: { '^.+\\.ts$': ['babel-jest', { presets: [babelPresetExpo] }] },
   testTimeout: 20000,
+  // Suites share one emulator and the rules suite clears Firestore between tests: run files one at a time.
+  maxWorkers: 1,
 };
