@@ -53,3 +53,13 @@ Thumbs.db
 .vscode/*
 !.vscode/extensions.json
 .idea/
+
+# Expo / Metro (from the SDK 58 template)
+expo-env.d.ts
+.kotlin/
+*.orig.*
+*.mobileprovision
+.metro-health-check*
+npm-debug.*
+yarn-debug.*
+yarn-error.*
