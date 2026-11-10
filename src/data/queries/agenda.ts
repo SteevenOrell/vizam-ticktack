@@ -1,6 +1,7 @@
 /**
  * Read models for Today and Calendar: one-off tasks, task occurrences (with per-occurrence overrides falling back to
- * the series template) and routine occurrences, for a date range. Ensures the range is materialised first.
+ * the series template) and routine occurrences, for a date range. Ensures the range is materialised first. Rows
+ * carry what the list preview needs: notes, category name, goal title and the subtasks with their check state.
  */
 import { addDays, diffDays, type LocalDate } from '../../domain/localDate';
 import type { CategoryColor } from '../../domain/models';
@@ -8,6 +9,12 @@ import type { SqlDriver } from '../db/driver';
 import { defaultWindow, ensureOccurrences } from '../occurrences';
 
 export type AgendaKind = 'task' | 'occurrence' | 'routine';
+
+export interface SubtaskPreview {
+  id: string;
+  title: string;
+  done: boolean;
+}
 
 export interface AgendaItem {
   /** Unique within a list: task id, or occurrence id. */
@@ -23,7 +30,12 @@ export interface AgendaItem {
   done: boolean;
   priority: number;
   categoryColor: CategoryColor | null;
+  categoryName: string | null;
+  goalTitle: string | null;
+  notes: string | null;
   subtasks: { total: number; done: number };
+  /** Subtasks (routine steps for routines) in order, with their state for this item or occurrence. */
+  subtaskItems: SubtaskPreview[];
   recurring: boolean;
 }
 
@@ -35,9 +47,10 @@ interface TaskRow {
   duration_min: number | null;
   status: string;
   priority: number;
+  notes: string | null;
   color: string | null;
-  sub_total: number;
-  sub_done: number;
+  category_name: string | null;
+  goal_title: string | null;
 }
 
 interface OccRow {
@@ -50,13 +63,23 @@ interface OccRow {
   o_title: string | null;
   o_start: string | null;
   o_duration: number | null;
+  o_notes: string | null;
   s_title: string;
   s_start: string | null;
   s_duration: number | null;
+  s_notes: string | null;
   priority: number;
   color: string | null;
-  sub_total: number;
+  category_name: string | null;
+  goal_title: string | null;
   steps: string | null;
+}
+
+interface SubRow {
+  id: string;
+  parent_task_id: string;
+  title: string;
+  status: string;
 }
 
 const CATEGORY_COLORS = new Set(['ember', 'sage', 'sky', 'plum', 'moss', 'sand', 'rose', 'slate']);
@@ -80,6 +103,75 @@ export function compareAgenda(a: AgendaItem, b: AgendaItem): number {
   return a.title.localeCompare(b.title);
 }
 
+const TASK_COLUMNS = `t.id, t.title, t.date, t.start_time, t.duration_min, t.status, t.priority, t.notes, c.color,
+       c.name AS category_name, g.title AS goal_title`;
+const TASK_JOINS = `LEFT JOIN categories c ON c.id = t.category_id AND c.owner_id = t.owner_id AND c.deleted = 0
+     LEFT JOIN goals g ON g.id = t.goal_id AND g.owner_id = t.owner_id AND g.deleted = 0`;
+
+const cleanNotes = (n: string | null) => (n && n.trim() ? n : null);
+
+function taskItem(t: TaskRow): AgendaItem {
+  return {
+    key: t.id,
+    kind: 'task',
+    taskId: t.id,
+    occurrenceId: null,
+    title: t.title,
+    date: t.date,
+    startTime: t.start_time,
+    durationMin: t.duration_min,
+    done: t.status === 'done',
+    priority: t.priority,
+    categoryColor: asColor(t.color),
+    categoryName: t.category_name,
+    goalTitle: t.goal_title,
+    notes: cleanNotes(t.notes),
+    subtasks: { total: 0, done: 0 },
+    subtaskItems: [],
+    recurring: false,
+  };
+}
+
+/** Loads the subtasks of the listed tasks / series (one query per 400 parents) and attaches them to the items. */
+async function attachSubtasks(db: SqlDriver, ownerId: string, items: AgendaItem[], ticked: Map<string, Set<string>>) {
+  const parents = [...new Set(items.filter((i) => i.kind !== 'routine').map((i) => i.taskId))];
+  const byParent = new Map<string, SubRow[]>();
+  for (let i = 0; i < parents.length; i += 400) {
+    const chunk = parents.slice(i, i + 400);
+    const rows = await db.all<SubRow>(
+      `SELECT id, parent_task_id, title, status FROM tasks
+       WHERE owner_id = ? AND deleted = 0 AND parent_task_id IN (${chunk.map(() => '?').join(', ')})
+       ORDER BY parent_task_id, sort_order LIMIT 12000`,
+      [ownerId, ...chunk],
+    );
+    for (const r of rows) {
+      const list = byParent.get(r.parent_task_id) ?? [];
+      list.push(r);
+      byParent.set(r.parent_task_id, list);
+    }
+  }
+  for (const item of items) {
+    if (item.kind === 'routine') continue;
+    const subs = byParent.get(item.taskId) ?? [];
+    const done = item.occurrenceId ? (ticked.get(item.occurrenceId) ?? new Set<string>()) : null;
+    item.subtaskItems = subs.map((s) => ({
+      id: s.id,
+      title: s.title,
+      done: done ? done.has(s.id) : s.status === 'done',
+    }));
+    item.subtasks = { total: item.subtaskItems.length, done: item.subtaskItems.filter((s) => s.done).length };
+  }
+}
+
+function routineSteps(steps: string | null, ticked: Set<string>): SubtaskPreview[] {
+  return safeJsonArray(steps).flatMap((s) => {
+    const step = s as { id?: unknown; title?: unknown } | null;
+    return step && typeof step.id === 'string' && typeof step.title === 'string'
+      ? [{ id: step.id, title: step.title, done: ticked.has(step.id) }]
+      : [];
+  });
+}
+
 /** Items between `from` and `to` (inclusive). The range is capped at 62 days by the materialiser. */
 export async function getAgenda(
   db: SqlDriver,
@@ -94,12 +186,9 @@ export async function getAgenda(
   }
 
   const tasks = await db.all<TaskRow>(
-    `SELECT t.id, t.title, t.date, t.start_time, t.duration_min, t.status, t.priority, c.color,
-       (SELECT count(*) FROM tasks s WHERE s.parent_task_id = t.id AND s.owner_id = t.owner_id AND s.deleted = 0) AS sub_total,
-       (SELECT count(*) FROM tasks s WHERE s.parent_task_id = t.id AND s.owner_id = t.owner_id AND s.deleted = 0
-          AND s.status = 'done') AS sub_done
+    `SELECT ${TASK_COLUMNS}
      FROM tasks t
-     LEFT JOIN categories c ON c.id = t.category_id AND c.owner_id = t.owner_id AND c.deleted = 0
+     ${TASK_JOINS}
      WHERE t.owner_id = ? AND t.deleted = 0 AND t.parent_task_id IS NULL AND t.recurrence_rule_id IS NULL
        AND t.status != 'cancelled' AND t.date BETWEEN ? AND ?
      LIMIT 1000`,
@@ -108,44 +197,31 @@ export async function getAgenda(
 
   const occurrences = await db.all<OccRow>(
     `SELECT o.id, o.series_id, o.series_type, o.date, o.status, o.completed_step_ids,
-       o.title AS o_title, o.start_time AS o_start, o.duration_min AS o_duration,
+       o.title AS o_title, o.start_time AS o_start, o.duration_min AS o_duration, o.notes AS o_notes,
        COALESCE(t.title, r.title) AS s_title, COALESCE(t.start_time, r.start_time) AS s_start,
-       COALESCE(t.duration_min, NULL) AS s_duration, COALESCE(t.priority, 0) AS priority, c.color,
-       (SELECT count(*) FROM tasks s WHERE s.parent_task_id = o.series_id AND s.owner_id = o.owner_id
-          AND s.deleted = 0) AS sub_total,
-       r.steps
+       COALESCE(t.duration_min, NULL) AS s_duration, t.notes AS s_notes, COALESCE(t.priority, 0) AS priority,
+       c.color, c.name AS category_name, g.title AS goal_title, r.steps
      FROM task_occurrences o
      LEFT JOIN tasks t ON o.series_type = 'task' AND t.id = o.series_id AND t.owner_id = o.owner_id AND t.deleted = 0
      LEFT JOIN routines r ON o.series_type = 'routine' AND r.id = o.series_id AND r.owner_id = o.owner_id
        AND r.deleted = 0 AND r.active = 1
      LEFT JOIN categories c ON c.id = COALESCE(t.category_id, r.category_id) AND c.owner_id = o.owner_id
        AND c.deleted = 0
+     LEFT JOIN goals g ON g.id = t.goal_id AND g.owner_id = o.owner_id AND g.deleted = 0
      WHERE o.owner_id = ? AND o.deleted = 0 AND o.status != 'skipped' AND o.date BETWEEN ? AND ?
        AND (t.id IS NOT NULL OR r.id IS NOT NULL)
      LIMIT 2000`,
     [ownerId, from, to],
   );
 
-  const items: AgendaItem[] = tasks.map((t) => ({
-    key: t.id,
-    kind: 'task',
-    taskId: t.id,
-    occurrenceId: null,
-    title: t.title,
-    date: t.date,
-    startTime: t.start_time,
-    durationMin: t.duration_min,
-    done: t.status === 'done',
-    priority: t.priority,
-    categoryColor: asColor(t.color),
-    subtasks: { total: t.sub_total, done: t.sub_done },
-    recurring: false,
-  }));
+  const items: AgendaItem[] = tasks.map(taskItem);
+  const ticked = new Map<string, Set<string>>();
 
   for (const o of occurrences) {
-    const ticked = safeJsonArray(o.completed_step_ids).length;
+    const done = new Set(safeJsonArray(o.completed_step_ids).filter((x): x is string => typeof x === 'string'));
+    ticked.set(o.id, done);
     const isRoutine = o.series_type === 'routine';
-    const steps = isRoutine ? safeJsonArray(o.steps) : [];
+    const steps = isRoutine ? routineSteps(o.steps, done) : [];
     items.push({
       key: o.id,
       kind: isRoutine ? 'routine' : 'occurrence',
@@ -158,13 +234,15 @@ export async function getAgenda(
       done: o.status === 'done',
       priority: o.priority,
       categoryColor: asColor(o.color),
-      subtasks: {
-        total: isRoutine ? steps.length : o.sub_total,
-        done: Math.min(ticked, isRoutine ? steps.length : o.sub_total),
-      },
+      categoryName: o.category_name,
+      goalTitle: o.goal_title,
+      notes: cleanNotes(o.o_notes ?? o.s_notes),
+      subtasks: { total: steps.length, done: steps.filter((s) => s.done).length },
+      subtaskItems: steps,
       recurring: true,
     });
   }
+  await attachSubtasks(db, ownerId, items, ticked);
   return items.sort(compareAgenda);
 }
 
@@ -184,12 +262,9 @@ export interface TodayView {
 export async function getTodayView(db: SqlDriver, ownerId: string, today: LocalDate): Promise<TodayView> {
   const items = await getAgenda(db, ownerId, today, today, today);
   const overdueRows = await db.all<TaskRow>(
-    `SELECT t.id, t.title, t.date, t.start_time, t.duration_min, t.status, t.priority, c.color,
-       (SELECT count(*) FROM tasks s WHERE s.parent_task_id = t.id AND s.owner_id = t.owner_id AND s.deleted = 0) AS sub_total,
-       (SELECT count(*) FROM tasks s WHERE s.parent_task_id = t.id AND s.owner_id = t.owner_id AND s.deleted = 0
-          AND s.status = 'done') AS sub_done
+    `SELECT ${TASK_COLUMNS}
      FROM tasks t
-     LEFT JOIN categories c ON c.id = t.category_id AND c.owner_id = t.owner_id AND c.deleted = 0
+     ${TASK_JOINS}
      WHERE t.owner_id = ? AND t.deleted = 0 AND t.parent_task_id IS NULL AND t.recurrence_rule_id IS NULL
        AND t.status = 'open' AND t.date < ?
      ORDER BY t.date DESC, t.priority DESC LIMIT 50`,
@@ -200,26 +275,14 @@ export async function getTodayView(db: SqlDriver, ownerId: string, today: LocalD
     [ownerId],
   );
 
+  const overdue = overdueRows.map(taskItem);
+  await attachSubtasks(db, ownerId, overdue, new Map());
   const open = items.filter((i) => !i.done);
   const minutes = (list: AgendaItem[]) => list.reduce((sum, i) => sum + (i.durationMin ?? 0), 0);
   const tasksOnly = items.filter((i) => i.kind !== 'routine');
   return {
     date: today,
-    overdue: overdueRows.map((t) => ({
-      key: t.id,
-      kind: 'task' as const,
-      taskId: t.id,
-      occurrenceId: null,
-      title: t.title,
-      date: t.date,
-      startTime: t.start_time,
-      durationMin: t.duration_min,
-      done: false,
-      priority: t.priority,
-      categoryColor: asColor(t.color),
-      subtasks: { total: t.sub_total, done: t.sub_done },
-      recurring: false,
-    })),
+    overdue,
     scheduled: open.filter((i) => i.kind !== 'routine' && i.startTime),
     anytime: open.filter((i) => i.kind !== 'routine' && !i.startTime),
     routines: items.filter((i) => i.kind === 'routine'),

@@ -16,6 +16,8 @@ import {
 } from '../domain/models';
 import { occurrenceId, parseOccurrenceId, producesDate } from '../domain/recurrence/generator';
 import { orphanedExceptions, sameSchedule, splitRule, type EditScope } from '../domain/recurrence/seriesEdit';
+import { CATEGORY_NAME_MAX, normalizeCategoryName } from '../domain/categoryName';
+import { resolveCategoryName } from './categories';
 import { defaultWindow, ensureOccurrences, resetGenerated } from './occurrences';
 import { getEntity, listEntities, mutate, nowIso, tombstone, writeEntity, type DataContext } from './store';
 
@@ -41,6 +43,15 @@ export const taskDraftSchema = z
     notes: z.string().max(5000, 'notesTooLong').nullable(),
     priority: z.number().int().min(0).max(3),
     categoryId: z.string().min(1).nullable(),
+    /** Free-text category from the editor. When present it wins over `categoryId` (found or created on save). */
+    categoryName: z
+      .string()
+      .max(200)
+      .nullable()
+      .optional()
+      .refine((v) => (normalizeCategoryName(v)?.length ?? 0) <= CATEGORY_NAME_MAX, 'categoryTooLong'),
+    /** Linked goal; undefined keeps the stored link on update. */
+    goalId: z.string().min(1).max(128).nullable().optional(),
     date: localDateSchema.nullable(),
     startTime: hhmmSchema.nullable(),
     durationMin: z.number().int().min(1).max(1440).nullable(),
@@ -61,6 +72,8 @@ export const emptyDraft = (date: LocalDate | null): TaskDraft => ({
   notes: null,
   priority: 0,
   categoryId: null,
+  categoryName: null,
+  goalId: null,
   date,
   startTime: null,
   durationMin: null,
@@ -72,6 +85,7 @@ const today = (ctx: DataContext) => localDateOf(ctx.now?.() ?? new Date());
 
 function taskFields(draft: TaskDraft) {
   return {
+    ...(draft.goalId !== undefined ? { goalId: draft.goalId } : {}),
     title: draft.title.trim(),
     notes: draft.notes?.trim() ? draft.notes : null,
     priority: draft.priority,
@@ -120,17 +134,33 @@ async function syncSubtasks(ctx: DataContext, parent: Task, subtasks: TaskDraft[
   }
 }
 
+/**
+ * Resolves the free-text category (find or create, in the current transaction) and checks that a linked goal
+ * belongs to the owner. Returns the draft with `categoryId` set. Must run inside `mutate`.
+ */
+async function resolveRefs(ctx: DataContext, draft: TaskDraft): Promise<TaskDraft> {
+  let next = draft;
+  if (draft.categoryName !== undefined) {
+    next = { ...next, categoryId: await resolveCategoryName(ctx, draft.categoryName) };
+  }
+  if (draft.goalId && !(await getEntity(ctx.db, 'goals', draft.goalId, ctx.ownerId))) {
+    throw new Error('Goal not found');
+  }
+  return next;
+}
+
 /** Creates a one-off task, or a recurring series (template task + rule) whose occurrences are generated. */
 export async function createTask(ctx: DataContext, input: TaskDraft): Promise<Task> {
-  const draft = taskDraftSchema.parse(input);
+  const parsed = taskDraftSchema.parse(input);
   const id = ctx.newId();
-  const ruleId = draft.repeat ? ctx.newId() : null;
+  const ruleId = parsed.repeat ? ctx.newId() : null;
   const task = await mutate(ctx, async () => {
+    const draft = await resolveRefs(ctx, parsed);
     const t = await writeEntity(ctx, 'tasks', {
       id,
+      goalId: null,
       ...taskFields(draft),
       status: 'open',
-      goalId: null,
       milestoneId: null,
       parentTaskId: null,
       sortOrder: 0,
@@ -173,6 +203,10 @@ export async function loadTaskForm(
     notes: occurrence?.notes ?? task.notes,
     priority: task.priority,
     categoryId: task.categoryId,
+    categoryName: task.categoryId
+      ? ((await getEntity(ctx.db, 'categories', task.categoryId, ctx.ownerId))?.name ?? null)
+      : null,
+    goalId: task.goalId,
     date: occurrence?.date ?? (rule ? rule.startDate : task.date),
     startTime: occurrence?.startTime ?? task.startTime,
     durationMin: occurrence?.durationMin ?? task.durationMin,
@@ -275,7 +309,7 @@ export async function updateTask(
   input: TaskDraft,
   options: UpdateOptions = {},
 ): Promise<void> {
-  const draft = taskDraftSchema.parse(input);
+  const parsed = taskDraftSchema.parse(input);
   const task = await getEntity(ctx.db, 'tasks', taskId, ctx.ownerId);
   if (!task) throw new Error('Task not found');
   const rule = task.recurrenceRuleId
@@ -285,6 +319,7 @@ export async function updateTask(
   const regenerate: string[] = [];
 
   await mutate(ctx, async () => {
+    const draft = await resolveRefs(ctx, parsed);
     // One-off task (possibly turning into a series).
     if (!rule) {
       const ruleId = draft.repeat ? ctx.newId() : null;
