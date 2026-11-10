@@ -1,5 +1,5 @@
-import type { ReactNode } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import type { ReactElement, ReactNode } from 'react';
+import { ScrollView, StyleSheet, View, type RefreshControlProps } from 'react-native';
 
 import { DeckPanel } from './Card';
 import { GradientHeader } from './GradientHeader';
@@ -14,17 +14,28 @@ export function HeaderScreen({
   header,
   children,
   testID,
+  refreshControl,
+  footer,
 }: {
   title: string;
   action?: ReactNode;
   header?: ReactNode;
   children: ReactNode;
   testID?: string;
+  /** Pull to refresh (sync). */
+  refreshControl?: ReactElement<RefreshControlProps>;
+  /** Content after the deck panel, outside the scroll view (floating actions). */
+  footer?: ReactNode;
 }) {
   const theme = useTheme();
   return (
     <View testID={testID} style={[styles.flex, { backgroundColor: theme.colors.bg }]}>
-      <ScrollView style={styles.flex} contentContainerStyle={styles.scroll} bounces={false}>
+      <ScrollView
+        style={styles.flex}
+        contentContainerStyle={styles.scroll}
+        bounces={!!refreshControl}
+        refreshControl={refreshControl}
+      >
         <GradientHeader>
           <View style={styles.titleRow}>
             <Text variant="title1" color={theme.header.on.text} accessibilityRole="header" style={styles.title}>
@@ -36,6 +47,7 @@ export function HeaderScreen({
         </GradientHeader>
         <DeckPanel>{children}</DeckPanel>
       </ScrollView>
+      {footer}
     </View>
   );
 }

@@ -1,7 +1,8 @@
-import { Tabs } from 'expo-router';
+import { Redirect, Tabs } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { usePreferences } from '../../state/preferences';
 import { Icon, type IconName } from '../../ui/Icon';
 import { space } from '../../ui/theme/layout';
 import { fontFamilies, MANROPE_TRACKING } from '../../ui/theme/typography';
@@ -24,6 +25,9 @@ export default function TabsLayout() {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const bottom = Math.max(insets.bottom, space.xs);
+  const onboardingDone = usePreferences((s) => s.onboardingDone);
+  // First run: onboarding (guest or account) before the tabs.
+  if (!onboardingDone) return <Redirect href="/onboarding" />;
   return (
     <Tabs
       screenOptions={{

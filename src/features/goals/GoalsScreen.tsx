@@ -1,8 +1,10 @@
+import { useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { StyleSheet, View } from 'react-native';
 
 import { getActiveGoals } from '../../data/queries/overview';
 import { useQuery } from '../../data/useQuery';
+import { ownerIdOf, useSession } from '../../state/session';
 import { Card } from '../../ui/Card';
 import { HeaderScreen } from '../../ui/HeaderScreen';
 import { AsyncContent, EmptyState } from '../../ui/states';
@@ -13,7 +15,9 @@ import { useTheme } from '../../ui/theme/ThemeProvider';
 export function GoalsScreen() {
   const { t } = useTranslation();
   const { colors, header } = useTheme();
-  const state = useQuery(getActiveGoals);
+  const ownerId = useSession(ownerIdOf);
+  const query = useCallback((db: Parameters<typeof getActiveGoals>[0]) => getActiveGoals(db, ownerId), [ownerId]);
+  const state = useQuery(query);
   const count = state.status === 'success' ? state.data.length : 0;
 
   return (

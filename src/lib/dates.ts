@@ -1,5 +1,7 @@
 import { format } from 'date-fns';
 
+import { parseYmd, type LocalDate } from '../domain/localDate';
+
 /** Floating local date `YYYY-MM-DD` (ARCHITECTURE.md section 3.1). */
 export const localDate = (d: Date) => format(d, 'yyyy-MM-dd');
 
@@ -23,4 +25,10 @@ export function formatClock(hhmm: string, language: string): string {
   if (language === 'fr') return hhmm;
   const suffix = h >= 12 ? 'PM' : 'AM';
   return `${h % 12 === 0 ? 12 : h % 12}:${ms} ${suffix}`;
+}
+
+/** Noon on a floating local date (safe from DST edges) for formatting with date-fns / Intl. */
+export function noonOf(date: LocalDate): Date {
+  const { y, m, d } = parseYmd(date);
+  return new Date(y, m - 1, d, 12, 0, 0);
 }

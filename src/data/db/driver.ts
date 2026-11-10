@@ -20,3 +20,20 @@ export interface SqlDriver {
   transaction<T>(fn: () => Promise<T>): Promise<T>;
   close(): Promise<void>;
 }
+
+/**
+ * Serialises `transaction()` calls on one connection. Without it, two async flows (a user edit and a sync pull, say)
+ * could interleave BEGIN statements and fail with "cannot start a transaction within a transaction". Transactions
+ * must not nest: a `transaction` callback that calls `transaction` again would wait for itself.
+ */
+export function withTransactionQueue(driver: SqlDriver): SqlDriver {
+  let tail: Promise<unknown> = Promise.resolve();
+  return {
+    ...driver,
+    transaction<T>(fn: () => Promise<T>): Promise<T> {
+      const run = tail.then(() => driver.transaction(fn));
+      tail = run.catch(() => undefined);
+      return run;
+    },
+  };
+}

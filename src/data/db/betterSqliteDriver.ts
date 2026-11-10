@@ -3,14 +3,14 @@
  */
 import Database from 'better-sqlite3';
 
-import type { SqlDriver, SqlValue } from './driver';
+import { withTransactionQueue, type SqlDriver, type SqlValue } from './driver';
 
 export function openBetterSqliteDriver(filename = ':memory:'): SqlDriver {
   const db = new Database(filename);
   if (filename !== ':memory:') db.pragma('journal_mode = WAL');
   db.pragma('foreign_keys = ON');
 
-  return {
+  return withTransactionQueue({
     exec: async (sql) => {
       db.exec(sql);
     },
@@ -35,5 +35,5 @@ export function openBetterSqliteDriver(filename = ':memory:'): SqlDriver {
     close: async () => {
       db.close();
     },
-  };
+  });
 }

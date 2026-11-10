@@ -8,6 +8,66 @@ import type { SqlDriver, SqlValue } from '../db/driver';
 
 export const LOCAL_OWNER = 'local';
 
+/** Demo strings per language (synthetic; French is fr-CA wording). */
+export const demoStrings = {
+  en: {
+    focus: 'Focus work',
+    health: 'Health',
+    home: 'Home',
+    learning: 'Learning',
+    goalRun: 'Run a 10 km race',
+    goalRunDesc: 'Build up from three short runs a week.',
+    goalCourse: 'Finish the design course',
+    m3: 'Run 3 km without stopping',
+    m5: 'Run 5 km',
+    m8: 'Run 8 km',
+    review: 'Review the weekly plan',
+    outline: 'Draft the project outline',
+    walk: 'Lunch walk',
+    plants: 'Water the plants',
+    read: 'Read one chapter',
+    dentist: 'Book a dentist appointment',
+    weekend: 'Plan the weekend',
+    photos: 'Sort old photos',
+    stretch: 'Stretch break',
+    outlineSub1: 'List the main sections',
+    outlineSub2: 'Write the summary',
+    routine: 'Morning start',
+    water: 'Glass of water',
+    stretchStep: 'Stretch',
+    priorities: 'Pick three priorities',
+    planner: 'Demo planner',
+  },
+  fr: {
+    focus: 'Travail concentré',
+    health: 'Santé',
+    home: 'Maison',
+    learning: 'Apprentissage',
+    goalRun: 'Courir un 10 km',
+    goalRunDesc: 'Progresser avec trois courtes sorties par semaine.',
+    goalCourse: 'Terminer le cours de design',
+    m3: 'Courir 3 km sans arrêt',
+    m5: 'Courir 5 km',
+    m8: 'Courir 8 km',
+    review: 'Revoir le plan de la semaine',
+    outline: 'Ébaucher le plan du projet',
+    walk: 'Marche du midi',
+    plants: 'Arroser les plantes',
+    read: 'Lire un chapitre',
+    dentist: 'Prendre rendez-vous chez le dentiste',
+    weekend: 'Planifier la fin de semaine',
+    photos: 'Trier les vieilles photos',
+    stretch: 'Pause étirements',
+    outlineSub1: 'Lister les grandes sections',
+    outlineSub2: 'Rédiger le résumé',
+    routine: 'Bon départ du matin',
+    water: 'Verre d’eau',
+    stretchStep: 'Étirements',
+    priorities: 'Choisir trois priorités',
+    planner: 'Planificateur démo',
+  },
+} as const;
+
 type Row = Record<string, SqlValue>;
 
 export interface DemoData {
@@ -23,8 +83,14 @@ export interface DemoData {
 
 const day = (d: Date) => format(d, 'yyyy-MM-dd');
 
-export function buildDemoData(options: { today: Date; newId: () => string; ownerId?: string }): DemoData {
+export function buildDemoData(options: {
+  today: Date;
+  newId: () => string;
+  ownerId?: string;
+  language?: string;
+}): DemoData {
   const { today, newId } = options;
+  const S = options.language === 'fr' ? demoStrings.fr : demoStrings.en;
   const ownerId = options.ownerId ?? LOCAL_OWNER;
   const now = new Date(today).toISOString();
   const base = (id: string): Row => ({
@@ -48,10 +114,10 @@ export function buildDemoData(options: { today: Date; newId: () => string; owner
     archived: 0,
   });
   const categories = [
-    cat('Focus work', 'ember', 'target', 0),
-    cat('Health', 'moss', 'heart', 1),
-    cat('Home', 'sand', 'home', 2),
-    cat('Learning', 'plum', 'book', 3),
+    cat(S.focus, 'ember', 'target', 0),
+    cat(S.health, 'moss', 'heart', 1),
+    cat(S.home, 'sand', 'home', 2),
+    cat(S.learning, 'plum', 'book', 3),
   ];
   const [focus, health, home, learning] = categories.map((c) => c.id as string) as [string, string, string, string];
 
@@ -59,8 +125,8 @@ export function buildDemoData(options: { today: Date; newId: () => string; owner
   const goals: Row[] = [
     {
       ...base(goalId),
-      title: 'Run a 10 km race',
-      description: 'Build up from three short runs a week.',
+      title: S.goalRun,
+      description: S.goalRunDesc,
       target_date: day(addDays(today, 41)),
       status: 'active',
       color: 'moss',
@@ -70,7 +136,7 @@ export function buildDemoData(options: { today: Date; newId: () => string; owner
     },
     {
       ...base(newId()),
-      title: 'Finish the design course',
+      title: S.goalCourse,
       description: null,
       target_date: day(addDays(today, 90)),
       status: 'active',
@@ -89,11 +155,7 @@ export function buildDemoData(options: { today: Date; newId: () => string; owner
     completed_at: done ? now : null,
     sort_order: sort,
   });
-  const milestones = [
-    milestone('Run 3 km without stopping', -10, true, 0),
-    milestone('Run 5 km', 10, false, 1),
-    milestone('Run 8 km', 28, false, 2),
-  ];
+  const milestones = [milestone(S.m3, -10, true, 0), milestone(S.m5, 10, false, 1), milestone(S.m8, 28, false, 2)];
 
   const task = (
     title: string,
@@ -116,28 +178,43 @@ export function buildDemoData(options: { today: Date; newId: () => string; owner
     recurrence_rule_id: null,
   });
   const tasks = [
-    task('Review the weekly plan', { start: '08:30', duration: 30, category: focus, priority: 2 }),
-    task('Draft the project outline', { start: '09:30', duration: 90, category: focus, priority: 3 }),
-    task('Lunch walk', { start: '12:30', duration: 30, category: health }),
-    task('Water the plants', { category: home }),
-    task('Read one chapter', { start: '20:00', duration: 40, category: learning }),
-    task('Book a dentist appointment', { date: addDays(today, -2), category: health, priority: 1 }),
-    task('Plan the weekend', { date: addDays(today, 3), category: home }),
-    task('Sort old photos', { date: null }),
+    task(S.review, { start: '08:30', duration: 30, category: focus, priority: 2 }),
+    task(S.outline, { start: '09:30', duration: 90, category: focus, priority: 3 }),
+    task(S.walk, { start: '12:30', duration: 30, category: health }),
+    task(S.plants, { category: home }),
+    task(S.read, { start: '20:00', duration: 40, category: learning }),
+    task(S.dentist, { date: addDays(today, -2), category: health, priority: 1 }),
+    task(S.weekend, { date: addDays(today, 3), category: home }),
+    task(S.photos, { date: null }),
   ];
+  const outlineId = tasks[1]?.id as string;
+  const subtask = (title: string, done: boolean, sort: number): Row => ({
+    ...task(title, { date: null }),
+    parent_task_id: outlineId,
+    status: done ? 'done' : 'open',
+    completed_at: done ? now : null,
+    sort_order: sort,
+  });
+  tasks.push(subtask(S.outlineSub1, true, 0), subtask(S.outlineSub2, false, 1));
+  const stretchRuleId = newId();
+  const stretch: Row = {
+    ...task(S.stretch, { date: addDays(today, -7), start: '15:00', duration: 15, category: health }),
+    recurrence_rule_id: stretchRuleId,
+  };
+  tasks.push(stretch);
 
   const routineId = newId();
   const ruleId = newId();
   const routines: Row[] = [
     {
       ...base(routineId),
-      title: 'Morning start',
+      title: S.routine,
       part_of_day: 'morning',
       start_time: '07:00',
       steps: JSON.stringify([
-        { id: 's1', title: 'Glass of water', durationMin: 2 },
-        { id: 's2', title: 'Stretch', durationMin: 10 },
-        { id: 's3', title: 'Pick three priorities', durationMin: 5 },
+        { id: 's1', title: S.water, durationMin: 2 },
+        { id: 's2', title: S.stretchStep, durationMin: 10 },
+        { id: 's3', title: S.priorities, durationMin: 5 },
       ]),
       category_id: health,
       active: 1,
@@ -159,6 +236,20 @@ export function buildDemoData(options: { today: Date; newId: () => string; owner
       end_date: null,
       count: null,
     },
+    {
+      ...base(stretchRuleId),
+      series_type: 'task',
+      series_id: stretch.id as string,
+      freq: 'weekly',
+      interval: 1,
+      by_weekday: JSON.stringify([1, 2, 3, 4, 5]),
+      by_month_day: null,
+      week_starts_on: 1,
+      start_date: day(addDays(today, -7)),
+      end_type: 'never',
+      end_date: null,
+      count: null,
+    },
   ];
 
   const reminders: Row[] = [
@@ -176,7 +267,7 @@ export function buildDemoData(options: { today: Date; newId: () => string; owner
   const profile: Row[] = [
     {
       ...base(ownerId === LOCAL_OWNER ? 'local-profile' : ownerId),
-      display_name: 'Demo planner',
+      display_name: S.planner,
       time_zone: 'America/Toronto',
       week_starts_on: 1,
       theme: 'system',

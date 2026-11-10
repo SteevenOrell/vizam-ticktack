@@ -11,6 +11,8 @@ export interface FirebaseEnv {
   projectId?: string;
   appId?: string;
   messagingSenderId?: string;
+  storageBucket?: string;
+  measurementId?: string;
   useEmulator?: string;
   emulatorHost?: string;
 }
@@ -22,6 +24,8 @@ export function readFirebaseEnv(): FirebaseEnv {
     projectId: process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID,
     appId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID,
     messagingSenderId: process.env.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+    storageBucket: process.env.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET,
+    measurementId: process.env.EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID,
     useEmulator: process.env.EXPO_PUBLIC_USE_FIREBASE_EMULATOR,
     emulatorHost: process.env.EXPO_PUBLIC_FIREBASE_EMULATOR_HOST,
   };
@@ -40,7 +44,15 @@ export type FirebaseSetup =
   | { mode: 'disabled'; reason: 'missing-config' }
   | {
       mode: 'cloud';
-      options: { apiKey: string; authDomain: string; projectId: string; appId: string; messagingSenderId?: string };
+      options: {
+        apiKey: string;
+        authDomain: string;
+        projectId: string;
+        appId: string;
+        messagingSenderId?: string;
+        storageBucket?: string;
+        measurementId?: string;
+      };
     }
   | {
       mode: 'emulator';
@@ -66,6 +78,8 @@ export function resolveFirebaseSetup(env: FirebaseEnv): FirebaseSetup {
       projectId: nonEmpty,
       appId: nonEmpty,
       messagingSenderId: nonEmpty.optional(),
+      storageBucket: nonEmpty.optional(),
+      measurementId: nonEmpty.optional(),
     })
     .safeParse(env);
   if (!parsed.success) return { mode: 'disabled', reason: 'missing-config' };

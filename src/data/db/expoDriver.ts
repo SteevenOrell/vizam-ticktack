@@ -1,11 +1,11 @@
 import { openDatabaseAsync, type SQLiteDatabase } from 'expo-sqlite';
 
-import type { RunResult, SqlDriver, SqlValue } from './driver';
+import { withTransactionQueue, type RunResult, type SqlDriver, type SqlValue } from './driver';
 
 export const DATABASE_NAME = 'ticktack.db';
 
 export function wrapExpoDatabase(db: SQLiteDatabase): SqlDriver {
-  return {
+  return withTransactionQueue({
     exec: (sql) => db.execAsync(sql),
     run: async (sql, params = []) => {
       const r = await db.runAsync(sql, params as SqlValue[]);
@@ -21,7 +21,7 @@ export function wrapExpoDatabase(db: SQLiteDatabase): SqlDriver {
       return result as T;
     },
     close: () => db.closeAsync(),
-  };
+  });
 }
 
 export async function openExpoDriver(name = DATABASE_NAME): Promise<SqlDriver> {

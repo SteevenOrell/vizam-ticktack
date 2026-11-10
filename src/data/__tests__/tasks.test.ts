@@ -297,6 +297,13 @@ describe('recurring series', () => {
   });
 });
 
+it('serialises concurrent writes on one connection (no nested BEGIN)', async () => {
+  const ctx = context(db);
+  await Promise.all(Array.from({ length: 8 }, (_, i) => createTask(ctx, draft({ title: `Parallel ${i}` }))));
+  expect(await count(db, 'SELECT count(*) AS n FROM tasks')).toBe(8);
+  expect(await count(db, 'SELECT count(*) AS n FROM outbox')).toBe(8);
+});
+
 it('uses the injected clock for timestamps', async () => {
   const ctx = context(db);
   const t = await createTask(ctx, draft());

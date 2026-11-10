@@ -18,6 +18,8 @@ export const preferencesSchema = z.object({
   language: languagePreferenceSchema,
   dayStart: hhmm,
   dayEnd: hhmm,
+  /** Onboarding finished on this device (guest or account). */
+  onboardingDone: z.boolean(),
 });
 
 export type Preferences = z.infer<typeof preferencesSchema>;
@@ -29,12 +31,14 @@ export const defaultPreferences: Preferences = {
   language: 'system',
   dayStart: DEFAULT_DAY_START,
   dayEnd: DEFAULT_DAY_END,
+  onboardingDone: false,
 };
 
 interface PreferencesState extends Preferences {
   setTheme: (theme: ThemePreference) => void;
   setLanguage: (language: LanguagePreference) => void;
   setDayWindow: (dayStart: string, dayEnd: string) => void;
+  setOnboardingDone: (done: boolean) => void;
 }
 
 export const PREFERENCES_STORAGE_KEY = 'ticktack.preferences';
@@ -46,12 +50,19 @@ export const usePreferences = create<PreferencesState>()(
       setTheme: (theme) => set({ theme: themePreferenceSchema.parse(theme) }),
       setLanguage: (language) => set({ language: languagePreferenceSchema.parse(language) }),
       setDayWindow: (dayStart, dayEnd) => set({ dayStart: hhmm.parse(dayStart), dayEnd: hhmm.parse(dayEnd) }),
+      setOnboardingDone: (onboardingDone) => set({ onboardingDone }),
     }),
     {
       name: PREFERENCES_STORAGE_KEY,
       version: 1,
       storage: createJSONStorage(() => AsyncStorage),
-      partialize: ({ theme, language, dayStart, dayEnd }) => ({ theme, language, dayStart, dayEnd }),
+      partialize: ({ theme, language, dayStart, dayEnd, onboardingDone }) => ({
+        theme,
+        language,
+        dayStart,
+        dayEnd,
+        onboardingDone,
+      }),
       // Stored data is untrusted: keep only valid fields, fall back to defaults otherwise.
       merge: (persisted, current) => {
         const parsed = preferencesSchema.partial().safeParse(persisted);

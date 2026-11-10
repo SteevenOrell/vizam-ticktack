@@ -3,7 +3,24 @@ import Svg, { Circle, Path } from 'react-native-svg';
 import { decorativeProps } from './platform';
 
 export type IconName =
-  'today' | 'calendar' | 'goals' | 'routines' | 'me' | 'plus' | 'bell' | 'alert' | 'refresh' | 'close' | 'check';
+  | 'today'
+  | 'calendar'
+  | 'goals'
+  | 'routines'
+  | 'me'
+  | 'plus'
+  | 'bell'
+  | 'alert'
+  | 'refresh'
+  | 'close'
+  | 'check'
+  | 'chevronLeft'
+  | 'chevronRight'
+  | 'trash'
+  | 'repeat'
+  | 'flag'
+  | 'cloud'
+  | 'minus';
 
 /** Simple 24 px stroke icons drawn for TickTack (no icon font, no third-party marks). Decorative by default. */
 export function Icon({ name, size = 24, color }: { name: IconName; size?: number; color: string }) {
@@ -57,6 +74,24 @@ export function Icon({ name, size = 24, color }: { name: IconName; size?: number
       {name === 'refresh' && <Path d="M19 12a7 7 0 1 1-2.1-5M19 4.5V8h-3.5" {...stroke} />}
       {name === 'close' && <Path d="M6.5 6.5l11 11M17.5 6.5l-11 11" {...stroke} strokeWidth={2} />}
       {name === 'check' && <Path d="M5.5 12.5l4 4 9-9" {...stroke} strokeWidth={2.2} />}
+      {name === 'chevronLeft' && <Path d="M14.5 5.5L8 12l6.5 6.5" {...stroke} strokeWidth={2} />}
+      {name === 'chevronRight' && <Path d="M9.5 5.5L16 12l-6.5 6.5" {...stroke} strokeWidth={2} />}
+      {name === 'trash' && (
+        <>
+          <Path d="M5 7h14M10 7V5h4v2M7 7l1 12.5h8L17 7" {...stroke} />
+          <Path d="M10.5 10.5v6M13.5 10.5v6" {...stroke} />
+        </>
+      )}
+      {name === 'repeat' && (
+        <>
+          <Path d="M5 11V9.5A2.5 2.5 0 0 1 7.5 7H18l-2.5-2.5M19 13v1.5a2.5 2.5 0 0 1-2.5 2.5H6l2.5 2.5" {...stroke} />
+        </>
+      )}
+      {name === 'minus' && <Path d="M5 12h14" {...stroke} strokeWidth={2.2} />}
+      {name === 'flag' && <Path d="M6.5 20.5V4.5M6.5 5h10l-2 3.5 2 3.5h-10" {...stroke} />}
+      {name === 'cloud' && (
+        <Path d="M7.5 18.5h9a4 4 0 0 0 .6-7.95A5.5 5.5 0 0 0 6.6 9.6 4.5 4.5 0 0 0 7.5 18.5Z" {...stroke} />
+      )}
     </Svg>
   );
 }

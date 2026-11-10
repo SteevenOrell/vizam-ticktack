@@ -19,16 +19,19 @@ import { DatabaseProvider, useDatabase } from '../data/DatabaseProvider';
 import { openExpoDriver } from '../data/db/expoDriver';
 import { migrate } from '../data/db/migrate';
 import { devWebFlag, maybeSeedDemo } from '../data/devSeed';
+import { SessionProvider } from '../features/session/SessionProvider';
 import { AppSplash } from '../features/splash/AppSplash';
 import { getFirebase } from '../services/firebase';
 import i18n, { initI18n, resolveLanguage } from '../i18n';
 import { usePreferences } from '../state/preferences';
 import { ThemeProvider, useTheme } from '../ui/theme/ThemeProvider';
+import { installWebLayoutRules } from '../ui/webLayout';
 
 void SplashScreen.preventAutoHideAsync();
 SplashScreen.setOptions({ duration: 300, fade: true });
 
 initI18n();
+installWebLayoutRules();
 
 const MIN_SPLASH_MS = 1200;
 
@@ -37,7 +40,7 @@ async function openDatabase() {
   // Dev web only (?demo=1): migrate early and fill with synthetic data before screens query.
   if (devWebFlag('demo')) {
     await migrate(db);
-    await maybeSeedDemo(db);
+    await maybeSeedDemo(db, resolveLanguage(usePreferences.getState().language));
   }
   return db;
 }
@@ -83,7 +86,11 @@ function AppShell() {
       <StatusBar style={splashGone ? (theme.scheme === 'dark' ? 'light' : 'dark') : 'light'} />
       <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: theme.colors.bg } }}>
         <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="onboarding" options={{ gestureEnabled: false }} />
+        <Stack.Screen name="(auth)" />
         <Stack.Screen name="task/new" options={{ presentation: 'modal' }} />
+        <Stack.Screen name="task/[id]" options={{ presentation: 'modal' }} />
+        <Stack.Screen name="account/delete" options={{ presentation: 'modal' }} />
         <Stack.Screen name="+not-found" />
       </Stack>
       {splashGone ? null : <AppSplash period={theme.period} visible={!ready} onHidden={onHidden} />}
@@ -113,7 +120,9 @@ export default function RootLayout() {
           <LanguageSync />
           <ThemeProvider>
             <DatabaseProvider open={openDatabase}>
-              <AppShell />
+              <SessionProvider>
+                <AppShell />
+              </SessionProvider>
             </DatabaseProvider>
           </ThemeProvider>
         </I18nextProvider>

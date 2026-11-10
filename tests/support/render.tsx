@@ -5,7 +5,10 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { DatabaseProvider } from '../../src/data/DatabaseProvider';
 import type { SqlDriver } from '../../src/data/db/driver';
+import { SessionProvider } from '../../src/features/session/SessionProvider';
 import i18n, { initI18n, type Language } from '../../src/i18n';
+import type { AuthGateway } from '../../src/services/auth';
+import type { RemoteStore } from '../../src/sync/types';
 import { ThemeProvider, type Theme } from '../../src/ui/theme/ThemeProvider';
 
 const metrics = { frame: { x: 0, y: 0, width: 390, height: 844 }, insets: { top: 47, left: 0, right: 0, bottom: 34 } };
@@ -16,7 +19,16 @@ export async function renderWithProviders(
     open,
     language = 'en',
     theme,
-  }: { open?: () => Promise<SqlDriver>; language?: Language; theme?: Partial<Theme> } = {},
+    gateway = null,
+    remote = null,
+  }: {
+    open?: () => Promise<SqlDriver>;
+    language?: Language;
+    theme?: Partial<Theme>;
+    /** Auth gateway for the session; null = accounts unavailable (guest only). */
+    gateway?: AuthGateway | null;
+    remote?: RemoteStore | null;
+  } = {},
 ) {
   initI18n(language);
   const opener = open ?? (() => new Promise<SqlDriver>(() => undefined)); // stays "opening"
@@ -24,7 +36,11 @@ export async function renderWithProviders(
     <SafeAreaProvider initialMetrics={metrics}>
       <I18nextProvider i18n={i18n}>
         <ThemeProvider override={theme}>
-          <DatabaseProvider open={opener}>{ui}</DatabaseProvider>
+          <DatabaseProvider open={opener}>
+            <SessionProvider gateway={gateway} remote={remote}>
+              {ui}
+            </SessionProvider>
+          </DatabaseProvider>
         </ThemeProvider>
       </I18nextProvider>
     </SafeAreaProvider>,

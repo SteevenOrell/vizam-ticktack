@@ -10,10 +10,10 @@ export function devWebFlag(name: string): boolean {
   return new URLSearchParams(window.location.search).get(name) === '1';
 }
 
-/** Dev web only: fills an empty local database with the synthetic demo data for screenshots. */
-export async function maybeSeedDemo(db: SqlDriver): Promise<void> {
+/** Dev web only: fills an empty local database with the synthetic demo data (in the app language) for screenshots. */
+export async function maybeSeedDemo(db: SqlDriver, language = 'en'): Promise<void> {
   if (!devWebFlag('demo')) return;
   const existing = await db.first<{ n: number }>('SELECT count(*) AS n FROM tasks');
   if ((existing?.n ?? 0) > 0) return;
-  await insertDemoData(db, buildDemoData({ today: new Date(), newId: randomUUID }));
+  await insertDemoData(db, buildDemoData({ today: new Date(), newId: randomUUID, language }));
 }

@@ -78,7 +78,10 @@
     "seed": "tsx scripts/seed.ts",
     "render:brand": "node scripts/render-brand.mjs",
     "screenshots": "node scripts/screenshots.mjs",
-    "check": "npm run typecheck && npm run lint && npm run format:check && npm test"
+    "check": "npm run typecheck && npm run lint && npm run format:check && npm test",
+    "emulators": "npx --yes firebase-tools@15.35.0 emulators:start --config firebase/firebase.json --only firestore,auth --project demo-ticktack",
+    "seed:emulator": "npx --yes firebase-tools@15.35.0 emulators:exec --config firebase/firebase.json --only firestore,auth --project demo-ticktack \"tsx scripts/seed.ts --out .seed/ticktack-emulator.db --reset --emulator\"",
+    "env:from-root": "node scripts/env-from-root.mjs"
   },
   "private": true,
   "overrides": {

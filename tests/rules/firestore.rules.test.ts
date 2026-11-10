@@ -285,7 +285,7 @@ describe('write validation', () => {
 
   it('denies unknown and missing fields', async () => {
     await assertFails(setDoc(ref(), { ...docData('tasks', 'alice', 'tasks-1'), isAdmin: true }));
-    const { notes: _n, ...missing } = docData('tasks', 'alice', 'tasks-1');
+    const { notes: _n, ...missing } = docData('tasks', 'alice', 'tasks-1') as Record<string, unknown>;
     await assertFails(setDoc(ref(), missing));
   });
 
