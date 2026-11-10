@@ -36,7 +36,11 @@
     "routines": "Routines",
     "done": "Done",
     "allDone": "Everything planned for today is done.",
-    "overPlanned": "{{planned}} planned, over your {{capacity}}"
+    "overPlanned": "{{planned}} planned, over your {{capacity}}",
+    "overdueLink_one": "Overdue · {{count}}",
+    "overdueLink_other": "Overdue · {{count}}",
+    "overdueLinkNone": "Overdue",
+    "historyLink": "History"
   },
   "calendar": {
     "title": "Calendar",
@@ -62,7 +66,13 @@
     "next_month": "Next month",
     "swipeHint_day": "Swipe left or right for the next or previous day.",
     "swipeHint_week": "Swipe left or right for the next or previous week.",
-    "swipeHint_month": "Swipe left or right for the next or previous month."
+    "swipeHint_month": "Swipe left or right for the next or previous month.",
+    "dragHint": "Long press, then drag to move it to another time. Or use the move actions or Quick edit.",
+    "moveEarlier_one": "Move {{count}} minute earlier",
+    "moveEarlier_other": "Move {{count}} minutes earlier",
+    "moveLater_one": "Move {{count}} minute later",
+    "moveLater_other": "Move {{count}} minutes later",
+    "moveSeriesTitle": "Move this repeating task"
   },
   "goals": {
     "title": "Goals",
@@ -233,7 +243,7 @@
   "tasks": {
     "markDone": "Mark “{{title}}” done",
     "markOpen": "Mark “{{title}}” not done",
-    "openHint": "Opens the task to edit it",
+    "openHint": "Opens the task details",
     "priorityHigh": "High priority",
     "priorityMedium": "Medium priority",
     "repeats": "Repeats",
@@ -361,7 +371,17 @@
     "endNeverHint": "Repeats with no end date.",
     "endNeverBlocked": "Not available for a task linked to a goal.",
     "goalEndHint": "A task linked to a goal can’t repeat forever. It ends by the goal’s due date, {{date}}.",
-    "goalEndHintOpen": "A task linked to a goal can’t repeat forever. Choose an end date or a number of times."
+    "goalEndHintOpen": "A task linked to a goal can’t repeat forever. Choose an end date or a number of times.",
+    "sumDaily_one": "Every day",
+    "sumDaily_other": "Every {{count}} days",
+    "sumWeekly_one": "Every week",
+    "sumWeekly_other": "Every {{count}} weeks",
+    "sumMonthly_one": "Every month",
+    "sumMonthly_other": "Every {{count}} months",
+    "sumOnDays": "on {{days}}",
+    "sumOnMonthDay": "on day {{day}}",
+    "sumUntil": "until {{date}}",
+    "sumNoEnd": "no end date"
   },
   "auth": {
     "signInTitle": "Sign in",
@@ -462,5 +482,42 @@
     "monthly": "Monthly check-in: how is this goal going?",
     "daily": "Daily reminder: keep it going today.",
     "weekly": "Weekly reminder: time for this week’s step."
+  },
+  "details": {
+    "back": "Back",
+    "edit": "Edit",
+    "reschedule": "Reschedule",
+    "seriesNote": "This is one day of a repeating task. Edit, Reschedule and Delete ask which days to change.",
+    "templateNote": "This is the repeating task itself. Open one of its days to mark it done.",
+    "goalHint": "Opens the goal",
+    "remindersSoon": "Task reminders arrive in a later update.",
+    "notFoundBody": "It may have been deleted or changed on another device."
+  },
+  "overdue": {
+    "title": "Overdue",
+    "count_one": "{{count}} task from before today is still open.",
+    "count_other": "{{count}} tasks from before today are still open.",
+    "countCapped": "Showing the {{count}} oldest open tasks from before today.",
+    "moveToToday": "Move to today",
+    "moveToTodayLabel": "Move “{{title}}” to today",
+    "moveAll": "Move all to today",
+    "emptyTitle": "Nothing overdue",
+    "emptyBody": "Every task from before today is done or rescheduled.",
+    "backToToday": "Back"
+  },
+  "history": {
+    "title": "History",
+    "doneThisWeek_one": "task done this week",
+    "doneThisWeek_other": "tasks done this week",
+    "filterLabel": "Show",
+    "filterAll": "All",
+    "filterDone": "Done",
+    "filterMissed": "Missed",
+    "missed": "Missed",
+    "emptyTitle": "No history yet",
+    "emptyBody": "Tasks you complete show up here, grouped by day.",
+    "emptyDone": "Nothing completed in this period.",
+    "emptyMissed": "No missed repeating tasks. Nice.",
+    "range": "Completed tasks from the last {{days}} days. Missed repeating tasks from the last {{missedDays}} days."
   }
 }

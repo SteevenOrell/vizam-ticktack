@@ -72,11 +72,11 @@ describe('Today on real data', () => {
     expect(screen.getAllByText(/En retard/).length).toBeGreaterThan(0);
   });
 
-  it('opens a recurring occurrence with its occurrence id', async () => {
+  it('opens the details of a recurring occurrence with its occurrence id', async () => {
     await renderWithProviders(<TodayScreen now={NOW} />, { open: opener(() => seeded()) });
     await fireEvent.press(await screen.findByRole('button', { name: /^Stretch break,/ }));
     expect(mockRouter.push).toHaveBeenCalledWith({
-      pathname: '/task/[id]',
+      pathname: '/task/details/[id]',
       params: expect.objectContaining({ occ: expect.stringMatching(/_20261109$/) }),
     });
   });

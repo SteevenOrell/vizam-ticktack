@@ -85,7 +85,18 @@ function SubtaskLine({ title, done }: { title: string; done: boolean }) {
  * Task row: time column, checkbox, title, meta (category, goal, priority, repeat), a compact preview of subtasks and
  * notes that expands in place, and a "⋯" menu. Swipe right completes, swipe left reveals Edit / Delete.
  */
-export function TaskRow({ item, overdue, showDate }: { item: AgendaItem; overdue?: boolean; showDate?: string }) {
+export function TaskRow({
+  item,
+  overdue,
+  showDate,
+  statusLabel,
+}: {
+  item: AgendaItem;
+  overdue?: boolean;
+  showDate?: string;
+  /** Danger label before the meta line instead of "Overdue" (history: "Missed"). */
+  statusLabel?: string;
+}) {
   const { t, i18n } = useTranslation();
   const { colors } = useTheme();
   const actions = useTaskActions();
@@ -102,6 +113,7 @@ export function TaskRow({ item, overdue, showDate }: { item: AgendaItem; overdue
     item.subtasks.total > 0
       ? t(isRoutine ? 'tasks.steps' : 'tasks.subtasks', { done: item.subtasks.done, total: item.subtasks.total })
       : null;
+  const flag = statusLabel ?? (overdue ? t('today.overdue') : null);
   const label = [
     item.title,
     item.startTime ? formatClock(item.startTime, lang) : t('tasks.anytime'),
@@ -112,13 +124,13 @@ export function TaskRow({ item, overdue, showDate }: { item: AgendaItem; overdue
     countLabel,
     priorityLabel,
     item.recurring ? t('tasks.repeats') : null,
-    overdue ? t('today.overdue') : null,
+    flag,
   ]
     .filter(Boolean)
     .join(', ');
 
   const metaText = [showDate, item.categoryName, countLabel].filter(Boolean).join(' · ');
-  const hasMeta = !!(metaText || item.goalTitle || priorityLabel || item.recurring || overdue);
+  const hasMeta = !!(metaText || item.goalTitle || priorityLabel || item.recurring || flag);
 
   return (
     <SwipeRow
@@ -168,9 +180,9 @@ export function TaskRow({ item, overdue, showDate }: { item: AgendaItem; overdue
             </Text>
             {hasMeta ? (
               <View style={styles.metaRow}>
-                {overdue ? (
+                {flag ? (
                   <Text variant="caption" color={colors.danger}>
-                    {t('today.overdue')}
+                    {flag}
                   </Text>
                 ) : null}
                 {item.categoryColor ? <CategoryDot color={item.categoryColor} size={8} /> : null}

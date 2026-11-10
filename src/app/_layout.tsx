@@ -98,6 +98,9 @@ function AppShell() {
         <Stack.Screen name="onboarding" options={{ gestureEnabled: false }} />
         <Stack.Screen name="task/new" options={{ presentation: 'modal' }} />
         <Stack.Screen name="task/[id]" options={{ presentation: 'modal' }} />
+        <Stack.Screen name="task/details/[id]" />
+        <Stack.Screen name="overdue" />
+        <Stack.Screen name="history" />
         <Stack.Screen name="goal/new" options={{ presentation: 'modal' }} />
         <Stack.Screen name="goal/[id]" />
         <Stack.Screen name="goal/edit/[id]" options={{ presentation: 'modal' }} />

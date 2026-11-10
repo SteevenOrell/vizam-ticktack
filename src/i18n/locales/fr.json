@@ -37,7 +37,12 @@
     "routines": "Routines",
     "done": "Terminé",
     "allDone": "Tout ce qui était prévu aujourd’hui est fait.",
-    "overPlanned": "{{planned}} prévues, au-delà de vos {{capacity}}"
+    "overPlanned": "{{planned}} prévues, au-delà de vos {{capacity}}",
+    "overdueLink_one": "En retard · {{count}}",
+    "overdueLink_many": "En retard · {{count}}",
+    "overdueLink_other": "En retard · {{count}}",
+    "overdueLinkNone": "En retard",
+    "historyLink": "Historique"
   },
   "calendar": {
     "title": "Calendrier",
@@ -64,7 +69,15 @@
     "next_month": "Mois suivant",
     "swipeHint_day": "Balayez vers la gauche ou la droite pour le jour suivant ou précédent.",
     "swipeHint_week": "Balayez vers la gauche ou la droite pour la semaine suivante ou précédente.",
-    "swipeHint_month": "Balayez vers la gauche ou la droite pour le mois suivant ou précédent."
+    "swipeHint_month": "Balayez vers la gauche ou la droite pour le mois suivant ou précédent.",
+    "dragHint": "Appui long, puis glisser pour changer l’heure. Ou utilisez les actions de déplacement ou la modification rapide.",
+    "moveEarlier_one": "Avancer de {{count}} minute",
+    "moveEarlier_many": "Avancer de {{count}} minutes",
+    "moveEarlier_other": "Avancer de {{count}} minutes",
+    "moveLater_one": "Reculer de {{count}} minute",
+    "moveLater_many": "Reculer de {{count}} minutes",
+    "moveLater_other": "Reculer de {{count}} minutes",
+    "moveSeriesTitle": "Déplacer cette tâche répétée"
   },
   "goals": {
     "title": "Objectifs",
@@ -245,7 +258,7 @@
   "tasks": {
     "markDone": "Marquer « {{title}} » comme fait",
     "markOpen": "Marquer « {{title}} » comme à faire",
-    "openHint": "Ouvre la tâche pour la modifier",
+    "openHint": "Ouvre les détails de la tâche",
     "priorityHigh": "Priorité haute",
     "priorityMedium": "Priorité moyenne",
     "repeats": "Se répète",
@@ -379,7 +392,20 @@
     "endNeverHint": "Se répète sans date de fin.",
     "endNeverBlocked": "Indisponible pour une tâche liée à un objectif.",
     "goalEndHint": "Une tâche liée à un objectif ne peut pas se répéter indéfiniment. Elle se termine au plus tard à l’échéance de l’objectif, le {{date}}.",
-    "goalEndHintOpen": "Une tâche liée à un objectif ne peut pas se répéter indéfiniment. Choisissez une date de fin ou un nombre de fois."
+    "goalEndHintOpen": "Une tâche liée à un objectif ne peut pas se répéter indéfiniment. Choisissez une date de fin ou un nombre de fois.",
+    "sumDaily_one": "Tous les jours",
+    "sumDaily_many": "Tous les {{count}} jours",
+    "sumDaily_other": "Tous les {{count}} jours",
+    "sumWeekly_one": "Toutes les semaines",
+    "sumWeekly_many": "Toutes les {{count}} semaines",
+    "sumWeekly_other": "Toutes les {{count}} semaines",
+    "sumMonthly_one": "Tous les mois",
+    "sumMonthly_many": "Tous les {{count}} mois",
+    "sumMonthly_other": "Tous les {{count}} mois",
+    "sumOnDays": "le {{days}}",
+    "sumOnMonthDay": "le {{day}}",
+    "sumUntil": "jusqu’au {{date}}",
+    "sumNoEnd": "sans date de fin"
   },
   "auth": {
     "signInTitle": "Connexion",
@@ -481,5 +507,44 @@
     "monthly": "Bilan mensuel : où en est cet objectif ?",
     "daily": "Rappel quotidien : on continue aujourd’hui.",
     "weekly": "Rappel hebdomadaire : place à l’étape de la semaine."
+  },
+  "details": {
+    "back": "Retour",
+    "edit": "Modifier",
+    "reschedule": "Replanifier",
+    "seriesNote": "C’est un jour d’une tâche répétée. Modifier, Replanifier et Supprimer demandent quels jours changer.",
+    "templateNote": "C’est la tâche répétée elle-même. Ouvrez l’un de ses jours pour le terminer.",
+    "goalHint": "Ouvre l’objectif",
+    "remindersSoon": "Les rappels de tâche arrivent dans une prochaine mise à jour.",
+    "notFoundBody": "Elle a peut-être été supprimée ou modifiée sur un autre appareil."
+  },
+  "overdue": {
+    "title": "En retard",
+    "count_one": "{{count}} tâche d’avant aujourd’hui est encore ouverte.",
+    "count_many": "{{count}} tâches d’avant aujourd’hui sont encore ouvertes.",
+    "count_other": "{{count}} tâches d’avant aujourd’hui sont encore ouvertes.",
+    "countCapped": "Les {{count}} plus anciennes tâches ouvertes d’avant aujourd’hui.",
+    "moveToToday": "Reporter à aujourd’hui",
+    "moveToTodayLabel": "Reporter « {{title}} » à aujourd’hui",
+    "moveAll": "Tout reporter à aujourd’hui",
+    "emptyTitle": "Rien en retard",
+    "emptyBody": "Toutes les tâches d’avant aujourd’hui sont terminées ou replanifiées.",
+    "backToToday": "Retour"
+  },
+  "history": {
+    "title": "Historique",
+    "doneThisWeek_one": "tâche terminée cette semaine",
+    "doneThisWeek_many": "tâches terminées cette semaine",
+    "doneThisWeek_other": "tâches terminées cette semaine",
+    "filterLabel": "Afficher",
+    "filterAll": "Tout",
+    "filterDone": "Terminées",
+    "filterMissed": "Manquées",
+    "missed": "Manquée",
+    "emptyTitle": "Pas encore d’historique",
+    "emptyBody": "Les tâches terminées apparaissent ici, regroupées par jour.",
+    "emptyDone": "Rien de terminé sur cette période.",
+    "emptyMissed": "Aucune tâche répétée manquée. Bravo.",
+    "range": "Tâches terminées des {{days}} derniers jours. Tâches répétées manquées des {{missedDays}} derniers jours."
   }
 }

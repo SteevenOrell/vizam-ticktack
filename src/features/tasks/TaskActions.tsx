@@ -4,8 +4,9 @@ import { useTranslation } from 'react-i18next';
 import { Platform, StyleSheet, View } from 'react-native';
 
 import type { AgendaItem } from '../../data/queries/agenda';
+import { GoalRepeatError } from '../../data/goalBase';
 import { archiveGoal } from '../../data/goals';
-import { deleteTask, setDone, setSubtaskDone } from '../../data/tasks';
+import { deleteTask, rescheduleTime, setDone, setSubtaskDone } from '../../data/tasks';
 import type { EditScope } from '../../domain/recurrence/seriesEdit';
 import { Button } from '../../ui/Button';
 import { ConfirmDialog, type DialogAction } from '../../ui/ConfirmDialog';
@@ -16,49 +17,66 @@ import { useDataContext } from '../session/SessionProvider';
 import { scheduleDelete, type HideMatch } from './pendingDeletes';
 import { QuickEditSheet } from './QuickEditSheet';
 
+const routeParams = (item: AgendaItem) =>
+  item.occurrenceId ? { id: item.taskId, occ: item.occurrenceId } : { id: item.taskId };
+
 /** Opens the full editor for a task or one occurrence (`?occ=`). Routines open in phase 4. */
 export function openItem(router: ReturnType<typeof useRouter>, item: AgendaItem) {
   if (item.kind === 'routine') return;
-  router.push({
-    pathname: '/task/[id]',
-    params: item.occurrenceId ? { id: item.taskId, occ: item.occurrenceId } : { id: item.taskId },
-  });
+  router.push({ pathname: '/task/[id]', params: routeParams(item) });
+}
+
+/** Opens the read view of a task or one occurrence (tapping a row or a calendar block). */
+export function openDetails(router: ReturnType<typeof useRouter>, item: AgendaItem) {
+  if (item.kind === 'routine') return;
+  router.push({ pathname: '/task/details/[id]', params: routeParams(item) });
 }
 
 export interface TaskActionsApi {
   toggle: (item: AgendaItem, done: boolean) => void;
+  /** Task details (read view). */
   open: (item: AgendaItem) => void;
+  /** Full editor. */
+  edit: (item: AgendaItem) => void;
   menu: (item: AgendaItem) => void;
   quickEdit: (item: AgendaItem) => void;
   remove: (item: AgendaItem) => void;
   tickSubtask: (item: AgendaItem, subtaskId: string, done: boolean) => void;
+  /** New start time (`HH:mm`) from a drag; a repeating task asks this / following / all first. */
+  reschedule: (item: AgendaItem, startTime: string) => void;
 }
 
 const noop = () => undefined;
 const fallback: TaskActionsApi = {
   toggle: noop,
   open: noop,
+  edit: noop,
   menu: noop,
   quickEdit: noop,
   remove: noop,
   tickSubtask: noop,
+  reschedule: noop,
 };
 const Ctx = createContext<TaskActionsApi>(fallback);
 export const useTaskActions = () => useContext(Ctx);
 
 /**
- * Row actions shared by Today and Calendar: complete, open, "⋯" menu, quick edit, delete (series ask
- * this / following / all; every delete can be undone for 5 s) and ticking subtasks from the row preview.
+ * Row actions shared by Today, Calendar and the task screens: complete, open details, edit, "⋯" menu, quick edit,
+ * drag reschedule, delete (series ask this / following / all; every delete can be undone for 5 s) and ticking
+ * subtasks from the row preview.
  */
 export function TaskActionsProvider({
   children,
   now,
   onError,
+  onNotice,
 }: {
   children: ReactNode;
   now: Date;
   /** Called when a write fails, so the screen can reload. */
   onError?: () => void;
+  /** Message for the user when a reschedule is refused or fails (null clears it). */
+  onNotice?: (message: string | null) => void;
 }) {
   const { t } = useTranslation();
   const router = useRouter();
@@ -66,6 +84,7 @@ export function TaskActionsProvider({
   const [menuItem, setMenuItem] = useState<AgendaItem | null>(null);
   const [scopeItem, setScopeItem] = useState<AgendaItem | null>(null);
   const [editItem, setEditItem] = useState<AgendaItem | null>(null);
+  const [moveItem, setMoveItem] = useState<{ item: AgendaItem; startTime: string } | null>(null);
 
   const fail = useCallback(
     (e: unknown) => {
@@ -109,12 +128,29 @@ export function TaskActionsProvider({
     [check, scheduleNow],
   );
 
+  // Goes through `updateTask`, so a goal-linked repeat that may not be saved as is refuses the move with a message.
+  const move = useCallback(
+    (item: AgendaItem, startTime: string, scope: EditScope) => {
+      if (!ctx) return;
+      onNotice?.(null);
+      rescheduleTime(ctx, { taskId: item.taskId, occurrenceId: item.occurrenceId }, startTime, scope).catch(
+        (e: unknown) => {
+          console.warn('Reschedule failed', e instanceof Error ? e.name : 'unknown');
+          onNotice?.(t(e instanceof GoalRepeatError ? `editor.errors.${e.issue}` : 'editor.errors.saveFailed'));
+          onError?.();
+        },
+      );
+    },
+    [ctx, onError, onNotice, t],
+  );
+
   const api = useMemo<TaskActionsApi>(
     () => ({
       toggle: (item, done) => {
         if (ctx) void setDone(ctx, { taskId: item.taskId, occurrenceId: item.occurrenceId }, done).catch(fail);
       },
-      open: (item) => openItem(router, item),
+      open: (item) => openDetails(router, item),
+      edit: (item) => openItem(router, item),
       menu: (item) => setMenuItem(item),
       quickEdit: (item) => {
         if (item.kind !== 'routine') setEditItem(item);
@@ -128,8 +164,13 @@ export function TaskActionsProvider({
         if (!ctx) return;
         void setSubtaskDone(ctx, { taskId: item.taskId, occurrenceId: item.occurrenceId }, subtaskId, done).catch(fail);
       },
+      reschedule: (item, startTime) => {
+        if (item.kind === 'routine' || item.startTime === startTime) return;
+        if (item.recurring && item.occurrenceId) setMoveItem({ item, startTime });
+        else move(item, startTime, 'all');
+      },
     }),
-    [ctx, fail, router, schedule],
+    [ctx, fail, move, router, schedule],
   );
 
   const closeMenu = () => setMenuItem(null);
@@ -158,6 +199,28 @@ export function TaskActionsProvider({
     const item = scopeItem;
     setScopeItem(null);
     if (item) schedule(item, scope);
+  }
+
+  const moveActions: DialogAction[] = moveItem
+    ? [
+        { label: t('editor.scopeThis'), onPress: () => pickMoveScope('this'), testID: 'move-scope-this' },
+        {
+          label: t('editor.scopeFollowing'),
+          onPress: () => pickMoveScope('following'),
+          testID: 'move-scope-following',
+        },
+        {
+          label: t('editor.scopeAll'),
+          onPress: () => pickMoveScope('all'),
+          variant: 'primary',
+          testID: 'move-scope-all',
+        },
+      ]
+    : [];
+  function pickMoveScope(scope: EditScope) {
+    const pendingMove = moveItem;
+    setMoveItem(null);
+    if (pendingMove) move(pendingMove.item, pendingMove.startTime, scope);
   }
 
   return (
@@ -195,7 +258,7 @@ export function TaskActionsProvider({
                 variant="secondary"
                 icon="chevronRight"
                 fullWidth
-                onPress={fromMenu(api.open)}
+                onPress={fromMenu(api.edit)}
               />
               <Button
                 testID="menu-delete"
@@ -215,6 +278,13 @@ export function TaskActionsProvider({
         title={t('editor.deleteSeriesTitle')}
         actions={scopeActions}
         onCancel={() => setScopeItem(null)}
+        cancelLabel={t('editor.cancel')}
+      />
+      <ConfirmDialog
+        visible={moveItem !== null}
+        title={t('calendar.moveSeriesTitle')}
+        actions={moveActions}
+        onCancel={() => setMoveItem(null)}
         cancelLabel={t('editor.cancel')}
       />
       {editItem ? (

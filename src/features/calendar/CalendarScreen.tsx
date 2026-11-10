@@ -18,6 +18,7 @@ import {
 import { defaultWeekStartsOn, monthTitle, shortDate } from '../../i18n/dates';
 import { noonOf } from '../../lib/dates';
 import { Card } from '../../ui/Card';
+import { useWide } from '../../ui/Centered';
 import { HeaderScreen } from '../../ui/HeaderScreen';
 import { Pill } from '../../ui/Pill';
 import { SegmentedControl } from '../../ui/SegmentedControl';
@@ -25,7 +26,7 @@ import { AsyncContent, EmptyState } from '../../ui/states';
 import { Stepper } from '../../ui/Stepper';
 import { SwipePager } from '../../ui/SwipePager';
 import { Text } from '../../ui/Text';
-import { radii, space } from '../../ui/theme/layout';
+import { contentWidth, radii, space } from '../../ui/theme/layout';
 import { useTheme } from '../../ui/theme/ThemeProvider';
 import { fontFamilies } from '../../ui/theme/typography';
 import { useDataContext } from '../session/SessionProvider';
@@ -34,7 +35,7 @@ import { TaskActionsProvider } from '../tasks/TaskActions';
 import { TaskRow } from '../tasks/TaskRow';
 import { applyCalendarLocale } from './calendarLocale';
 import { DateStrip } from './DateStrip';
-import { AllDayStrip, DayTimeline } from './DayTimeline';
+import { AllDayStrip, DayTimeline, WeekGrid } from './DayTimeline';
 
 export type CalendarView = 'day' | 'week' | 'month';
 
@@ -61,8 +62,20 @@ function DayList({ items }: { items: AgendaItem[] }) {
   );
 }
 
-export function CalendarScreen({ now = new Date(), initialView = 'day' }: { now?: Date; initialView?: CalendarView }) {
+export function CalendarScreen({
+  now = new Date(),
+  initialView = 'day',
+  wide,
+}: {
+  now?: Date;
+  initialView?: CalendarView;
+  /** Tablet / desktop layout (week hour grid). Defaults to the window width (768 pt and up). */
+  wide?: boolean;
+}) {
   const { t, i18n } = useTranslation();
+  const windowWide = useWide();
+  const isWide = wide ?? windowWide;
+  const [notice, setNotice] = useState<string | null>(null);
   const theme = useTheme();
   const { colors } = theme;
   const ctx = useDataContext();
@@ -101,10 +114,11 @@ export function CalendarScreen({ now = new Date(), initialView = 'day' }: { now?
         : monthTitle(noonOf(selected), lang);
 
   return (
-    <TaskActionsProvider now={now} onError={state.reload}>
+    <TaskActionsProvider now={now} onError={state.reload} onNotice={setNotice}>
       <HeaderScreen
         testID="screen-calendar"
         title={t('calendar.title')}
+        maxWidth={isWide && view === 'week' ? contentWidth.grid : undefined}
         header={
           <View style={styles.segments}>
             <SegmentedControl
@@ -130,6 +144,18 @@ export function CalendarScreen({ now = new Date(), initialView = 'day' }: { now?
           </View>
           {selected !== today ? <Pill label={t('calendar.today')} onPress={() => setSelected(today)} /> : null}
         </View>
+        {notice ? (
+          <Text
+            variant="bodySm"
+            color={colors.danger}
+            accessibilityLiveRegion="polite"
+            accessibilityRole="alert"
+            style={styles.notice}
+            testID="calendar-notice"
+          >
+            {notice}
+          </Text>
+        ) : null}
 
         <AsyncContent state={state} onRetry={state.reload} isEmpty={() => false} empty={null}>
           {(all) => {
@@ -152,6 +178,25 @@ export function CalendarScreen({ now = new Date(), initialView = 'day' }: { now?
             if (view === 'week') {
               const loads = loadByDay(items, range.from, range.to);
               const byDay = loads.filter((l) => l.total > 0);
+              if (isWide) {
+                // Tablet and desktop: seven day columns on one hour grid.
+                return (
+                  <SwipePager
+                    onPage={move}
+                    testID="calendar-pager-week"
+                    accessibilityHint={t('calendar.swipeHint_week')}
+                  >
+                    <WeekGrid
+                      days={loads.map((l) => ({ date: l.date, items: items.filter((i) => i.date === l.date) }))}
+                      today={today}
+                      selected={selected}
+                      now={now}
+                      onSelect={setSelected}
+                      allDayLabel={t('calendar.allDay')}
+                    />
+                  </SwipePager>
+                );
+              }
               return (
                 <View style={styles.week}>
                   <SwipePager
@@ -265,6 +310,7 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   segments: { marginTop: space.lg },
   nav: { flexDirection: 'row', alignItems: 'center', gap: space.xs, marginBottom: space.md },
+  notice: { marginBottom: space.sm },
   list: { gap: space.xs },
   day: { gap: space.sm },
   week: { gap: space.lg },

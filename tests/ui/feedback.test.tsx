@@ -268,8 +268,9 @@ describe('Calendar day timeline', () => {
     await renderWithProviders(<CalendarScreen now={NOW} initialView="day" />, { open: () => seeded() });
     const grid = await screen.findByTestId('calendar-timeline');
     const block = (title: string) => within(grid).getByRole('button', { name: new RegExp(`^${title},`) });
+    // Position and size sit on the block's wrapper (the drag handle); the button fills it.
     const flat = (node: ReturnType<typeof block>) =>
-      Object.assign({}, ...[node.props.style].flat(Infinity).filter(Boolean)) as Record<string, unknown>;
+      Object.assign({}, ...[node.parent?.props.style].flat(Infinity).filter(Boolean)) as Record<string, unknown>;
     const outline = flat(block('Draft the project outline'));
     const checkin = flat(block('Team check-in'));
     expect(outline.top).toBe(9.5 * 60 + 1); // 60 px per hour

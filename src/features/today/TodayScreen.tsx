@@ -9,14 +9,16 @@ import { localDateOf } from '../../domain/localDate';
 import { dayFaceParts, shortDate } from '../../i18n/dates';
 import { formatMinutes, noonOf } from '../../lib/dates';
 import { useSession } from '../../state/session';
+import { useColumnInset } from '../../ui/Centered';
 import { HeaderScreen } from '../../ui/HeaderScreen';
-import { Icon } from '../../ui/Icon';
+import { Icon, type IconName } from '../../ui/Icon';
 import { ProgressBar } from '../../ui/ProgressBar';
 import { RoundAction } from '../../ui/RoundAction';
 import { AsyncContent, EmptyState } from '../../ui/states';
 import { Text } from '../../ui/Text';
-import { space } from '../../ui/theme/layout';
+import { radii, sizes, space } from '../../ui/theme/layout';
 import { useTheme } from '../../ui/theme/ThemeProvider';
+import { useFocusRing } from '../../ui/useFocusRing';
 import { useDataContext, useServices } from '../session/SessionProvider';
 import { isHidden, usePendingDeletes } from '../tasks/pendingDeletes';
 import { openItem, TaskActionsProvider } from '../tasks/TaskActions';
@@ -80,6 +82,41 @@ function Group({
   );
 }
 
+/** Link chip on the header gradient (Overdue, History). */
+function HeaderLink({
+  label,
+  icon,
+  onPress,
+  testID,
+}: {
+  label: string;
+  icon: IconName;
+  onPress: () => void;
+  testID: string;
+}) {
+  const theme = useTheme();
+  const on = theme.header.on;
+  const [focused, focusHandlers] = useFocusRing();
+  return (
+    <Pressable
+      {...focusHandlers}
+      testID={testID}
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      style={[styles.linkHit, { borderColor: focused ? theme.colors.focus : 'transparent' }]}
+    >
+      <View style={[styles.link, { backgroundColor: on.actionBg }]}>
+        <Icon name={icon} size={16} color={on.actionFg} />
+        <Text variant="label" color={on.actionFg}>
+          {label}
+        </Text>
+        <Icon name="chevronRight" size={14} color={on.actionFg} />
+      </View>
+    </Pressable>
+  );
+}
+
 export function TodayScreen({ now = new Date() }: { now?: Date }) {
   const { t, i18n } = useTranslation();
   const theme = useTheme();
@@ -106,6 +143,9 @@ export function TodayScreen({ now = new Date() }: { now?: Date }) {
   const planned = formatMinutes(view?.plannedMin ?? 0, lang);
   const capacity = formatMinutes(view?.capacityMin ?? 480, lang);
   const over = !!view && view.plannedMin > view.capacityMin;
+  const overdueCount = view ? view.overdue.filter((i) => !isHidden(i, pending)).length : 0;
+  // On a wide screen the "+" stays with the centred column.
+  const fabRight = useColumnInset(space.lg);
   const addTask = () => router.push('/task/new');
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -164,10 +204,24 @@ export function TodayScreen({ now = new Date() }: { now?: Date }) {
             <Text variant="label" color={on.textSecondary}>
               {over ? t('today.overPlanned', { planned, capacity }) : t('today.workload', { planned, capacity })}
             </Text>
+            <View style={styles.links}>
+              <HeaderLink
+                testID="today-overdue"
+                label={overdueCount > 0 ? t('today.overdueLink', { count: overdueCount }) : t('today.overdueLinkNone')}
+                icon="alert"
+                onPress={() => router.push('/overdue')}
+              />
+              <HeaderLink
+                testID="today-history"
+                label={t('today.historyLink')}
+                icon="check"
+                onPress={() => router.push('/history')}
+              />
+            </View>
           </View>
         }
         footer={
-          <View style={styles.fab} pointerEvents="box-none">
+          <View style={[styles.fab, { right: fabRight }]} pointerEvents="box-none">
             <RoundAction icon="plus" accessibilityLabel={t('today.addTask')} onPress={addTask} testID="fab-add" />
           </View>
         }
@@ -237,4 +291,15 @@ const styles = StyleSheet.create({
   groupHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: space.xs },
   collapse: { minHeight: 44, justifyContent: 'center' },
   fab: { position: 'absolute', right: space.lg, bottom: space.lg },
+  links: { flexDirection: 'row', flexWrap: 'wrap', gap: space.xs, marginTop: space.xxs },
+  linkHit: { minHeight: sizes.touch, justifyContent: 'center', borderRadius: radii.pill, borderWidth: 2 },
+  link: {
+    minHeight: 34,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    borderRadius: radii.pill,
+    paddingHorizontal: space.sm,
+    paddingVertical: space.xxs,
+  },
 });
