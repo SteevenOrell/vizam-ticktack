@@ -1,0 +1,90 @@
+{
+  "app": {
+    "name": "TickTack",
+    "tagline": "Planifiez la journée que vous voulez vivre.",
+    "concept": "Concept de portfolio VIZAM",
+    "splashLabel": "TickTack, planifiez la journée que vous voulez vivre. Chargement."
+  },
+  "tabs": {
+    "today": "Aujourd’hui",
+    "calendar": "Calendrier",
+    "goals": "Objectifs",
+    "routines": "Routines",
+    "me": "Moi"
+  },
+  "states": {
+    "loading": "Chargement",
+    "errorTitle": "Un problème est survenu",
+    "errorBody": "Impossible de charger cet écran. Vos données restent sur cet appareil.",
+    "retry": "Réessayer",
+    "comingSoon": "Cet écran arrive dans la prochaine version."
+  },
+  "today": {
+    "title": "Aujourd’hui",
+    "remindersAction": "Rappels",
+    "addTask": "Ajouter une tâche",
+    "workload": "{{planned}} sur {{capacity}} planifiées",
+    "workloadLabel": "Charge : {{planned}} sur {{capacity}} planifiées",
+    "taskCount_one": "{{count}} tâche",
+    "taskCount_many": "{{count}} de tâches",
+    "taskCount_other": "{{count}} tâches",
+    "emptyTitle": "Rien de prévu pour l’instant",
+    "emptyBody": "Choisissez ce qui tient dans la journée. Ajoutez une tâche pour lui donner forme.",
+    "openTasks": "Prévu aujourd’hui"
+  },
+  "calendar": {
+    "title": "Calendrier",
+    "day": "Jour",
+    "week": "Semaine",
+    "month": "Mois",
+    "viewLabel": "Vue du calendrier",
+    "emptyTitle": "Une journée libre",
+    "emptyBody": "Rien n’est encore prévu ce jour-là."
+  },
+  "goals": {
+    "title": "Objectifs",
+    "newGoal": "Nouvel objectif",
+    "emptyTitle": "Aucun objectif pour l’instant",
+    "emptyBody": "Fixez un objectif avec des étapes et suivez vos progrès.",
+    "activeCount_one": "{{count}} objectif actif",
+    "activeCount_many": "{{count}} d’objectifs actifs",
+    "activeCount_other": "{{count}} objectifs actifs"
+  },
+  "routines": {
+    "title": "Routines",
+    "newRoutine": "Nouvelle routine",
+    "emptyTitle": "Aucune routine pour l’instant",
+    "emptyBody": "Créez une courte routine pour vos matins ou vos soirées.",
+    "count_one": "{{count}} routine",
+    "count_many": "{{count}} de routines",
+    "count_other": "{{count}} routines"
+  },
+  "me": {
+    "title": "Moi",
+    "guestTitle": "Mode invité",
+    "guestBody": "Vos plans restent sur cet appareil. Créez un compte plus tard pour les synchroniser.",
+    "appearance": "Apparence",
+    "theme": "Thème",
+    "themeSystem": "Système",
+    "themeDark": "Sombre",
+    "themeLight": "Clair",
+    "language": "Langue",
+    "languageSystem": "Système",
+    "languageEnglish": "English",
+    "languageFrench": "Français",
+    "planning": "Planification",
+    "dayStarts": "Début de journée",
+    "dayEnds": "Fin de journée",
+    "about": "À propos",
+    "version": "Version {{version}}",
+    "conceptNote": "Un concept de portfolio VIZAM. Les données de démonstration sont fictives."
+  },
+  "modal": {
+    "close": "Fermer",
+    "newTaskTitle": "Nouvelle tâche"
+  },
+  "notFound": {
+    "title": "Page introuvable",
+    "back": "Retour à Aujourd’hui"
+  }
+}

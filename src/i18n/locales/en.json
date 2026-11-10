@@ -1,0 +1,87 @@
+{
+  "app": {
+    "name": "TickTack",
+    "tagline": "Plan the day you mean to have.",
+    "concept": "VIZAM portfolio concept",
+    "splashLabel": "TickTack, plan the day you mean to have. Loading."
+  },
+  "tabs": {
+    "today": "Today",
+    "calendar": "Calendar",
+    "goals": "Goals",
+    "routines": "Routines",
+    "me": "Me"
+  },
+  "states": {
+    "loading": "Loading",
+    "errorTitle": "Something went wrong",
+    "errorBody": "We couldn't load this screen. Your data is safe on this device.",
+    "retry": "Try again",
+    "comingSoon": "This screen arrives in the next build."
+  },
+  "today": {
+    "title": "Today",
+    "remindersAction": "Reminders",
+    "addTask": "Add a task",
+    "workload": "{{planned}} of {{capacity}} planned",
+    "workloadLabel": "Workload: {{planned}} of {{capacity}} planned",
+    "taskCount_one": "{{count}} task",
+    "taskCount_other": "{{count}} tasks",
+    "emptyTitle": "Nothing planned yet",
+    "emptyBody": "Choose what fits today. Add a task to shape your day.",
+    "openTasks": "Planned for today"
+  },
+  "calendar": {
+    "title": "Calendar",
+    "day": "Day",
+    "week": "Week",
+    "month": "Month",
+    "viewLabel": "Calendar view",
+    "emptyTitle": "A clear day",
+    "emptyBody": "Nothing is scheduled on this day yet."
+  },
+  "goals": {
+    "title": "Goals",
+    "newGoal": "New goal",
+    "emptyTitle": "No goals yet",
+    "emptyBody": "Set a goal with milestones and watch your progress grow.",
+    "activeCount_one": "{{count}} active goal",
+    "activeCount_other": "{{count}} active goals"
+  },
+  "routines": {
+    "title": "Routines",
+    "newRoutine": "New routine",
+    "emptyTitle": "No routines yet",
+    "emptyBody": "Build a short routine for your mornings or evenings.",
+    "count_one": "{{count}} routine",
+    "count_other": "{{count}} routines"
+  },
+  "me": {
+    "title": "Me",
+    "guestTitle": "Guest mode",
+    "guestBody": "Your plans stay on this device. Create an account later to sync them.",
+    "appearance": "Appearance",
+    "theme": "Theme",
+    "themeSystem": "System",
+    "themeDark": "Dark",
+    "themeLight": "Light",
+    "language": "Language",
+    "languageSystem": "System",
+    "languageEnglish": "English",
+    "languageFrench": "Français",
+    "planning": "Planning",
+    "dayStarts": "Day starts",
+    "dayEnds": "Day ends",
+    "about": "About",
+    "version": "Version {{version}}",
+    "conceptNote": "A VIZAM portfolio concept. Demo data is synthetic."
+  },
+  "modal": {
+    "close": "Close",
+    "newTaskTitle": "New task"
+  },
+  "notFound": {
+    "title": "Page not found",
+    "back": "Back to Today"
+  }
+}
