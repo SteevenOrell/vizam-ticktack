@@ -309,6 +309,17 @@ describe('write validation', () => {
     const steps = Array.from({ length: 31 }, (_, i) => ({ id: `s${i}`, title: 'Step' }));
     await assertFails(setDoc(ref('routines'), docData('routines', 'alice', 'routines-1', { steps })));
     await assertFails(setDoc(ref('categories'), docData('categories', 'alice', 'categories-1', { color: '#ff0000' })));
+    await assertFails(setDoc(ref('categories'), docData('categories', 'alice', 'categories-1', { name: ' Work' })));
+    await assertFails(setDoc(ref('categories'), docData('categories', 'alice', 'categories-1', { name: 'Work ' })));
+    await assertFails(
+      setDoc(ref('categories'), docData('categories', 'alice', 'categories-1', { name: 'x'.repeat(41) })),
+    );
+  });
+
+  it('accepts free-text category names typed by the user', async () => {
+    await assertSucceeds(
+      setDoc(ref('categories'), docData('categories', 'alice', 'categories-1', { name: 'Été project 2' })),
+    );
   });
 
   it('denies an occurrence whose ID is not seriesId_YYYYMMDD of its original date', async () => {

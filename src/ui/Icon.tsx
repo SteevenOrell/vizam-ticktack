@@ -21,7 +21,10 @@ export type IconName =
   | 'repeat'
   | 'flag'
   | 'cloud'
-  | 'minus';
+  | 'minus'
+  | 'more'
+  | 'edit'
+  | 'note';
 
 /** Simple 24 px stroke icons drawn for TickTack (no icon font, no third-party marks). Decorative by default. */
 export function Icon({ name, size = 24, color }: { name: IconName; size?: number; color: string }) {
@@ -88,6 +91,20 @@ export function Icon({ name, size = 24, color }: { name: IconName; size?: number
         <>
           <Path d="M5 11V9.5A2.5 2.5 0 0 1 7.5 7H18l-2.5-2.5M19 13v1.5a2.5 2.5 0 0 1-2.5 2.5H6l2.5 2.5" {...stroke} />
         </>
+      )}
+      {name === 'more' && (
+        <>
+          <Circle cx={6} cy={12} r={1.6} fill={color} />
+          <Circle cx={12} cy={12} r={1.6} fill={color} />
+          <Circle cx={18} cy={12} r={1.6} fill={color} />
+        </>
+      )}
+      {name === 'edit' && <Path d="M5 19l1-4.5L15.5 5a2.1 2.1 0 0 1 3 3L9 17.5 5 19ZM13.5 7l3 3" {...stroke} />}
+      {name === 'note' && (
+        <Path
+          d="M7 4.5h10a1.5 1.5 0 0 1 1.5 1.5v12a1.5 1.5 0 0 1-1.5 1.5H7A1.5 1.5 0 0 1 5.5 18V6A1.5 1.5 0 0 1 7 4.5ZM9 9h6M9 12.5h6M9 16h3.5"
+          {...stroke}
+        />
       )}
       {name === 'minus' && <Path d="M5 12h14" {...stroke} strokeWidth={2.2} />}
       {name === 'flag' && <Path d="M6.5 20.5V4.5M6.5 5h10l-2 3.5 2 3.5h-10" {...stroke} />}

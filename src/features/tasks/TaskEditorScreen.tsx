@@ -21,7 +21,7 @@ import { useQuery } from '../../data/useQuery';
 import { addDays, localDateOf, type LocalDate } from '../../domain/localDate';
 import type { EditScope } from '../../domain/recurrence/seriesEdit';
 import { defaultWeekStartsOn, shortDate } from '../../i18n/dates';
-import { formatMinutes, noonOf } from '../../lib/dates';
+import { noonOf } from '../../lib/dates';
 import { Button } from '../../ui/Button';
 import { Checkbox } from '../../ui/Checkbox';
 import { ConfirmDialog, type DialogAction } from '../../ui/ConfirmDialog';
@@ -34,9 +34,9 @@ import { TextField } from '../../ui/TextField';
 import { radii, sizes, space } from '../../ui/theme/layout';
 import { useTheme } from '../../ui/theme/ThemeProvider';
 import { useDataContext } from '../session/SessionProvider';
+import { CategoryField, DurationSelect, GoalField, TimeSelect } from './fields';
 import { RepeatEditor } from './RepeatEditor';
 
-const DURATIONS = [15, 30, 45, 60, 90, 120];
 const TIME_RE = /^([01]?\d|2[0-3])[:h.]?([0-5]\d)$/;
 
 /** "9:30", "0930", "9h30" -> "09:30"; empty -> null; anything else -> undefined (invalid). */
@@ -48,7 +48,7 @@ export function parseTimeInput(text: string): string | null | undefined {
   return `${String(Number(m[1])).padStart(2, '0')}:${m[2]}`;
 }
 
-type Errors = Partial<Record<'title' | 'date' | 'startTime' | 'repeat' | 'notes' | 'form', string>>;
+type Errors = Partial<Record<'title' | 'date' | 'startTime' | 'repeat' | 'notes' | 'categoryName' | 'form', string>>;
 
 function errorsFrom(error: ZodError, t: (k: string) => string): Errors {
   const out: Errors = {};
@@ -62,6 +62,7 @@ function errorsFrom(error: ZodError, t: (k: string) => string): Errors {
       'dateRequiredForRepeat',
       'dateRequiredForTime',
       'endBeforeStart',
+      'categoryTooLong',
     ];
     const key = known.includes(issue.message)
       ? issue.message
@@ -70,7 +71,9 @@ function errorsFrom(error: ZodError, t: (k: string) => string): Errors {
         : field === 'title'
           ? 'titleRequired'
           : 'invalid';
-    out[field in { title: 1, date: 1, startTime: 1, repeat: 1, notes: 1 } ? field : 'form'] = t(`editor.errors.${key}`);
+    out[field in { title: 1, date: 1, startTime: 1, repeat: 1, notes: 1, categoryName: 1 } ? field : 'form'] = t(
+      `editor.errors.${key}`,
+    );
   }
   return out;
 }
@@ -109,7 +112,6 @@ export function TaskEditorScreen({
 
   const [form, setForm] = useState<TaskForm | null | 'missing'>(null);
   const [draft, setDraft] = useState<TaskDraft | null>(taskId ? null : emptyDraft(initialDate ?? today));
-  const [timeText, setTimeText] = useState('');
   const [newSubtask, setNewSubtask] = useState('');
   const [errors, setErrors] = useState<Errors>({});
   const [saving, setSaving] = useState(false);
@@ -132,7 +134,6 @@ export function TaskEditorScreen({
         setForm(f ?? 'missing');
         if (f) {
           setDraft(f.draft);
-          setTimeText(f.draft.startTime ?? '');
         }
       },
       () => !cancelled && setLoadError(true),
@@ -147,12 +148,7 @@ export function TaskEditorScreen({
 
   const finalDraft = useCallback((): TaskDraft | null => {
     if (!draft) return null;
-    const time = parseTimeInput(timeText);
-    if (time === undefined) {
-      setErrors({ startTime: t('editor.errors.timeInvalid') });
-      return null;
-    }
-    const candidate = { ...draft, startTime: time };
+    const candidate = { ...draft, startTime: draft.date ? draft.startTime : null };
     const parsed = taskDraftSchema.safeParse(candidate);
     if (!parsed.success) {
       setErrors(errorsFrom(parsed.error, (k) => t(k as never)));
@@ -160,7 +156,7 @@ export function TaskEditorScreen({
     }
     setErrors({});
     return candidate;
-  }, [draft, timeText, t]);
+  }, [draft, t]);
 
   const close = useCallback(() => {
     if (router.canGoBack()) router.back();
@@ -238,7 +234,7 @@ export function TaskEditorScreen({
       },
     ];
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dialog, isSeries, occurrenceId, t, draft, timeText]);
+  }, [dialog, isSeries, occurrenceId, t, draft]);
 
   if (taskId && (form === null || draft === null) && !loadError) {
     return (
@@ -294,10 +290,7 @@ export function TaskEditorScreen({
             <Pill
               label={t('editor.noDate')}
               selected={draft.date === null}
-              onPress={() => {
-                update({ date: null, repeat: null });
-                setTimeText('');
-              }}
+              onPress={() => update({ date: null, repeat: null, startTime: null })}
             />
             <Pill label={t('editor.today')} selected={draft.date === today} onPress={() => update({ date: today })} />
             <Pill
@@ -324,41 +317,19 @@ export function TaskEditorScreen({
           ) : null}
         </Section>
 
-        <Section title={t('editor.time')}>
-          <View style={styles.timeRow}>
-            <Pill label={t('editor.allDay')} selected={!timeText.trim()} onPress={() => setTimeText('')} />
-            <View style={styles.flex}>
-              <TextField
-                testID="field-time"
-                label={t('editor.startTime')}
-                placeholder={t('editor.timePlaceholder')}
-                value={timeText}
-                onChangeText={setTimeText}
-                error={errors.startTime}
-                keyboardType="numbers-and-punctuation"
-                maxLength={5}
-              />
-            </View>
-          </View>
-        </Section>
-
-        <Section title={t('editor.duration')}>
-          <View accessibilityRole="radiogroup" accessibilityLabel={t('editor.duration')} style={styles.pills}>
-            <Pill
-              label={t('editor.none')}
-              selected={draft.durationMin === null}
-              onPress={() => update({ durationMin: null })}
+        <View style={styles.timeRow}>
+          <View style={styles.timeCell}>
+            <TimeSelect
+              value={draft.date ? draft.startTime : null}
+              onChange={(startTime) => update({ startTime })}
+              now={now}
+              error={errors.startTime}
             />
-            {DURATIONS.map((m) => (
-              <Pill
-                key={m}
-                label={formatMinutes(m, lang)}
-                selected={draft.durationMin === m}
-                onPress={() => update({ durationMin: m })}
-              />
-            ))}
           </View>
-        </Section>
+          <View style={styles.timeCell}>
+            <DurationSelect value={draft.durationMin} onChange={(durationMin) => update({ durationMin })} />
+          </View>
+        </View>
 
         <Section title={t('editor.priority')}>
           <View accessibilityRole="radiogroup" accessibilityLabel={t('editor.priority')} style={styles.pills}>
@@ -373,24 +344,14 @@ export function TaskEditorScreen({
           </View>
         </Section>
 
-        <Section title={t('editor.category')}>
-          <View accessibilityRole="radiogroup" accessibilityLabel={t('editor.category')} style={styles.pills}>
-            <Pill
-              label={t('editor.none')}
-              selected={draft.categoryId === null}
-              onPress={() => update({ categoryId: null })}
-            />
-            {categoryList.map((c) => (
-              <Pill
-                key={c.id}
-                label={c.name}
-                dot={c.color}
-                selected={draft.categoryId === c.id}
-                onPress={() => update({ categoryId: c.id })}
-              />
-            ))}
-          </View>
-        </Section>
+        <CategoryField
+          value={draft.categoryName ?? ''}
+          onChange={(categoryName) => update({ categoryName })}
+          categories={categoryList}
+          error={errors.categoryName}
+        />
+
+        <GoalField value={draft.goalId ?? null} onChange={(goalId) => update({ goalId })} />
 
         <Section title={t('repeat.title')}>
           <RepeatEditor
@@ -527,7 +488,8 @@ const styles = StyleSheet.create({
   content: { paddingHorizontal: space.lg, gap: space.lg },
   section: { gap: space.xs },
   pills: { flexDirection: 'row', flexWrap: 'wrap', gap: space.xs },
-  timeRow: { flexDirection: 'row', alignItems: 'flex-end', gap: space.sm, flexWrap: 'wrap' },
+  timeRow: { flexDirection: 'row', alignItems: 'flex-start', gap: space.sm, flexWrap: 'wrap' },
+  timeCell: { flex: 1, minWidth: 140 },
   banner: { flexDirection: 'row', alignItems: 'center', gap: space.xs, borderRadius: radii.card, padding: space.sm },
   subtask: {
     flexDirection: 'row',

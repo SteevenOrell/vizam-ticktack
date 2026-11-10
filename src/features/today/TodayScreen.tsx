@@ -4,7 +4,6 @@ import { useTranslation } from 'react-i18next';
 import { Pressable, RefreshControl, StyleSheet, View } from 'react-native';
 
 import { getTodayView, type AgendaItem, type TodayView } from '../../data/queries/agenda';
-import { setDone } from '../../data/tasks';
 import { useQuery } from '../../data/useQuery';
 import { localDateOf } from '../../domain/localDate';
 import { dayFaceParts, shortDate } from '../../i18n/dates';
@@ -19,30 +18,21 @@ import { Text } from '../../ui/Text';
 import { space } from '../../ui/theme/layout';
 import { useTheme } from '../../ui/theme/ThemeProvider';
 import { useDataContext, useServices } from '../session/SessionProvider';
+import { isHidden, usePendingDeletes } from '../tasks/pendingDeletes';
+import { openItem, TaskActionsProvider } from '../tasks/TaskActions';
 import { TaskRow } from '../tasks/TaskRow';
 
-/** Opens the editor for a task or one occurrence (`?occ=`). Routines open in phase 4. */
-export function openItem(router: ReturnType<typeof useRouter>, item: AgendaItem) {
-  if (item.kind === 'routine') return;
-  router.push({
-    pathname: '/task/[id]',
-    params: item.occurrenceId ? { id: item.taskId, occ: item.occurrenceId } : { id: item.taskId },
-  });
-}
+export { openItem };
 
 function Group({
   title,
   items,
-  onToggle,
-  onOpen,
   overdue,
   testID,
   collapsible,
 }: {
   title: string;
   items: AgendaItem[];
-  onToggle: (item: AgendaItem, done: boolean) => void;
-  onOpen: (item: AgendaItem) => void;
   overdue?: boolean;
   testID: string;
   collapsible?: { open: boolean; toggle: () => void };
@@ -81,8 +71,6 @@ function Group({
             <TaskRow
               key={item.key}
               item={item}
-              onToggle={onToggle}
-              onOpen={item.kind === 'routine' ? undefined : onOpen}
               overdue={overdue}
               showDate={overdue ? shortDate(noonOf(item.date), i18n.language) : undefined}
             />
@@ -107,6 +95,7 @@ export function TodayScreen({ now = new Date() }: { now?: Date }) {
     [ownerId, date],
   );
   const state = useQuery(query);
+  const pending = usePendingDeletes((s) => s.pending);
   const face = useMemo(() => dayFaceParts(now, lang), [now, lang]);
   const on = theme.header.on;
   const [showDone, setShowDone] = useState(false);
@@ -118,14 +107,6 @@ export function TodayScreen({ now = new Date() }: { now?: Date }) {
   const capacity = formatMinutes(view?.capacityMin ?? 480, lang);
   const over = !!view && view.plannedMin > view.capacityMin;
   const addTask = () => router.push('/task/new');
-  const onToggle = useCallback(
-    (item: AgendaItem, done: boolean) => {
-      if (!ctx) return;
-      void setDone(ctx, { taskId: item.taskId, occurrenceId: item.occurrenceId }, done).catch(() => state.reload());
-    },
-    [ctx, state],
-  );
-  const onOpen = useCallback((item: AgendaItem) => openItem(router, item), [router]);
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     await syncNow();
@@ -137,117 +118,112 @@ export function TodayScreen({ now = new Date() }: { now?: Date }) {
     d.overdue.length + d.scheduled.length + d.anytime.length + d.routines.length + d.done.length === 0;
 
   return (
-    <HeaderScreen
-      testID="screen-today"
-      title={t('today.title')}
-      refreshControl={
-        signedIn ? (
-          <RefreshControl refreshing={refreshing} onRefresh={() => void onRefresh()} tintColor={theme.colors.accent} />
-        ) : undefined
-      }
-      action={
-        <RoundAction
-          icon="bell"
-          accessibilityLabel={t('today.remindersAction')}
-          background={on.actionBg}
-          foreground={on.actionFg}
-          accessibilityHint={t('states.comingSoon')}
-        />
-      }
-      header={
-        <View style={styles.face}>
-          <View style={styles.faceRow}>
-            <Text variant="dayFace" color={on.text}>
-              {face.day}
-            </Text>
-            <View style={styles.faceMeta}>
-              <Text variant="title2" color={on.text}>
-                {face.month}
-              </Text>
-              <Text variant="bodySm" color={on.textSecondary} style={lang === 'fr' ? null : styles.weekday}>
-                {face.weekday}
-              </Text>
-            </View>
-          </View>
-          <ProgressBar
-            value={view ? view.plannedMin / Math.max(1, view.capacityMin) : 0}
-            fill={on.fill}
-            track={on.trackBg}
-            accessibilityLabel={t('today.workloadLabel', { planned, capacity })}
-          />
-          <Text variant="label" color={on.textSecondary}>
-            {over ? t('today.overPlanned', { planned, capacity }) : t('today.workload', { planned, capacity })}
-          </Text>
-        </View>
-      }
-      footer={
-        <View style={styles.fab} pointerEvents="box-none">
-          <RoundAction icon="plus" accessibilityLabel={t('today.addTask')} onPress={addTask} testID="fab-add" />
-        </View>
-      }
-    >
-      <AsyncContent
-        state={state}
-        onRetry={state.reload}
-        isEmpty={isEmpty}
-        empty={
-          <EmptyState
-            icon="today"
-            title={t('today.emptyTitle')}
-            body={t('today.emptyBody')}
-            action={{ label: t('today.addTask'), onPress: addTask }}
+    <TaskActionsProvider now={now} onError={state.reload}>
+      <HeaderScreen
+        testID="screen-today"
+        title={t('today.title')}
+        refreshControl={
+          signedIn ? (
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={() => void onRefresh()}
+              tintColor={theme.colors.accent}
+            />
+          ) : undefined
+        }
+        action={
+          <RoundAction
+            icon="bell"
+            accessibilityLabel={t('today.remindersAction')}
+            background={on.actionBg}
+            foreground={on.actionFg}
+            accessibilityHint={t('states.comingSoon')}
           />
         }
-      >
-        {(d) => (
-          <View style={styles.list}>
-            <Group
-              title={t('today.overdue')}
-              items={d.overdue}
-              onToggle={onToggle}
-              onOpen={onOpen}
-              overdue
-              testID="group-overdue"
-              collapsible={{ open: showOverdue, toggle: () => setShowOverdue((v) => !v) }}
-            />
-            <Group
-              title={t('today.scheduled')}
-              items={d.scheduled}
-              onToggle={onToggle}
-              onOpen={onOpen}
-              testID="group-scheduled"
-            />
-            <Group
-              title={t('today.anytime')}
-              items={d.anytime}
-              onToggle={onToggle}
-              onOpen={onOpen}
-              testID="group-anytime"
-            />
-            <Group
-              title={t('today.routines')}
-              items={d.routines}
-              onToggle={onToggle}
-              onOpen={onOpen}
-              testID="group-routines"
-            />
-            <Group
-              title={t('today.done')}
-              items={d.done}
-              onToggle={onToggle}
-              onOpen={onOpen}
-              testID="group-done"
-              collapsible={{ open: showDone, toggle: () => setShowDone((v) => !v) }}
-            />
-            {d.scheduled.length + d.anytime.length + d.overdue.length === 0 && d.done.length > 0 ? (
-              <Text variant="body" color={theme.colors.textSecondary} align="center">
-                {t('today.allDone')}
+        header={
+          <View style={styles.face}>
+            <View style={styles.faceRow}>
+              <Text variant="dayFace" color={on.text}>
+                {face.day}
               </Text>
-            ) : null}
+              <View style={styles.faceMeta}>
+                <Text variant="title2" color={on.text}>
+                  {face.month}
+                </Text>
+                <Text variant="bodySm" color={on.textSecondary} style={lang === 'fr' ? null : styles.weekday}>
+                  {face.weekday}
+                </Text>
+              </View>
+            </View>
+            <ProgressBar
+              value={view ? view.plannedMin / Math.max(1, view.capacityMin) : 0}
+              fill={on.fill}
+              track={on.trackBg}
+              accessibilityLabel={t('today.workloadLabel', { planned, capacity })}
+            />
+            <Text variant="label" color={on.textSecondary}>
+              {over ? t('today.overPlanned', { planned, capacity }) : t('today.workload', { planned, capacity })}
+            </Text>
           </View>
-        )}
-      </AsyncContent>
-    </HeaderScreen>
+        }
+        footer={
+          <View style={styles.fab} pointerEvents="box-none">
+            <RoundAction icon="plus" accessibilityLabel={t('today.addTask')} onPress={addTask} testID="fab-add" />
+          </View>
+        }
+      >
+        <AsyncContent
+          state={state}
+          onRetry={state.reload}
+          isEmpty={isEmpty}
+          empty={
+            <EmptyState
+              icon="today"
+              title={t('today.emptyTitle')}
+              body={t('today.emptyBody')}
+              action={{ label: t('today.addTask'), onPress: addTask }}
+            />
+          }
+        >
+          {(raw) => {
+            const visible = (list: AgendaItem[]) => list.filter((i) => !isHidden(i, pending));
+            const d = {
+              ...raw,
+              overdue: visible(raw.overdue),
+              scheduled: visible(raw.scheduled),
+              anytime: visible(raw.anytime),
+              routines: visible(raw.routines),
+              done: visible(raw.done),
+            };
+            return (
+              <View style={styles.list}>
+                <Group
+                  title={t('today.overdue')}
+                  items={d.overdue}
+                  overdue
+                  testID="group-overdue"
+                  collapsible={{ open: showOverdue, toggle: () => setShowOverdue((v) => !v) }}
+                />
+                <Group title={t('today.scheduled')} items={d.scheduled} testID="group-scheduled" />
+                <Group title={t('today.anytime')} items={d.anytime} testID="group-anytime" />
+                <Group title={t('today.routines')} items={d.routines} testID="group-routines" />
+                <Group
+                  title={t('today.done')}
+                  items={d.done}
+                  testID="group-done"
+                  collapsible={{ open: showDone, toggle: () => setShowDone((v) => !v) }}
+                />
+                {d.scheduled.length + d.anytime.length + d.overdue.length === 0 && d.done.length > 0 ? (
+                  <Text variant="body" color={theme.colors.textSecondary} align="center">
+                    {t('today.allDone')}
+                  </Text>
+                ) : null}
+              </View>
+            );
+          }}
+        </AsyncContent>
+      </HeaderScreen>
+    </TaskActionsProvider>
   );
 }
 
@@ -256,7 +232,7 @@ const styles = StyleSheet.create({
   faceRow: { flexDirection: 'row', alignItems: 'flex-end', gap: space.sm },
   faceMeta: { paddingBottom: space.xs, flexShrink: 1 },
   weekday: { textTransform: 'capitalize' },
-  list: { gap: space.lg, paddingBottom: space.huge + space.xl },
+  list: { gap: space.lg, paddingBottom: space.xl },
   group: { gap: space.xs },
   groupHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: space.xs },
   collapse: { minHeight: 44, justifyContent: 'center' },

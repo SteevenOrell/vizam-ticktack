@@ -27,6 +27,13 @@ export function formatClock(hhmm: string, language: string): string {
   return `${h % 12 === 0 ? 12 : h % 12}:${ms} ${suffix}`;
 }
 
+/** Clock split for the row time column: `{ main: '8:30', suffix: 'AM' }` in English, `{ main: '08:30' }` in French. */
+export function clockParts(hhmm: string, language: string): { main: string; suffix: string | null } {
+  if (language === 'fr') return { main: hhmm, suffix: null };
+  const [main, suffix] = formatClock(hhmm, language).split(' ');
+  return { main: main ?? hhmm, suffix: suffix ?? null };
+}
+
 /** Noon on a floating local date (safe from DST edges) for formatting with date-fns / Intl. */
 export function noonOf(date: LocalDate): Date {
   const { y, m, d } = parseYmd(date);

@@ -178,6 +178,11 @@ export function RepeatEditor({
               onPress={() => onChange({ ...value, endType: 'afterCount', count: value.count ?? 10, endDate: null })}
             />
           </View>
+          {value.endType === 'never' ? (
+            <Text variant="caption" color={colors.textSecondary} testID="repeat-never-hint">
+              {t('repeat.endNeverHint')}
+            </Text>
+          ) : null}
           {value.endType === 'onDate' && value.endDate ? (
             <Stepper
               testID="repeat-enddate"

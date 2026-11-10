@@ -49,7 +49,7 @@ describe('Today', () => {
     await renderWithProviders(<TodayScreen now={NOW} />, { open: seededDb });
     expect(await screen.findByTestId('state-success')).toBeTruthy();
     expect(screen.getByText('Draft the project outline')).toBeTruthy();
-    expect(screen.getByText('3h 25m of 6h planned')).toBeTruthy();
+    expect(screen.getByText('3h 55m of 6h planned')).toBeTruthy();
   });
 
   it('shows the error state when the database cannot open, and retries', async () => {

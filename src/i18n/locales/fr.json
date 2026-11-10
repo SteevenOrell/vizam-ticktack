@@ -142,7 +142,25 @@
     "priorityMedium": "Priorité moyenne",
     "repeats": "Se répète",
     "subtasks": "{{done}}/{{total}} sous-tâches",
-    "steps": "{{done}}/{{total}} étapes"
+    "steps": "{{done}}/{{total}} étapes",
+    "anytime": "N’importe quand",
+    "goalLabel": "Objectif : {{title}}",
+    "moreSubtasks_one": "+{{count}} autre",
+    "moreSubtasks_other": "+{{count}} autres",
+    "showDetails": "Afficher les sous-tâches et notes de « {{title}} »",
+    "hideDetails": "Masquer les sous-tâches et notes de « {{title}} »",
+    "hide": "Masquer",
+    "moreActions": "Autres actions pour « {{title}} »",
+    "quickEdit": "Modification rapide",
+    "delete": "Supprimer",
+    "openEditor": "Ouvrir l’éditeur complet",
+    "menuDone": "Marquer comme faite",
+    "menuReopen": "Marquer comme à faire",
+    "swipeDone": "Faite",
+    "swipeReopen": "À faire",
+    "deleted": "« {{title}} » supprimée",
+    "undo": "Annuler",
+    "doneState": "faite"
   },
   "dates": {
     "previousDay": "Jour précédent",
@@ -202,8 +220,18 @@
       "repeatInvalid": "Vérifiez la répétition (choisissez au moins un jour).",
       "timeInvalid": "Utilisez une heure sur 24 h, par exemple 09:30.",
       "invalid": "Vérifiez ce champ.",
-      "saveFailed": "La tâche n’a pas pu être enregistrée. Réessayez."
-    }
+      "saveFailed": "La tâche n’a pas pu être enregistrée. Réessayez.",
+      "categoryTooLong": "Limitez la catégorie à 40 caractères.",
+      "goalInvalid": "Donnez un nom à l’objectif (120 caractères au plus)."
+    },
+    "categoryPlaceholder": "Saisissez ou choisissez une catégorie",
+    "categoryNew": "La catégorie « {{name}} » sera créée",
+    "categorySuggestions": "Catégories existantes",
+    "goal": "Objectif",
+    "noGoal": "Aucun objectif",
+    "goalEmpty": "Aucun objectif pour l’instant. Nommez-en un pour y lier cette tâche.",
+    "newGoal": "Nouvel objectif",
+    "newGoalPlaceholder": "Par exemple : courir un 10 km"
   },
   "repeat": {
     "title": "Répétition",
@@ -235,7 +263,8 @@
     "times_other": "{{count}} fois",
     "preview": "Prochaines : {{dates}}",
     "previewNone": "Aucune date à venir avec ces réglages.",
-    "needsDate": "Choisissez d’abord une date pour répéter une tâche."
+    "needsDate": "Choisissez d’abord une date pour répéter une tâche.",
+    "endNeverHint": "Se répète sans date de fin."
   },
   "auth": {
     "signInTitle": "Connexion",

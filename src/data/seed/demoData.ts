@@ -32,6 +32,10 @@ export const demoStrings = {
     stretch: 'Stretch break',
     outlineSub1: 'List the main sections',
     outlineSub2: 'Write the summary',
+    outlineSub3: 'Add the timeline',
+    outlineNotes: 'Keep it to two pages and share it with the team on Friday.',
+    checkin: 'Team check-in',
+    walkNotes: 'Easy pace, 20 minutes out and back.',
     routine: 'Morning start',
     water: 'Glass of water',
     stretchStep: 'Stretch',
@@ -58,6 +62,10 @@ export const demoStrings = {
     weekend: 'Planifier la fin de semaine',
     photos: 'Trier les vieilles photos',
     stretch: 'Pause étirements',
+    outlineSub3: 'Ajouter l’échéancier',
+    outlineNotes: 'Deux pages au plus, à partager avec l’équipe vendredi.',
+    checkin: 'Point d’équipe',
+    walkNotes: 'Rythme facile, 20 minutes aller-retour.',
     outlineSub1: 'Lister les grandes sections',
     outlineSub2: 'Rédiger le résumé',
     routine: 'Bon départ du matin',
@@ -159,15 +167,23 @@ export function buildDemoData(options: {
 
   const task = (
     title: string,
-    opts: { date?: Date | null; start?: string | null; duration?: number | null; category?: string; priority?: number },
+    opts: {
+      date?: Date | null;
+      start?: string | null;
+      duration?: number | null;
+      category?: string;
+      priority?: number;
+      notes?: string;
+      goal?: string;
+    },
   ): Row => ({
     ...base(newId()),
     title,
-    notes: null,
+    notes: opts.notes ?? null,
     status: 'open',
     priority: opts.priority ?? 0,
     category_id: opts.category ?? null,
-    goal_id: null,
+    goal_id: opts.goal ?? null,
     milestone_id: null,
     parent_task_id: null,
     date: opts.date === null ? null : day(opts.date ?? today),
@@ -179,13 +195,14 @@ export function buildDemoData(options: {
   });
   const tasks = [
     task(S.review, { start: '08:30', duration: 30, category: focus, priority: 2 }),
-    task(S.outline, { start: '09:30', duration: 90, category: focus, priority: 3 }),
-    task(S.walk, { start: '12:30', duration: 30, category: health }),
+    task(S.outline, { start: '09:30', duration: 90, category: focus, priority: 3, notes: S.outlineNotes }),
+    task(S.walk, { start: '12:30', duration: 30, category: health, notes: S.walkNotes, goal: goalId }),
     task(S.plants, { category: home }),
     task(S.read, { start: '20:00', duration: 40, category: learning }),
     task(S.dentist, { date: addDays(today, -2), category: health, priority: 1 }),
     task(S.weekend, { date: addDays(today, 3), category: home }),
     task(S.photos, { date: null }),
+    task(S.checkin, { start: '10:00', duration: 30, category: focus }),
   ];
   const outlineId = tasks[1]?.id as string;
   const subtask = (title: string, done: boolean, sort: number): Row => ({
@@ -195,7 +212,7 @@ export function buildDemoData(options: {
     completed_at: done ? now : null,
     sort_order: sort,
   });
-  tasks.push(subtask(S.outlineSub1, true, 0), subtask(S.outlineSub2, false, 1));
+  tasks.push(subtask(S.outlineSub1, true, 0), subtask(S.outlineSub2, false, 1), subtask(S.outlineSub3, false, 2));
   const stretchRuleId = newId();
   const stretch: Row = {
     ...task(S.stretch, { date: addDays(today, -7), start: '15:00', duration: 15, category: health }),

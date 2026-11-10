@@ -135,7 +135,25 @@
     "priorityMedium": "Medium priority",
     "repeats": "Repeats",
     "subtasks": "{{done}}/{{total}} subtasks",
-    "steps": "{{done}}/{{total}} steps"
+    "steps": "{{done}}/{{total}} steps",
+    "anytime": "Anytime",
+    "goalLabel": "Goal: {{title}}",
+    "moreSubtasks_one": "+{{count}} more",
+    "moreSubtasks_other": "+{{count}} more",
+    "showDetails": "Show subtasks and notes of “{{title}}”",
+    "hideDetails": "Hide subtasks and notes of “{{title}}”",
+    "hide": "Hide",
+    "moreActions": "More actions for “{{title}}”",
+    "quickEdit": "Quick edit",
+    "delete": "Delete",
+    "openEditor": "Open full editor",
+    "menuDone": "Mark done",
+    "menuReopen": "Mark not done",
+    "swipeDone": "Done",
+    "swipeReopen": "Not done",
+    "deleted": "“{{title}}” deleted",
+    "undo": "Undo",
+    "doneState": "done"
   },
   "dates": {
     "previousDay": "Previous day",
@@ -194,8 +212,18 @@
       "repeatInvalid": "Check the repeat settings (pick at least one day).",
       "timeInvalid": "Use a 24-hour time such as 09:30.",
       "invalid": "Check this field.",
-      "saveFailed": "The task could not be saved. Try again."
-    }
+      "saveFailed": "The task could not be saved. Try again.",
+      "categoryTooLong": "Keep the category under 40 characters.",
+      "goalInvalid": "Give the goal a name (up to 120 characters)."
+    },
+    "categoryPlaceholder": "Type or pick a category",
+    "categoryNew": "New category “{{name}}” will be created",
+    "categorySuggestions": "Existing categories",
+    "goal": "Goal",
+    "noGoal": "No goal",
+    "goalEmpty": "No goals yet. Name one to link this task to it.",
+    "newGoal": "New goal",
+    "newGoalPlaceholder": "For example: Run a 10K"
   },
   "repeat": {
     "title": "Repeat",
@@ -223,7 +251,8 @@
     "times_other": "{{count}} times",
     "preview": "Next: {{dates}}",
     "previewNone": "No upcoming dates with these settings.",
-    "needsDate": "Pick a date first to repeat a task."
+    "needsDate": "Pick a date first to repeat a task.",
+    "endNeverHint": "Repeats with no end date."
   },
   "auth": {
     "signInTitle": "Sign in",

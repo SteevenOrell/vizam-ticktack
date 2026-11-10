@@ -55,8 +55,8 @@ describe('Today on real data', () => {
     expect(within(scheduled).getByText('Stretch break')).toBeTruthy(); // recurring occurrence (Mon-Fri)
     expect(within(screen.getByTestId('group-overdue')).getByText('Book a dentist appointment')).toBeTruthy();
     expect(within(screen.getByTestId('group-routines')).getByText('Morning start')).toBeTruthy();
-    expect(screen.getByText('3h 25m of 6h planned')).toBeTruthy();
-    expect(within(scheduled).getByText(/1\/2 subtasks/)).toBeTruthy();
+    expect(screen.getByText('3h 55m of 6h planned')).toBeTruthy();
+    expect(within(scheduled).getByText(/1\/3 subtasks/)).toBeTruthy();
 
     await fireEvent.press(screen.getByRole('checkbox', { name: 'Mark “Draft the project outline” done' }));
     await waitFor(() => expect(screen.getByTestId('group-done')).toBeTruthy());
@@ -83,12 +83,8 @@ describe('Today on real data', () => {
 });
 
 describe('Task editor', () => {
-  it('validates the title and the time inline', async () => {
+  it('validates the title inline', async () => {
     await renderWithProviders(<TaskEditorScreen now={NOW} />, { open: opener(fresh) });
-    await fireEvent.changeText(screen.getByTestId('field-time'), '25:99');
-    await fireEvent.press(screen.getByTestId('save-task'));
-    expect(await screen.findByText('Use a 24-hour time such as 09:30.')).toBeTruthy();
-    await fireEvent.changeText(screen.getByTestId('field-time'), '9:30');
     await fireEvent.press(screen.getByTestId('save-task'));
     expect(await screen.findByText('Give the task a title.')).toBeTruthy();
     expect(mockRouter.back).not.toHaveBeenCalled();
@@ -97,8 +93,10 @@ describe('Task editor', () => {
   it('creates a weekly task with a subtask and shows the next dates', async () => {
     await renderWithProviders(<TaskEditorScreen now={NOW} />, { open: opener(fresh) });
     await fireEvent.changeText(screen.getByTestId('field-title'), 'Team check-in');
-    await fireEvent.changeText(screen.getByTestId('field-time'), '0930');
-    await fireEvent.press(screen.getByRole('radio', { name: '30m' }));
+    await fireEvent.press(screen.getByTestId('field-time'));
+    await fireEvent.press(screen.getByTestId('field-time-option-09:30'));
+    await fireEvent.press(screen.getByTestId('field-duration'));
+    await fireEvent.press(screen.getByTestId('field-duration-option-30'));
     await fireEvent.press(screen.getByRole('radio', { name: 'Weekly' }));
     await fireEvent.press(screen.getByRole('checkbox', { name: 'Thu' }));
     expect(screen.getByTestId('repeat-preview')).toHaveTextContent('Next: Mon 9, Thu 12, Mon 16');
