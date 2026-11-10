@@ -21,9 +21,11 @@ export function RoutinesScreen() {
       testID="screen-routines"
       title={t('routines.title')}
       header={
-        <Text variant="bodySm" color={header.on.textSecondary} style={styles.sub}>
-          {t('routines.count', { count })}
-        </Text>
+        count > 0 ? (
+          <Text variant="bodySm" color={header.on.textSecondary} style={styles.sub}>
+            {t('routines.count', { count })}
+          </Text>
+        ) : undefined
       }
     >
       <AsyncContent

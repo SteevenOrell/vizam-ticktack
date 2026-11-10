@@ -20,6 +20,7 @@ import { openExpoDriver } from '../data/db/expoDriver';
 import { migrate } from '../data/db/migrate';
 import { devWebFlag, maybeSeedDemo } from '../data/devSeed';
 import { AppSplash } from '../features/splash/AppSplash';
+import { getFirebase } from '../services/firebase';
 import i18n, { initI18n, resolveLanguage } from '../i18n';
 import { usePreferences } from '../state/preferences';
 import { ThemeProvider, useTheme } from '../ui/theme/ThemeProvider';
@@ -68,6 +69,8 @@ function AppShell() {
   useEffect(() => {
     // The in-app splash is on screen now: hand over from the native splash.
     SplashScreen.hide();
+    // Initialise Firebase only when configured (.env or emulator); without config the app stays in guest mode.
+    getFirebase();
     const timer = setTimeout(() => setMinElapsed(true), MIN_SPLASH_MS);
     return () => clearTimeout(timer);
   }, []);

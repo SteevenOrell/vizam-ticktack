@@ -77,7 +77,7 @@
     "dayEnds": "Fin de journée",
     "about": "À propos",
     "version": "Version {{version}}",
-    "conceptNote": "Un concept de portfolio VIZAM. Les données de démonstration sont fictives."
+    "conceptNote": "Conçu pour montrer comment VIZAM crée des applications. Les données de démonstration sont fictives."
   },
   "modal": {
     "close": "Fermer",

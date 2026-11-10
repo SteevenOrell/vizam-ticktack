@@ -21,9 +21,11 @@ export function GoalsScreen() {
       testID="screen-goals"
       title={t('goals.title')}
       header={
-        <Text variant="bodySm" color={header.on.textSecondary} style={styles.sub}>
-          {t('goals.activeCount', { count })}
-        </Text>
+        count > 0 ? (
+          <Text variant="bodySm" color={header.on.textSecondary} style={styles.sub}>
+            {t('goals.activeCount', { count })}
+          </Text>
+        ) : undefined
       }
     >
       <AsyncContent

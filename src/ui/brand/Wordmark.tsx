@@ -1,5 +1,7 @@
 import Svg, { Line, Path } from 'react-native-svg';
 
+import { decorativeProps } from '../platform';
+
 import { orange, white } from '../theme/colors';
 import { wordmarkHand, wordmarkLetters, wordmarkViewBox } from './wordmarkData';
 
@@ -16,13 +18,7 @@ export function Wordmark({
   handColor?: string;
 }) {
   return (
-    <Svg
-      width={width}
-      height={width * wordmarkAspect}
-      viewBox={wordmarkViewBox.join(' ')}
-      accessibilityElementsHidden
-      importantForAccessibility="no-hide-descendants"
-    >
+    <Svg width={width} height={width * wordmarkAspect} viewBox={wordmarkViewBox.join(' ')} {...decorativeProps}>
       <Path d={wordmarkLetters} fill={color} />
       <Line
         x1={wordmarkHand.x1}

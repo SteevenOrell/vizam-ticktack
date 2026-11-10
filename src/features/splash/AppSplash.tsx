@@ -8,6 +8,7 @@ import { Wordmark } from '../../ui/brand/Wordmark';
 import { Text } from '../../ui/Text';
 import { charcoal, white, type Period } from '../../ui/theme/colors';
 import { space } from '../../ui/theme/layout';
+import { useNativeDriver } from '../../ui/platform';
 
 const backgrounds = {
   day: require('../../../assets/splash/splash-day.webp'),
@@ -33,7 +34,7 @@ export function AppSplash({ period, visible, onHidden }: { period: Period; visib
         onHidden?.();
         return;
       }
-      Animated.timing(opacity, { toValue: 0, duration: 280, useNativeDriver: true }).start(() => onHidden?.());
+      Animated.timing(opacity, { toValue: 0, duration: 280, useNativeDriver }).start(() => onHidden?.());
     });
     return () => {
       cancelled = true;

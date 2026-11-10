@@ -7,6 +7,7 @@ import { Icon, type IconName } from './Icon';
 import { Text } from './Text';
 import { radii, space } from './theme/layout';
 import { useTheme } from './theme/ThemeProvider';
+import { useNativeDriver } from './platform';
 
 /** Loading placeholder blocks. Pulses unless Reduce Motion is on. */
 export function Skeleton({ lines = 3 }: { lines?: number }) {
@@ -21,8 +22,8 @@ export function Skeleton({ lines = 3 }: { lines?: number }) {
       if (reduce || cancelled) return;
       loop = Animated.loop(
         Animated.sequence([
-          Animated.timing(opacity, { toValue: 1, duration: 700, useNativeDriver: true }),
-          Animated.timing(opacity, { toValue: 0.6, duration: 700, useNativeDriver: true }),
+          Animated.timing(opacity, { toValue: 1, duration: 700, useNativeDriver }),
+          Animated.timing(opacity, { toValue: 0.6, duration: 700, useNativeDriver }),
         ]),
       );
       loop.start();

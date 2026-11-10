@@ -74,7 +74,7 @@
     "dayEnds": "Day ends",
     "about": "About",
     "version": "Version {{version}}",
-    "conceptNote": "A VIZAM portfolio concept. Demo data is synthetic."
+    "conceptNote": "Built to show how VIZAM designs apps. Any demo data is synthetic."
   },
   "modal": {
     "close": "Close",

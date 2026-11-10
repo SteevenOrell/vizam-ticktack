@@ -49,7 +49,7 @@ export function Button({
           backgroundColor: palette.bg,
           borderColor: focused ? colors.focus : palette.border,
           opacity: disabled ? 0.5 : pressed ? 0.85 : 1,
-          alignSelf: fullWidth ? 'stretch' : 'flex-start',
+          alignSelf: fullWidth ? 'stretch' : undefined,
         },
       ]}
       {...rest}

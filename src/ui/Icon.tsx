@@ -1,5 +1,7 @@
 import Svg, { Circle, Path } from 'react-native-svg';
 
+import { decorativeProps } from './platform';
+
 export type IconName =
   'today' | 'calendar' | 'goals' | 'routines' | 'me' | 'plus' | 'bell' | 'alert' | 'refresh' | 'close' | 'check';
 
@@ -7,14 +9,7 @@ export type IconName =
 export function Icon({ name, size = 24, color }: { name: IconName; size?: number; color: string }) {
   const stroke = { stroke: color, strokeWidth: 1.8, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const };
   return (
-    <Svg
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      accessibilityElementsHidden
-      importantForAccessibility="no-hide-descendants"
-    >
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" {...decorativeProps}>
       {name === 'today' && (
         <>
           <Circle cx={12} cy={12} r={8.5} {...stroke} />

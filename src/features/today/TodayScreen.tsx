@@ -56,7 +56,7 @@ export function TodayScreen({ now = new Date() }: { now?: Date }) {
                 <Text variant="title2" color={on.text}>
                   {face.month}
                 </Text>
-                <Text variant="bodySm" color={on.textSecondary} style={styles.weekday}>
+                <Text variant="bodySm" color={on.textSecondary} style={lang === 'fr' ? null : styles.weekday}>
                   {face.weekday}
                 </Text>
               </View>

@@ -84,7 +84,7 @@ export function CalendarScreen({ now = new Date() }: { now?: Date }) {
                   <Timeline
                     date={date}
                     events={events}
-                    start={6}
+                    start={5}
                     end={23}
                     format24h={i18n.language === 'fr'}
                     showNowIndicator

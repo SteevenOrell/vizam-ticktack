@@ -34,16 +34,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     output: 'single',
   },
   plugins: [
-    [
-      'expo-router',
-      {
-        // expo-sqlite on web needs SharedArrayBuffer, which needs cross-origin isolation.
-        headers: {
-          'Cross-Origin-Embedder-Policy': 'credentialless',
-          'Cross-Origin-Opener-Policy': 'same-origin',
-        },
-      },
-    ],
+    'expo-router',
     [
       'expo-splash-screen',
       {

@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { gradientPoints, type GradientStops } from './theme/colors';
 import { motion, sizes, space } from './theme/layout';
 import { useTheme } from './theme/ThemeProvider';
+import { useNativeDriver } from './platform';
 
 function Gradient({ stops, style }: { stops: GradientStops; style?: ViewStyle }) {
   const { start, end } = gradientPoints(stops.angle);
@@ -32,7 +33,7 @@ export function GradientHeader({ children, style }: { children: ReactNode; style
       if (cancelled || reduce) return;
       setPrevious(from);
       fade.setValue(1);
-      Animated.timing(fade, { toValue: 0, duration: motion.periodFade, useNativeDriver: true }).start(() =>
+      Animated.timing(fade, { toValue: 0, duration: motion.periodFade, useNativeDriver }).start(() =>
         setPrevious(null),
       );
     });
