@@ -1,0 +1,48 @@
+rules_version = '2';
+
+// TickTack Firestore rules — phase 2 SKELETON (owner-only access, server timestamps, allowed collections).
+// Phase 3 adds per-collection field allowlists, type/size checks and the sticky-tombstone rule
+// (docs/ARCHITECTURE.md section 7). Every rule here is covered by tests/rules/*.test.ts in the emulator.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedInAs(uid) {
+      return request.auth != null && request.auth.uid == uid;
+    }
+
+    function syncedCollection(name) {
+      return name in ['categories', 'tasks', 'recurrenceRules', 'occurrences', 'reminders', 'goals', 'milestones',
+        'routines'];
+    }
+
+    // Shape every write must have, whatever the collection.
+    function validWrite(uid, id) {
+      let d = request.resource.data;
+      return d.ownerId == uid
+        && d.id == id
+        && d.updatedAt == request.time
+        && d.deleted is bool;
+    }
+
+    function immutableIdentity() {
+      return request.resource.data.ownerId == resource.data.ownerId
+        && request.resource.data.id == resource.data.id;
+    }
+
+    match /users/{uid} {
+      allow get: if signedInAs(uid);
+      allow create: if signedInAs(uid) && validWrite(uid, uid);
+      allow update: if signedInAs(uid) && validWrite(uid, uid) && immutableIdentity();
+      allow delete: if signedInAs(uid);
+
+      match /{collection}/{id} {
+        allow get, list: if signedInAs(uid) && syncedCollection(collection);
+        allow create: if signedInAs(uid) && syncedCollection(collection) && validWrite(uid, id);
+        allow update: if signedInAs(uid) && syncedCollection(collection) && validWrite(uid, id) && immutableIdentity();
+        allow delete: if signedInAs(uid) && syncedCollection(collection);
+      }
+    }
+
+    // Default deny: anything not matched above is refused.
+  }
+}
