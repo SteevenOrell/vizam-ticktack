@@ -52,7 +52,14 @@ Accessibility changes: the reference puts white text on orange (2.6:1, fails AA)
 | `success` | `#4FD1A5` | Done, achieved | on `bg` 9.23 |
 | `border` | `#FFFFFF` at 8% | Hairlines, input outlines (inputs also get a 3:1 focus ring in `accent`) | — |
 
-Header gradient: `#70807D` (top) to `#25282A`, 160 degrees, behind the Day face only.
+**Sage is never a flat fill (Steeven, 2026-11-09).** Every sage/grey surface is a gradient from sage into a warm clay:
+
+- `gradientSage` (dark): `linear-gradient(165deg, #5F6F6C 0%, #966848 100%)`. Used for headers (Day face, calendar
+  headers, settings header), the splash screen and highlight cards. The start is a slightly deeper sage than
+  `#70807D` so white text passes AA everywhere on it (white on `#5F6F6C` 5.27, on `#966848` 4.79).
+- `gradientChip` (dark): `linear-gradient(135deg, #4E5B58 0%, #6A5444 100%)` for pills and chips (white text 7.09 at
+  the sage end, 7.08 at the clay end).
+- Phase 2 adds a unit test sampling both ends and the midpoint of every gradient against the text colours used on it.
 
 ### Light theme ("paper")
 
@@ -60,7 +67,7 @@ Header gradient: `#70807D` (top) to `#25282A`, 160 degrees, behind the Day face 
 |---|---|---|---|
 | `bg` | `#F4F1EC` | Warm paper background | — |
 | `surface` | `#FFFFFF` | Cards, panels | — |
-| `surfaceMuted` | `#E3E8E6` | Sage-tinted panels, header | — |
+| `surfaceMuted` | `#E3E8E6` | Sage-tinted panels, header — always as `gradientSageLight`: `linear-gradient(165deg, #E3E8E6 0%, #F6E0CD 100%)` | `#17191B` 14.23 → 13.82; `#5A6664` 4.82 → 4.68 |
 | `chip` | `#DCE3E1` | Pills with text | `#17191B` on it 13.53 |
 | `accent` | `#FF7A24` | Fills only (buttons, arcs, now line, selected date) | not used for text on light |
 | `onAccent` | `#17191B` | Text on orange | 6.77 |
