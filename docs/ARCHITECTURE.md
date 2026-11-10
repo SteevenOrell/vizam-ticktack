@@ -140,6 +140,19 @@ skipped. OS notification IDs are kept in a **local-only** `scheduled_notificatio
 (done milestones / all, or done linked tasks / all, or manual), never stored, so it cannot drift. History = timeline of
 completed milestones and linked tasks (derived from their `completedAt`).
 
+**Goal (goals round, migration 002)** — adds `period` (`once|daily|weekly|monthly|yearly`, default `once`),
+`startDate?` (required for periodic goals; periods are aligned to it: weekly = 7-day blocks, monthly = same day of
+month clamped 31 → 30/28, yearly = anniversaries), `reminders` (map: `beforeDue` ⊂ {0, 1, 7} days + `beforeDueTime`,
+`eachStep`, `monthlyDay?` 1–31 + `monthlyTime`, `periodic` + `periodicTime` + `periodicWeekday` for daily/weekly
+goals) and `history` (≤ 60 `{start, end, percent, done, total}` of ended periods, appended on start/foreground by
+`rollGoalHistory`, idempotent). `targetDate` is the due date of a one-time goal and null for periodic goals (their due
+date is the end of the current period). **Rule: a goal has at least one live linked task** — enforced by the goal
+draft schema and the repository (create/update/unlink refuse otherwise, in one transaction); deleting the last
+linked task asks to archive or keep the goal. Delete keeps and unlinks the tasks. Progress (`src/domain/goals.ts`,
+derived): done ÷ counted, where a recurring task counts each occurrence of the rule inside the range (current period,
+or start → due date for one-time goals) minus skipped ones, and a one-off task counts once (periodic goals: only when
+dated inside the period or undated). Sections: Completed (marked done or 100 %), Overdue (one-time, past due), Active.
+
 **Milestone** — `goalId`, `title` (1–120), `dueDate?`, `completedAt?`, `sortOrder`. Goal 1–n Milestone; Milestone 1–n
 linked Task.
 
@@ -346,6 +359,26 @@ Rules plan (`firebase/firestore.rules`, written in phase 3):
   account for EAS builds or a local Android SDK. On web, reminders are disabled with an explanatory empty state.
 - Notification tap opens `ticktack://task/<id>?occ=<occurrenceId>` (or routine). Actions "Done" and "Snooze 10 min"
   are a phase 4 stretch goal.
+
+### 8.1 Goal reminders (built in the goals round)
+
+- Code: `src/services/notifications/` — `plan.ts` (pure planner), `scheduler.ts` (reconcile + data loading),
+  `expoNotifications.ts` (SDK 58 adapter, lazy-loaded), `useGoalMaintenance.ts` (triggers).
+- Planner: per active goal, the enabled options → fire times in the next 7 days (`beforeDue` at
+  `beforeDueTime` before the due date or before each period end; `eachStep` at each open linked task's or occurrence's
+  start time, or `beforeDueTime` for all-day steps; `monthlyDay` clamped to the month; daily/weekly periodic
+  reminder). Past times dropped, soonest 50 kept. Identifiers `tt_<goalId>_<kind>_<key>` (deterministic; the
+  `tt_` prefix means foreign notifications are never touched); a fingerprint of time + text detects changes.
+- Reconcile: cancel our OS notifications that are no longer wanted or whose fingerprint changed, schedule the missing
+  ones, rewrite the local-only `scheduled_notifications` table (never synced). Second run = no-op (tested).
+- Triggers: app start, foreground, 1.5 s after any local write or sync pull; history roll first. The OS module is only
+  loaded when some goal has a reminder on or reminders were used on the device (`remindersUsed`, cleans up after a
+  sign-out wipe), and only with permission. Trigger type `DATE` on channel `reminders` (HIGH), inexact (no exact-alarm
+  permission requested; decision still pending). Tapping a reminder opens `/goal/<id>`.
+- Permission: asked only when the first reminder of a goal is turned on, after an in-app primer; denied → banner with
+  "Open settings" (`Linking.openSettings`), reminders stay saved. Web: section shown as unavailable.
+- Expo Go (SDK 58): local notifications work; importing the module logs Expo Go warnings about push (remote push is
+  not used). A development build is still the reference for timing and background behaviour.
 
 ## 9. Authentication and session
 

@@ -211,17 +211,36 @@ Every screen has explicit loading (skeleton), empty, error and success states.
    with suggestion pills (dot + name) and a "New category … will be created" hint (trimmed, case-insensitive de-dup,
    40 characters; a new category takes the least-used palette colour in the order ember, sky, moss, plum, sand, rose,
    sage, slate); **goal dropdown** (No goal, active goals, and a "New goal" name field in the sheet); repeat; notes;
-   subtasks checklist. Save is the large orange button.
+   subtasks checklist. Save is the large orange button, pinned in a footer (above the keyboard when it is open).
 6. **Task details** — header with big start time numerals and date; status toggle; pills; notes; subtasks; linked goal
    card; reminder list; for series: "This occurrence / Whole series" choice on edit and delete.
 7. **Recurrence settings** (sheet) — frequency segmented (Daily / Weekly / Monthly), "Every [n]" stepper, weekday pill
    row (weekly), day-of-month picker (monthly), ends (**Never** by default, "Repeats with no end date." / On date /
    After n times), live preview "Next: Tue 10, Thu
    12, Tue 17".
-8. **Goals dashboard** (tab) — active goals as stacked cards with large `%` numeral, `ProgressBar`, deadline countdown
-   ("41 days"); achieved goals collapsed below.
-9. **Goal details and milestones** — `ProgressArc` with `display` %, deadline, milestone list (check, due date), linked
-   tasks, history timeline of completions; add milestone / link task actions.
+8. **Goals dashboard** (tab) — sections *Overdue* (danger label), *Active*, *Completed*, each "Label · count". Cards:
+   title (title3), period chip (chip fill, colour dot when set), "Due Sun, Dec 20 · 41 days left" (or "Period ends …"
+   for periodic goals; danger text when overdue), Space Grotesk 600 34 pt `%` numeral with a smaller `%`, orange
+   `ProgressBar` on the chip track, "1 of 37 done". "New goal" compact secondary button in the header; empty state
+   with "Create goal".
+9. **Goal details** (goals round) — back chevron + "Edit"; title1 + description; hero card with a 132 pt
+   `ProgressArc` (accent, success at 100 %) and the 40 pt `%` numeral, period chip, countdown (title3), due line and
+   "done of total" (periodic: "This period (range): …"); "Mark goal as done" / "Reopen"; linked tasks as Today rows
+   (time column, tick, preview; goal name left out) with a × to unlink (never the last task); "Add or remove tasks"
+   (task picker sheet); reminders summary card; history rows (range · thin bar · %) for periodic goals; destructive
+   "Delete goal" with a confirm that says the tasks are kept and unlinked, then Undo 5 s. Milestones stay phase 4.
+   **Goal form** (modal): title (large), description, period pills, due date (quick pills 1 week / 1 month /
+   3 months + day stepper) or start date with "Current period: …", colour swatches, tasks (linked rows with ×,
+   "Link existing tasks" → searchable multi-select sheet, "Or create a task for this goal" card with title, date
+   pills, time and duration dropdowns), reminders (switch rows; options appear under a switch that is on). Pinned
+   footer: hint "Link or create at least one task…" while there is none, and the large Save (disabled until then).
+   **Reminder primer**: dialog "Turn on reminders?" before the OS prompt; denied → banner with "Open settings";
+   web → note that reminders ring in the mobile app.
+   **Swipe (goals round):** month grid, week strip and day page follow a horizontal finger drag and slide to the
+   next / previous page (150 ms out, spring in); vertical drags keep scrolling; arrows stay; ←/→ on web.
+   **Keyboard (goals round):** every form pads above the keyboard and scrolls the focused field (with its
+   suggestions) into view; Save is pinned in a footer above the keyboard on the task editor and goal form; sheets
+   rise above the keyboard with their footer.
 10. **Routines** (tab) — routines grouped by part of day; each a card with step count, total minutes, repeat summary,
     today's completion; detail screen runs the routine as a step checklist with big step numerals.
 11. **Reminders / notifications** — permission status banner, upcoming scheduled reminders (next 7 days), default

@@ -1,6 +1,6 @@
 # Agent handoff — TickTack (VIZAM portfolio concept)
 
-_Last updated: 2026-11-10 (local time) by vizam-fullstack-developer, phase 3 feedback round_
+_Last updated: 2026-11-10 (local time) by vizam-fullstack-developer, phase 3 goals round (second feedback round)_
 
 ## Objective
 Offline-first mobile planner (Today, calendar, recurring tasks, reminders, routines, goals) built with Expo, SQLite as
@@ -14,6 +14,38 @@ local source of truth and Firebase (Auth + Firestore) for sync. Portfolio concep
 - **Feedback round:** branch `feat/phase-3-feedback` from `feat/phase-3-core` (`7b87309`), worked in worktree
   `.claude\worktrees\agent-afa7a168a88ba218c`. Commits: data layer, theme/splash, task UI, then fixes + docs +
   screenshots (`git log --oneline 7b87309..`). Not pushed, not merged.
+- **Goals round (second feedback):** branch `feat/phase-3-goals` from `feat/phase-3-feedback` (`136967d`), worked in
+  worktree `.claude\worktrees\agent-a976d2411a03e53b9`. Commits: goal data layer + rules, goals UI + reminders + swipe
+  + keyboard, docs + screenshots (`git log --oneline 136967d..`). Not pushed, not merged.
+
+## Phase 3 goals round (Steeven's second phone test, 2026-11-10) — done
+1. **Swipe between pages** (`src/ui/SwipePager.tsx`, used in `CalendarScreen.tsx`): month grid, week strip and day
+   page follow a horizontal drag and slide to the next / previous page; arrows stay; ←/→ on web. Claims only clearly
+   horizontal drags in the bubbling phase, so vertical scroll and row swipes keep working (probe below).
+2. **Keyboard avoidance** (`src/ui/keyboard.tsx`): `KeyboardSafeView` pads by the measured keyboard overlap (window
+   coordinates, so modals and page sheets are right; 0 when a window already resized) and `KeyboardAwareScrollView`
+   scrolls the focused field — or a `RevealTarget` group such as the category field with its suggestions — above the
+   keyboard. Used by `HeaderScreen` (sign-in/up/reset), `Sheet` (quick edit, dropdowns, task picker, goal "New goal"
+   field), task editor and goal form; Save pinned in a footer on both editors. No library (react-native-keyboard-
+   controller is not in Expo Go). `TextField` reveals itself on focus.
+3. **Goals** — data: migration 002 (`period`, `start_date`, `reminders`, `history` on goals; `fingerprint` on the
+   local notification table), Zod (`goalSchema` defaults keep old docs valid), `src/domain/goals.ts` (periods,
+   due date, countdown, progress, sections), `src/data/goals.ts` (create/update with linked + inline tasks, ≥ 1 task
+   enforced, link/unlink, mark done, archive, delete = unlink + tombstone, history roll, list/detail read models,
+   linkable-task search), `src/data/goalBase.ts`. Editor "New goal" is now created together with its task
+   (`newGoalTitle` on the task draft). UI: `src/features/goals/` (GoalsScreen list with sections, GoalDetailScreen,
+   GoalEditorScreen, TaskPickerSheet, RemindersEditor, useLastTaskGuard), routes `src/app/goal/new.tsx`,
+   `goal/[id].tsx`, `goal/edit/[id].tsx`; `src/ui/ProgressArc.tsx`. Delete has Undo (pending deletes gained
+   `kind: 'goal'`); deleting the last task of a goal asks "archive goal / keep goal / cancel".
+4. **Goal reminders** (`src/services/notifications/`): planner (7-day window, cap 50, deterministic `tt_` ids,
+   fingerprints), reconcile against the OS + local table, expo-notifications adapter (lazy, `DATE` trigger, channel
+   `reminders`, inexact), `useGoalMaintenance` (start, foreground, 1.5 s after changes; history roll first; tap opens
+   the goal). Permission primer only when a reminder is turned on; denied → "Open settings". Web: unavailable note.
+   `remindersUsed` device preference keeps cleaning up after a wipe. EN/FR notification texts.
+5. **Rules/sync**: `goalOk` validates period, start/due dates (periodic: start required, no stored due date),
+   reminders map, history size and its newest entry; emulator tests incl. cross-user denial and a goal sync round
+   trip (schedule state stays local). Demo data: 3 goals (one weekly with history), every goal has tasks.
+Also fixed: `ConfirmDialog` nested a button inside a button on web (console error) — backdrop and card are siblings.
 
 ## Phase 3 feedback round (Steeven's phone test, 2026-11-10) — done
 1. Duration + start-time dropdowns (`src/ui/SelectField.tsx`, `src/ui/Sheet.tsx`, `src/features/tasks/fields.tsx`,
@@ -71,7 +103,21 @@ Demo data gained notes, a third subtask, a goal link and an overlapping "Team ch
 - Web: 250 px lock (`src/ui/webLayout.ts`, pans at 500 px), focus ring only for keyboard focus on web (fixes the
   phase 2 known issue).
 
-## Last verified checks (2026-11-10, feedback round, branch feat/phase-3-feedback)
+## Last verified checks (2026-11-10, goals round, branch feat/phase-3-goals)
+| Check | Command | Result |
+|---|---|---|
+| Typecheck | `npx tsc --noEmit` | pass |
+| Lint | `npx expo lint` | pass (0 problems) |
+| Format | `npx prettier --check .` | pass |
+| Unit/data/sync/UI tests | `npx jest` (after `--clearCache`) | pass — 20 suites, 439 tests |
+| Rules + sync on emulators | `npm run test:rules` | pass — 2 suites, 45 tests (goal fields, cross-user, goal sync round trip) |
+| Expo doctor | `npx expo-doctor` | pass — 20/20 (first try failed on a network TLS error, retry passed) |
+| Android bundle | `npx expo export --platform android` | pass (9.3 MB Hermes bundle, 3339 modules) |
+| Goals probe + sweep | `node scripts/screenshots-goals.mjs` (web :8095, emulator flag) | pass — month swipe → next month, ← key back, vertical drag still scrolls (0 → 225), week swipe → next week; create-goal Save disabled without tasks; delete → Undo restores; short viewport (390×470) keeps Save visible; 0 px overflow at 300/390/768/1440 on Goals / Calendar month / goal detail, 240 px locked at 500; no console errors or warnings (Reanimated reduced-motion notice from the probe's own setting ignored) |
+| npm audit | `npm audit --json` | 0 high / 0 critical; 28 moderate + 1 low (same tooling advisories) |
+| Secret scan | staged-diff grep before each commit; `.env` git-ignored | none found |
+
+### Previous round (feedback, branch feat/phase-3-feedback)
 | Check | Command | Result |
 |---|---|---|
 | Typecheck | `npx tsc --noEmit` | pass |
@@ -101,6 +147,16 @@ Demo data gained notes, a third subtask, a goal link and an overlapping "Team ch
 - Month view shows a dot on every day when a daily routine exists (correct, but less informative).
 - Native runtime still unverified on a device (Timeline, Auth persistence, SQLite); needs a dev build (phase 4).
 - Local SQLite unencrypted; refresh token in AsyncStorage (ARCHITECTURE.md section 9).
+- Goals round, reasoned but not device-verified: keyboard padding/reveal on iOS and Android (measured with
+  `measureInWindow` + keyboard events; inside RN `Modal` on Android it relies on keyboard events reaching the modal
+  window — if they do not and the window does not resize, sheets would not lift); local notifications delivery in
+  Expo Go and a dev build; swipe feel on a real phone. Expo Go logs two expo-notifications warnings (push not
+  available in Expo Go) the first time reminders are used — expected, push is not used.
+- Reminders only cover the next 7 days and are rebuilt when the app is opened (no background task yet); timing is
+  inexact on Android without the exact-alarm permission.
+- Linking a task that belongs to another goal moves it (the picker shows "In “X”"); that other goal can end up with
+  no tasks. Changing a task's goal in the task editor is not blocked by the ≥ 1 task rule (only deletes warn).
+- Demo "Run a 10 km race" shows 1 of 37 because its weekly stretch series counts every occurrence until the due date.
 
 ## Deviations from the spec (for review)
 1. Week view = DateStrip (7 columns with load dots) + stacked 7-day agenda instead of a 7-column agenda grid
@@ -117,6 +173,11 @@ Demo data gained notes, a third subtask, a goal link and an overlapping "Team ch
 4. Sticky tombstones also win over a dirty local edit on pull (delete beats a concurrent edit, as ARCHITECTURE.md
    intends); the rejected local edit is dropped.
 5. Calendar month view (planned for phase 4) was built in phase 3.
+8. Goals round: Save is pinned in a footer on the task editor (was at the end of the scroll); one-time goals created
+   from the task editor ("New goal" by name) have no due date (the goal form requires one); periodic goals store no
+   due date (derived); a change of period or start clears the history; on web the reminder switches are shown
+   disabled with a note; notification ids are `tt_<goalId>_<kind>_<key>` (ARCHITECTURE.md said
+   `reminderId_date`); milestones remain phase 4.
 
 ## Setup
 - `npm ci --ignore-scripts`; `npm run env:from-root` (or copy `.env.example`); `npx expo start --web`.
@@ -148,21 +209,30 @@ Feedback round — `docs/screenshots/phase-3-feedback/`: `splash-day`, `splash-n
 `-calendar-week`, `dark-day-fr-today`, `dark-day-fr-calendar-day`, `light-day-en-today`, `light-day-en-calendar-day`,
 `sweep-{240,768,1440}-{today,calendar-day,calendar-week}`, `brand-preview-{day,night}`.
 
+Goals round — `docs/screenshots/phase-3-goals/` (`node scripts/screenshots-goals.mjs [--only shots|calendar|sweep]`):
+`dark-day-en-calendar-month-mid-swipe`, `-after-swipe`, `dark-day-en-goals`, `dark-day-fr-goals`,
+`dark-day-en-goal-new-disabled-save`, `-link-tasks`, `-with-tasks`, `-reminders-web`, `-goal-created-detail`,
+`-goal-detail`, `-goal-detail-reminders`, `-goal-edit`, `-goal-edit-reminders`, `-goal-weekly-history`,
+`-goal-delete-confirm`, `-goal-deleted-undo`, `dark-day-en-task-editor-keyboard-space` (short viewport standing in
+for the keyboard), `light-day-en-goal-detail`, `sweep-{240,768,1440}-{goals,calendar-month,goal-detail}`.
+
 ## Pending (priority order)
-1. Phase 4 per `docs/MILESTONES.md`: reminders/notifications (permission flow, reconcile, Android exact-alarm
-   decision), task details, swipe + drag reschedule, history/overdue views, goals + milestones + routines editing and
+1. Phase 4 per `docs/MILESTONES.md`: task/routine reminders on the existing scheduler, background task, Android
+   exact-alarm decision, task details, drag reschedule, history/overdue views, milestones, routines editing and
    runner, settings (week start, capacity, categories, failed-sync list), desktop max width.
 2. Phases 5–6.
 
 ## Next step
-Steeven re-tests `feat/phase-3-feedback` on his phone (Expo Go; restart Metro with `--clear` from this worktree).
-After his OK, start phase 4 on `feat/phase-4-features` from `feat/phase-3-feedback`: build `src/services/notifications` (reconcile engine with
-mocked `expo-notifications` tests per ARCHITECTURE.md section 8), then the task details screen.
+Steeven tests `feat/phase-3-goals` on his phone (Expo Go; `npx expo start --clear` from this worktree, on a port
+other than his own server): swipe months/weeks/days, keyboard on the task editor, quick edit, sign-in and goal form,
+create / edit / delete a goal, turn on a reminder (permission prompt) and wait for one. After his OK, start phase 4
+on `feat/phase-4-features` from `feat/phase-3-goals`.
 
 ## Waiting for approval (Needs from Steeven)
 1. In the Firebase console: confirm **Authentication → Email/Password** is enabled and **Firestore** (native mode,
    suggested `northamerica-northeast1`) is created.
-2. Review and deploy the rules and indexes to the real project (not done by the agent):
+2. Review and deploy the rules and indexes to the real project (not done by the agent). **The goals round changed
+   `firestore.rules` (goal fields): signed-in sync of goals fails against the real project until it is redeployed.**
    `npx --yes firebase-tools@15.35.0 login` then
    `npx --yes firebase-tools@15.35.0 deploy --only firestore:rules,firestore:indexes --config firebase/firebase.json --project <your project id>`.
 3. Expo account (free) for EAS dev builds — needed in phase 4 for notifications and on-device checks.

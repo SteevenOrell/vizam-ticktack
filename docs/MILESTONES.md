@@ -35,12 +35,22 @@ the row (swipe / "⋯" / long press, Undo 5 s, series scopes), quick-edit sheet,
 Swipe actions moved forward from phase 4 (complete / Edit / Delete; "Tomorrow / Pick date" swipe stays phase 4).
 Screenshots: `docs/screenshots/phase-3-feedback/`.
 
+### Phase 3 goals round (`feat/phase-3-goals`) — done 2026-11-10
+Steeven's second phone test: swipe between months / weeks / days (arrows and ←/→ on web stay), keyboard avoidance
+on every form (pinned Save), full goal management (create with at least one linked or new task, periods Once /
+Daily / Weekly / Monthly / Yearly, due date + countdown, completion % incl. recurring occurrences, detail, edit,
+delete with unlink + Undo, Active / Completed / Overdue, period history) and goal reminders with local
+notifications (rolling 7-day window, cap 50, permission primer). Migration 002, rules for the new goal fields.
+Screenshots: `docs/screenshots/phase-3-goals/`. Milestones (sub-steps of a goal) stay phase 4.
+
 ## Phase 4 — Feature completion (`feat/phase-4-features`)
 - Drag-to-reschedule and reschedule actions (Tomorrow / Pick date; complete / edit / delete swipes exist), task
   details screen, week hour grid at ≥ 768 px, desktop max content width, overdue
   view, history (done / missed / cancelled).
-- Goals, milestones, linked tasks, derived progress; routines and routine runner.
-- Reminders: permission flow, reconcile engine, deep links, background task; Android exact-alarm decision applied.
+- Milestones inside goals; routines and routine runner. (Goals with linked tasks, progress, history: done in the
+  goals round.)
+- Reminders: task and routine reminders on the goal-reminder scheduler (built in the goals round), background task,
+  Android exact-alarm decision applied, device check of notifications in a dev build.
 - Settings: theme, week start, capacity, categories, sync status/failed items, account deletion.
 - All loading/empty/error/success states, validation messages, accessibility labels.
 - Exit: all checks; notification tests (mocked) pass; device check in a dev build if available.
