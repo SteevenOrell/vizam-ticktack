@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ComponentRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { PanResponder, Platform, Pressable, StyleSheet, View } from 'react-native';
+import { PanResponder, Platform, Pressable, StyleSheet, View, type GestureResponderEvent } from 'react-native';
 
 import type { AgendaItem } from '../../data/queries/agenda';
 import { minutesOf, type LocalDate } from '../../domain/localDate';
@@ -39,17 +39,24 @@ function createDrag() {
   const state = {
     active: false,
     captured: false,
+    /** Screen Y of the long press. The pan's own distance starts at its first move, which would lose a few px. */
+    originY: null as number | null,
     props: { onMove: () => undefined, onEnd: () => undefined } as DragProps,
     setProps(next: DragProps) {
       state.props = next;
     },
-    start() {
+    start(pageY?: number) {
       state.active = true;
       state.captured = false;
+      state.originY = typeof pageY === 'number' && Number.isFinite(pageY) ? pageY : null;
     },
     stop() {
       state.active = false;
       state.captured = false;
+      state.originY = null;
+    },
+    distance(g: { dy: number; moveY: number }) {
+      return state.originY !== null && g.moveY ? g.moveY - state.originY : g.dy;
     },
     responder: null as unknown as ReturnType<typeof PanResponder.create>,
   };
@@ -59,8 +66,8 @@ function createDrag() {
       return state.active;
     },
     onPanResponderTerminationRequest: () => false,
-    onPanResponderMove: (_, g) => state.props.onMove(g.dy),
-    onPanResponderRelease: (_, g) => state.props.onEnd(g.dy),
+    onPanResponderMove: (_, g) => state.props.onMove(state.distance(g)),
+    onPanResponderRelease: (_, g) => state.props.onEnd(state.distance(g)),
     onPanResponderTerminate: () => state.props.onEnd(null),
   });
   return state;
@@ -118,8 +125,8 @@ function Block({
     },
     [actions, drag, item, setScrollEnabled, startMin],
   );
-  const begin = () => {
-    drag.start();
+  const begin = (e?: GestureResponderEvent) => {
+    drag.start(e?.nativeEvent?.pageY);
     setDy(0);
     setScrollEnabled(false);
   };
