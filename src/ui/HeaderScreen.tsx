@@ -24,10 +24,19 @@ interface HeaderScroll {
   scrollToIn: (node: ComponentRef<typeof View> | null, y: number, margin?: number) => void;
   /** Freezes the screen scroll while a block is dragged on the timeline, so the drag is not taken as a scroll. */
   setScrollEnabled: (enabled: boolean) => void;
+  /** Jumps the screen back to its top (a calendar page change). */
+  scrollToTop: () => void;
 }
 
-const ScrollCtx = createContext<HeaderScroll>({ scrollToIn: () => undefined, setScrollEnabled: () => undefined });
+const ScrollCtx = createContext<HeaderScroll>({
+  scrollToIn: () => undefined,
+  setScrollEnabled: () => undefined,
+  scrollToTop: () => undefined,
+});
 export const useHeaderScroll = () => useContext(ScrollCtx);
+/** Lets tests (or a host with its own scroll view) provide the scroll actions. */
+export const HeaderScrollProvider = ScrollCtx.Provider;
+export type { HeaderScroll };
 
 /**
  * Screen layout: gradient header (title, optional action, extra header content) with a deck panel below. The whole
@@ -72,7 +81,8 @@ export function HeaderScreen({
       () => undefined,
     );
   }, []);
-  const scroll = useMemo(() => ({ scrollToIn, setScrollEnabled }), [scrollToIn]);
+  const scrollToTop = useCallback(() => scrollRef.current?.scrollTo({ y: 0, animated: false }), []);
+  const scroll = useMemo(() => ({ scrollToIn, setScrollEnabled, scrollToTop }), [scrollToIn, scrollToTop]);
 
   return (
     <KeyboardSafeView testID={testID} style={{ backgroundColor: theme.colors.bg }}>
