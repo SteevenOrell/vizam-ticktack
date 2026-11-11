@@ -4,6 +4,7 @@
  */
 import { adoptGuestData, getBoundUid, setSyncValue, wipeLocalData } from '../data/account';
 import type { SqlDriver } from '../data/db/driver';
+import { useSyncStatus } from '../state/session';
 import type { RemoteStore } from '../sync/types';
 import type { AuthGateway, AuthUser } from './auth';
 
@@ -13,6 +14,23 @@ export interface FlowDeps {
   remote: RemoteStore | null;
   /** Best-effort final upload before sign-out. */
   syncNow?: () => Promise<unknown>;
+  /**
+   * Best-effort device cleanup after the local wipe: cancels the OS notifications this app scheduled (their titles
+   * are the previous account's data). Wired to `cancelAllReminders` by the SessionProvider.
+   */
+  clearDevice?: () => Promise<unknown>;
+}
+
+/** In-memory stores that describe the previous account (sync counts, last success). */
+function resetAccountStores(): void {
+  useSyncStatus.getState().set({ state: 'disabled', pending: 0, failed: 0, lastSuccessAt: null });
+}
+
+/** Wipe + device cleanup shared by sign-out, account deletion and a signed-out start. */
+async function clearAccountData(db: SqlDriver, clearDevice?: () => Promise<unknown>): Promise<void> {
+  await wipeLocalData(db);
+  if (clearDevice) await clearDevice().catch(() => undefined);
+  resetAccountStores();
 }
 
 /**
@@ -41,11 +59,27 @@ export async function signInFlow(deps: FlowDeps, email: string, password: string
   return user;
 }
 
-/** Tries a last upload, signs out and wipes local data (the warning about unsynced changes is shown before). */
+/**
+ * Tries a last upload, signs out, then wipes local data (rows, outbox, sync cursors, the background task's owner),
+ * cancels scheduled notifications and resets the sync status (the warning about unsynced changes is shown before).
+ * Signing out first means no sync can pull the account back in after the wipe; if the app dies in between,
+ * `clearSignedOutDevice` finishes the job on the next start.
+ */
 export async function signOutFlow(deps: FlowDeps): Promise<void> {
   if (deps.syncNow) await deps.syncNow().catch(() => undefined);
   await deps.gateway.signOut();
-  await wipeLocalData(deps.db);
+  await clearAccountData(deps.db, deps.clearDevice);
+}
+
+/**
+ * Called when Auth reports no user. A database still bound to an account (sign-out interrupted, session revoked or
+ * expired on another device) is wiped so a signed-out device never keeps or shows an account's data. Guest data is
+ * never bound, so it is kept. Returns true when something was wiped.
+ */
+export async function clearSignedOutDevice(db: SqlDriver, clearDevice?: () => Promise<unknown>): Promise<boolean> {
+  if (!(await getBoundUid(db))) return false;
+  await clearAccountData(db, clearDevice);
+  return true;
 }
 
 /**
@@ -58,5 +92,5 @@ export async function deleteAccountFlow(deps: FlowDeps, password: string): Promi
   await deps.gateway.reauthenticate(password);
   if (deps.remote) await deps.remote.deleteAll(user.uid);
   await deps.gateway.deleteUser();
-  await wipeLocalData(deps.db);
+  await clearAccountData(deps.db, deps.clearDevice);
 }

@@ -6,6 +6,7 @@
  */
 import i18n from '../../i18n';
 import { enforceGoalRepeats, rollGoalHistory } from '../../data/goals';
+import type { SqlDriver } from '../../data/db/driver';
 import type { DataContext } from '../../data/store';
 import { formatClock } from '../../lib/dates';
 import { usePreferences } from '../../state/preferences';
@@ -17,7 +18,7 @@ import {
   remindersSupported,
 } from './expoNotifications';
 import type { Translate } from './plan';
-import { hasAnyReminder, rescheduleReminders, type NotificationsApi } from './scheduler';
+import { cancelAll, hasAnyReminder, rescheduleReminders, type NotificationsApi } from './scheduler';
 
 const translate: Translate = (key, vars) => i18n.t(key as never, vars as never) as unknown as string;
 
@@ -68,5 +69,20 @@ export async function maintainGoals(ctx: DataContext, deps: MaintenanceDeps = os
     });
   } catch (e) {
     console.warn('Reminder scheduling failed', e instanceof Error ? e.name : 'unknown');
+  }
+}
+
+/**
+ * Sign-out / account deletion / signed-out start with a previous account's data: cancels every notification this
+ * app scheduled, so the next person on the device never sees the previous account's reminder titles. Needs no
+ * permission. Never throws; returns the number cancelled.
+ */
+export async function cancelAllReminders(db: SqlDriver, deps: Pick<MaintenanceDeps, 'supported' | 'api'> = osDeps) {
+  if (!deps.supported) return 0;
+  try {
+    return await cancelAll(db, deps.api());
+  } catch (e) {
+    console.warn('Reminder cleanup failed', e instanceof Error ? e.name : 'unknown');
+    return 0;
   }
 }
