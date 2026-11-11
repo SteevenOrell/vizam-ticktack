@@ -228,7 +228,7 @@ describe('expo-notifications adapter (mocked)', () => {
     const api = mod.expoNotificationsApi();
     expect(await api.getScheduledIds()).toEqual(['tt_a', 'other']);
     const [n] = planGoalNotifications([goalInput({ reminders: { beforeDue: [0] } })], NOW, t);
-    await api.schedule(n!);
+    await api.schedule(n!, { exact: false });
     expect(N.scheduleNotificationAsync).toHaveBeenCalledWith({
       identifier: n!.id,
       content: { title: 'Run a 10K', body: 'notifications.due_0', data: { url: n!.url, goalId: 'goal-1' } },

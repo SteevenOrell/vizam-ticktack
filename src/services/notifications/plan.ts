@@ -21,7 +21,8 @@ export const MAX_SCHEDULED = 50;
 /** Every identifier this app schedules starts with this prefix (other notifications are never touched). */
 export const ID_PREFIX = 'tt_';
 
-export type ReminderKind = 'due' | 'step' | 'monthly' | 'daily' | 'weekly';
+export type ReminderKind = 'due' | 'step' | 'monthly' | 'daily' | 'weekly' | 'task' | 'routine';
+export type ReminderTargetType = 'goal' | 'task' | 'routine';
 
 export interface GoalStep {
   /** Task id, or occurrence id for one occurrence of a series. */
@@ -48,7 +49,11 @@ export interface GoalReminderInput {
 
 export interface PlannedNotification {
   id: string;
-  goalId: string;
+  /** What the reminder is for: `targetId` is a goal, task or routine id. */
+  targetType: ReminderTargetType;
+  targetId: string;
+  /** The day of a repeating task or routine the reminder is for (null for goals and one-off tasks). */
+  occurrenceId: string | null;
   kind: ReminderKind;
   /** What the notification is about inside the goal (date, offset or step key); stored locally for debugging. */
   key: string;
@@ -127,7 +132,9 @@ export function planGoalNotifications(
     const title = goal.title;
     out.push({
       id: `${ID_PREFIX}${safe(goal.id)}_${kind}_${safe(key)}`,
-      goalId: goal.id,
+      targetType: 'goal',
+      targetId: goal.id,
+      occurrenceId: null,
       kind,
       key,
       fireAt,
@@ -182,5 +189,85 @@ export function planGoalNotifications(
   }
 
   // Same identifier twice (e.g. two steps at the same moment) cannot happen: keys include the step and date.
-  return out.sort((a, b) => a.fireAt - b.fireAt || a.id.localeCompare(b.id)).slice(0, options.max ?? MAX_SCHEDULED);
+  return capPlan(out, options.max);
+}
+
+/** Soonest first, capped (the OS limits pending notifications per app; see MAX_SCHEDULED). */
+export function capPlan(list: readonly PlannedNotification[], max: number = MAX_SCHEDULED): PlannedNotification[] {
+  return [...list].sort((a, b) => a.fireAt - b.fireAt || a.id.localeCompare(b.id)).slice(0, max);
+}
+
+/** One day of a task or routine that has a reminder (open items of the window only). */
+export interface ItemReminderInput {
+  targetType: 'task' | 'routine';
+  /** Task id (one-off or series) or routine id. */
+  targetId: string;
+  /** Occurrence id for one day of a series, null for a one-off task. */
+  occurrenceId: string | null;
+  /** Unique per reminder: the task id, or the occurrence id (`seriesId_YYYYMMDD`). */
+  key: string;
+  title: string;
+  date: LocalDate;
+  startTime: string | null;
+  /** Minutes before the start time (days with a start time). */
+  offsetMin: number;
+  /** Time of day used on days without a start time. */
+  atTime: string;
+}
+
+/** When the reminder of one item fires: before its start time, or at the fallback time on an untimed day. */
+export function itemFireTime(item: Pick<ItemReminderInput, 'date' | 'startTime' | 'offsetMin' | 'atTime'>): number {
+  return item.startTime
+    ? fireTime(item.date, item.startTime) - item.offsetMin * 60_000
+    : fireTime(item.date, item.atTime);
+}
+
+/**
+ * Task and routine reminders in the rolling window. The window is what bounds a repeating task: only its days
+ * inside the next `windowDays` are planned, and each maintenance pass (foreground or background) moves the window
+ * on. The identifier depends only on the item (not on its time), so a moved or renamed item replaces its
+ * notification instead of adding one; done and deleted items are simply not passed in, so theirs is cancelled.
+ */
+export function planItemNotifications(
+  items: readonly ItemReminderInput[],
+  now: Date,
+  t: Translate,
+  options: { windowDays?: number; max?: number; formatTime?: (hhmm: string) => string } = {},
+): PlannedNotification[] {
+  const nowMs = now.getTime();
+  const horizon = nowMs + (options.windowDays ?? WINDOW_DAYS) * 86_400_000;
+  const clock = options.formatTime ?? ((hhmm: string) => hhmm);
+  const out: PlannedNotification[] = [];
+  const seen = new Set<string>();
+  for (const item of items) {
+    const fireAt = itemFireTime(item);
+    if (fireAt <= nowMs || fireAt > horizon) continue;
+    const id = `${ID_PREFIX}${safe(item.key)}_${item.targetType}`;
+    if (seen.has(id)) continue;
+    seen.add(id);
+    const body = item.startTime
+      ? item.offsetMin === 0
+        ? t(`notifications.${item.targetType}Now`)
+        : t(`notifications.${item.targetType}At`, { time: clock(item.startTime) })
+      : t(`notifications.${item.targetType}Today`);
+    const occ = item.occurrenceId ? `?occ=${encodeURIComponent(item.occurrenceId)}` : '';
+    const path =
+      item.targetType === 'routine'
+        ? `routine/${encodeURIComponent(item.targetId)}`
+        : `task/details/${encodeURIComponent(item.targetId)}${occ}`;
+    out.push({
+      id,
+      targetType: item.targetType,
+      targetId: item.targetId,
+      occurrenceId: item.occurrenceId,
+      kind: item.targetType,
+      key: item.key,
+      fireAt,
+      title: item.title,
+      body,
+      url: `ticktack://${path}`,
+      fingerprint: hash(`${fireAt}|${item.title}|${body}`),
+    });
+  }
+  return capPlan(out, options.max);
 }

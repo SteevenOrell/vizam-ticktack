@@ -93,7 +93,12 @@ export function expoNotificationsApi(): NotificationsApi {
       await ensureSetup(N);
       await N.scheduleNotificationAsync({
         identifier: n.id,
-        content: { title: n.title, body: n.body, data: { url: n.url, goalId: n.goalId } },
+        content: {
+          title: n.title,
+          body: n.body,
+          // `goalId` drives the tap handler; task and routine reminders only carry their link for now.
+          data: n.targetType === 'goal' ? { url: n.url, goalId: n.targetId } : { url: n.url },
+        },
         // Inexact delivery is accepted (no exact-alarm permission requested; see ARCHITECTURE.md section 8).
         trigger: { type: N.SchedulableTriggerInputTypes.DATE, date: n.fireAt, channelId: CHANNEL_ID },
       });
