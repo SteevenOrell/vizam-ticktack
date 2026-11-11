@@ -1,4 +1,5 @@
 import { readdirSync, readFileSync } from 'fs';
+import i18next from 'i18next';
 import { join } from 'path';
 
 import en from '../locales/en.json';
@@ -82,6 +83,13 @@ describe('translation files', () => {
     expect(untranslated).toEqual([]);
     // The allow-list must not rot: every entry still exists and is still identical.
     expect([...sameInBoth].filter((k) => locales.fr[k] !== locales.en[k])).toEqual([]);
+  });
+
+  it('goal progress agrees with the total in French (1 faite, 2 faites)', async () => {
+    const instance = i18next.createInstance();
+    await instance.init({ lng: 'fr', resources: { fr: { translation: fr } }, interpolation: { escapeValue: false } });
+    expect(instance.t('goals.doneOfTotal', { done: 0, total: 1, count: 1 })).toBe('0 sur 1 faite');
+    expect(instance.t('goals.doneOfTotal', { done: 6, total: 12, count: 12 })).toBe('6 sur 12 faites');
   });
 
   it('every t() key used in the source exists in English', () => {
