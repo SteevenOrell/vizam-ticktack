@@ -8,6 +8,7 @@ import { GoalRepeatError } from '../../data/goalBase';
 import { archiveGoal } from '../../data/goals';
 import { deleteTask, rescheduleTime, setDone, setSubtaskDone } from '../../data/tasks';
 import type { EditScope } from '../../domain/recurrence/seriesEdit';
+import { nudgedTime, NUDGE_MIN } from '../../domain/reschedule';
 import { Button } from '../../ui/Button';
 import { ConfirmDialog, type DialogAction } from '../../ui/ConfirmDialog';
 import { Sheet } from '../../ui/Sheet';
@@ -180,6 +181,10 @@ export function TaskActionsProvider({
   );
 
   const closeMenu = () => setMenuItem(null);
+  const nudge = (item: AgendaItem, delta: number) => {
+    const next = item.startTime ? nudgedTime(item.startTime, delta) : null;
+    if (next) api.reschedule(item, next);
+  };
   const fromMenu = (fn: (item: AgendaItem) => void) => () => {
     const item = menuItem;
     setMenuItem(null);
@@ -258,6 +263,26 @@ export function TaskActionsProvider({
                 fullWidth
                 onPress={fromMenu(api.quickEdit)}
               />
+              {menuItem?.startTime ? (
+                <>
+                  <Button
+                    testID="menu-move-earlier"
+                    label={t('calendar.moveEarlier', { count: NUDGE_MIN })}
+                    variant="secondary"
+                    icon="chevronLeft"
+                    fullWidth
+                    onPress={fromMenu((item) => nudge(item, -NUDGE_MIN))}
+                  />
+                  <Button
+                    testID="menu-move-later"
+                    label={t('calendar.moveLater', { count: NUDGE_MIN })}
+                    variant="secondary"
+                    icon="chevronRight"
+                    fullWidth
+                    onPress={fromMenu((item) => nudge(item, NUDGE_MIN))}
+                  />
+                </>
+              ) : null}
               <Button
                 testID="menu-open"
                 label={t('tasks.openEditor')}

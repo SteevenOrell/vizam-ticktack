@@ -337,6 +337,7 @@
     "markDone": "Mark “{{title}}” done",
     "markOpen": "Mark “{{title}}” not done",
     "openHint": "Opens the task details",
+    "openRoutineHint": "Opens the routine",
     "priorityHigh": "High priority",
     "priorityMedium": "Medium priority",
     "repeats": "Repeats",

@@ -74,8 +74,8 @@ export function PlanningSection() {
           nextLabel={t('settings.capacityMore')}
           onPrevious={() => change(clampCapacity(capacity - CAPACITY_STEP_MIN))}
           onNext={() => change(clampCapacity(capacity + CAPACITY_STEP_MIN))}
-          canPrevious={capacity >= CAPACITY_STEP_MIN}
-          canNext={capacity < CAPACITY_MAX_MIN}
+          canPrevious={planning.ready && capacity >= CAPACITY_STEP_MIN}
+          canNext={planning.ready && capacity < CAPACITY_MAX_MIN}
           testID="capacity-stepper"
         />
         <Text variant="caption" color={colors.textSecondary}>

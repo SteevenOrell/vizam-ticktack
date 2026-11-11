@@ -2,10 +2,13 @@
  * Drag to reschedule (Calendar day timeline and week hour grid): turns a vertical drag distance into a new start
  * time, snapped to 5 minutes and kept inside the day. Pure functions, unit-tested; the grid only renders the result.
  */
+import { minutesOf } from './localDate';
 import { hhmmOf } from './timeOptions';
 
 /** Start times snap to this many minutes while dragging. */
 export const DRAG_STEP_MIN = 5;
+/** Step of the "move earlier / later" actions (the non-drag way to move a block). */
+export const NUDGE_MIN = 15;
 const DAY = 24 * 60;
 
 /** Rounds to the nearest `step` minutes (halves round up). */
@@ -35,4 +38,14 @@ export function draggedTime(startMin: number, dy: number, hourHeight: number, st
   if (!(hourHeight > 0) || (Math.abs(dy) / hourHeight) * 60 < step / 2) return null;
   const next = dragStartMinutes(startMin, dy, hourHeight, step);
   return next === startMin ? null : hhmmOf(next);
+}
+
+/**
+ * `HH:mm` that is `deltaMin` minutes from `startTime`, kept inside the day. The non-drag way to move a block (screen
+ * reader actions and the row menu); null when nothing would change (already at the edge).
+ */
+export function nudgedTime(startTime: string, deltaMin: number, step: number = DRAG_STEP_MIN): string | null {
+  const start = minutesOf(startTime);
+  const next = Math.max(0, Math.min(DAY - step, start + deltaMin));
+  return next === start ? null : hhmmOf(next);
 }

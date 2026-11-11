@@ -1,4 +1,4 @@
-import { dragStartMinutes, draggedTime, DRAG_STEP_MIN, snapMinutes } from '../reschedule';
+import { dragStartMinutes, draggedTime, DRAG_STEP_MIN, nudgedTime, snapMinutes } from '../reschedule';
 
 const HOUR = 60; // px per hour: 1 px = 1 minute
 
@@ -46,5 +46,19 @@ describe('drag to reschedule: snapping', () => {
     expect(draggedTime(9 * 60 + 7, 1, HOUR)).toBeNull(); // off-grid start that was only pressed
     expect(draggedTime(0, -300, HOUR)).toBeNull(); // already at the top edge
     expect(draggedTime(9 * 60, 3, HOUR)).toBe('09:05');
+  });
+});
+
+describe('nudgedTime', () => {
+  it('moves by the given minutes and stays inside the day', () => {
+    expect(nudgedTime('09:00', 15)).toBe('09:15');
+    expect(nudgedTime('09:00', -15)).toBe('08:45');
+    expect(nudgedTime('00:05', -15)).toBe('00:00');
+    expect(nudgedTime('23:50', 15)).toBe('23:55');
+  });
+
+  it('returns null at the edges, where nothing changes', () => {
+    expect(nudgedTime('00:00', -15)).toBeNull();
+    expect(nudgedTime('23:55', 15)).toBeNull();
   });
 });

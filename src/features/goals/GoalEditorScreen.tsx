@@ -206,7 +206,7 @@ export function GoalEditorScreen({ goalId, now = new Date() }: { goalId?: string
   if (missing || !draft) {
     return (
       <View style={[styles.root, { backgroundColor: colors.bg, paddingTop: insets.top + space.lg }]}>
-        <ErrorState onRetry={close} message={t('goals.notFound')} />
+        <ErrorState onRetry={close} message={t('goals.notFound')} actionLabel={t('modal.close')} />
       </View>
     );
   }

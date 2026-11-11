@@ -353,6 +353,7 @@
     "markDone": "Marquer « {{title}} » comme fait",
     "markOpen": "Marquer « {{title}} » comme à faire",
     "openHint": "Ouvre les détails de la tâche",
+    "openRoutineHint": "Ouvre la routine",
     "priorityHigh": "Priorité haute",
     "priorityMedium": "Priorité moyenne",
     "repeats": "Se répète",

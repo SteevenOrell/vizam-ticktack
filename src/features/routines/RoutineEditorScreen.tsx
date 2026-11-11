@@ -158,7 +158,7 @@ export function RoutineEditorScreen({ routineId, now = new Date() }: { routineId
   if (missing || !draft) {
     return (
       <View style={[styles.root, { backgroundColor: colors.bg, paddingTop: insets.top + space.lg }]}>
-        <ErrorState onRetry={close} message={t('routines.notFound')} />
+        <ErrorState onRetry={close} message={t('routines.notFound')} actionLabel={t('modal.close')} />
       </View>
     );
   }

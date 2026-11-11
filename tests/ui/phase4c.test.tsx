@@ -10,6 +10,7 @@ import { createTask, emptyDraft } from '../../src/data/tasks';
 import { CategoriesScreen } from '../../src/features/settings/CategoriesScreen';
 import { FailedSyncScreen } from '../../src/features/settings/FailedSyncScreen';
 import { MeScreen } from '../../src/features/settings/MeScreen';
+import { TodayScreen } from '../../src/features/today/TodayScreen';
 import { HistoryScreen } from '../../src/features/tasks/HistoryScreen';
 import { usePreferences } from '../../src/state/preferences';
 import { useSession } from '../../src/state/session';
@@ -159,5 +160,32 @@ describe('History with routine runs', () => {
     expect(await screen.findByText('Morning routine')).toBeTruthy();
     expect(screen.queryByTestId('state-empty')).toBeNull();
     await act(async () => undefined);
+  });
+});
+
+describe('Move without dragging', () => {
+  it('the row menu moves a timed task 15 minutes later and earlier', async () => {
+    await fresh();
+    const t = await createTask(ctx(), { ...emptyDraft(TODAY), title: 'Call the bank', startTime: '11:00' });
+    await renderWithProviders(<TodayScreen now={NOW} />, { open: async () => db });
+    const startOf = async () =>
+      (await db.first<{ start_time: string }>('SELECT start_time FROM tasks WHERE id = ?', [t.id]))?.start_time;
+
+    await fireEvent(await screen.findByRole('button', { name: /^Call the bank,/ }), 'longPress');
+    await fireEvent.press(await screen.findByTestId('menu-move-later'));
+    await waitFor(async () => expect(await startOf()).toBe('11:15'));
+
+    await fireEvent(await screen.findByRole('button', { name: /^Call the bank, 11:15 AM/ }), 'longPress');
+    await fireEvent.press(await screen.findByTestId('menu-move-earlier'));
+    await waitFor(async () => expect(await startOf()).toBe('11:00'));
+  });
+
+  it('an untimed task has no move actions in its menu', async () => {
+    await fresh();
+    await createTask(ctx(), { ...emptyDraft(TODAY), title: 'Water plants' });
+    await renderWithProviders(<TodayScreen now={NOW} />, { open: async () => db });
+    await fireEvent(await screen.findByRole('button', { name: /^Water plants,/ }), 'longPress');
+    expect(await screen.findByTestId('menu-quick-edit')).toBeTruthy();
+    expect(screen.queryByTestId('menu-move-later')).toBeNull();
   });
 });
