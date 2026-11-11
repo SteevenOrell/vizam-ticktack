@@ -1,14 +1,4 @@
-import {
-  charcoal,
-  darkPalette,
-  headerThemes,
-  lightPalette,
-  splashInk,
-  splashStops,
-  white,
-  type ColorScheme,
-  type Period,
-} from '../colors';
+import { charcoal, darkPalette, headerThemes, lightPalette, white, type ColorScheme, type Period } from '../colors';
 import { composite, contrastRatio, gradientSamples, mix } from '../contrast';
 
 const AA = 4.5;
@@ -146,20 +136,11 @@ describe('day header reads gray first (phase 3 feedback)', () => {
 });
 
 describe('splash', () => {
-  it.each(splashStops.day)('day: charcoal wordmark, tagline and concept label on %s', (bg) => {
-    expect(contrastRatio(splashInk.day.wordmark, bg)).toBeGreaterThanOrEqual(AA);
-    expect(contrastRatio(splashInk.day.concept, bg)).toBeGreaterThanOrEqual(AA);
+  it('cream wordmark on the charcoal splash background', () => {
+    expect(contrastRatio('#F4EFE6', charcoal)).toBeGreaterThanOrEqual(AA);
   });
 
-  it.each(gradientSamples(splashStops.day as [string, string, ...string[]]))('day midpoint %s stays AA', (bg) => {
-    expect(contrastRatio(charcoal, bg)).toBeGreaterThanOrEqual(AA);
-  });
-
-  it.each(['#1E3A8A', '#2B4FB0'])('night: white wordmark and tagline on %s', (bg) => {
-    expect(contrastRatio(splashInk.night.wordmark, bg)).toBeGreaterThanOrEqual(AA);
-  });
-
-  it('night: charcoal concept label on the bottom glow', () => {
-    expect(contrastRatio(charcoal, '#E6F0FF')).toBeGreaterThanOrEqual(AA);
+  it('orange target rings on the charcoal splash background', () => {
+    expect(contrastRatio('#FF7A24', charcoal)).toBeGreaterThanOrEqual(NON_TEXT);
   });
 });

@@ -91,9 +91,7 @@ function AppShell() {
 
   return (
     <View style={[styles.flex, { backgroundColor: theme.colors.bg }]}>
-      <StatusBar
-        style={splashGone ? (theme.scheme === 'dark' ? 'light' : 'dark') : theme.period === 'day' ? 'dark' : 'light'}
-      />
+      <StatusBar style={splashGone ? (theme.scheme === 'dark' ? 'light' : 'dark') : 'light'} />
       <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: theme.colors.bg } }}>
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="onboarding" options={{ gestureEnabled: false }} />
@@ -112,7 +110,7 @@ function AppShell() {
         <Stack.Screen name="+not-found" />
       </Stack>
       <GoalMaintenance />
-      {splashGone ? null : <AppSplash period={theme.period} visible={!ready} onHidden={onHidden} />}
+      {splashGone ? null : <AppSplash visible={!ready} onHidden={onHidden} />}
     </View>
   );
 }

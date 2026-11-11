@@ -28,6 +28,16 @@ local source of truth and Firebase (Auth + Firestore) for sync. Portfolio concep
   (`git log --oneline 5f656be..`); the orchestrating session moves them onto `feat/phase-4a-task-views`. Not pushed.
 - `docs/PROJECT_PLAN.md` is the approved remaining plan (step 0 and 4a ticked).
 
+## New logo and splash (2026-11-11, on top of `86f6514`)
+Concept A "dart in the bullseye" (see `docs/DESIGN.md` section 1 and Splash). Source `assets/brand/logo-target.svg`;
+`npm run render:brand` renders `icon`, `android-icon-foreground`, `android-icon-monochrome`, `favicon`, `splash-icon`
+(PNG, Expo needs PNG). `src/ui/brand/LogoMark.tsx` replaces the old `Wordmark`/`wordmarkData` (deleted, with the day
+and night splash images and `splash-wordmark.png`). `AppSplash` is charcoal + logo + "TickTack" text (no `period`
+prop, no tagline); native splash is the logo alone (`app.config.ts`). Onboarding header shows the mark on a charcoal
+tile plus the name. The splash colour tokens `splashInk`/`splashStops` were removed. Screenshots:
+`scripts/screenshots-brand.mjs` -> `docs/screenshots/phase-4-feedback/`. Only a phone or dev build can confirm the
+native splash (Expo Go shows its own).
+
 ## Phase 4b: DONE (2026-11-10), except the on-phone check, which needs a dev build
 Three rounds: groundwork (worktree `agent-a342ec3a40fcf3473`), screens (`agent-a05dd6cfd6764550f`, tip `76dff9b` on
 `feat/phase-4b-routines-reminders`), then the native and security round (worktree `agent-afdbc8d116b636c6b`, branch

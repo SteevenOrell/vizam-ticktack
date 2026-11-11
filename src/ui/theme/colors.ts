@@ -171,21 +171,6 @@ export const headerThemes: Record<ColorScheme, Record<Period, HeaderTheme>> = {
   },
 };
 
-/**
- * Splash stops (DESIGN.md section 3, Splash), rendered to images by scripts/render-brand.mjs. Day is a light
- * white -> orange gradient (charcoal wordmark); night keeps the dark blue ember flow (white wordmark).
- */
-/** Wordmark, tagline and concept-label colours per splash. */
-export const splashInk: Record<Period, { wordmark: string; tagline: string; concept: string }> = {
-  day: { wordmark: charcoal, tagline: charcoal, concept: charcoal },
-  night: { wordmark: white, tagline: white, concept: charcoal },
-};
-
-export const splashStops: Record<Period, readonly string[]> = {
-  day: ['#FFFFFF', '#FFF1E6', '#FFC9A1', '#FF7A24'],
-  night: ['#0B0B0C', '#17191B', '#1E3A8A', '#2B4FB0', '#5B8FD6', '#9DBEEA', '#E6F0FF'],
-};
-
 export const categoryColors = {
   ember: '#FF7A24',
   sage: '#70807D',

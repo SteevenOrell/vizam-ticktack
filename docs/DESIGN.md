@@ -8,9 +8,20 @@ _VIZAM portfolio concept. Phase 1, 2026-11-09. Proposal awaiting approval._
   full the day is, and close it with a short review. Calm, confident, a little bold.
 - **Personality:** a well-made wristwatch, not a productivity dashboard. Big numerals, few colours, warm orange used
   sparingly as the "now" signal.
-- **Logo idea (to draw in phase 2, SVG):** the wordmark `ticktack` in Space Grotesk Medium, lowercase, with the dot-less
-  `i` replaced by a short orange bar tilted like a watch hand. App icon: that orange hand plus a check stroke on charcoal.
-  No emoji, no clock clip-art.
+- **Logo (Steeven approved concept A, "dart in the bullseye", phase 4 feedback, 2026-11-11):** an orange `#FF7A24`
+  target (two concentric rings, radius 68 and 42, stroke 12, plus a solid centre dot of radius 15, nothing filled
+  between the rings) with a cream `#F4EFE6` dart arriving from the top right: a 6-unit shaft with round caps from
+  (166,34) to (104,96), whose tip sits inside the centre dot, and two right-angle fletching marks (4-unit stroke) at the
+  tail. Geometry is a 200-unit box centred on the bullseye; a 3-unit charcoal gap around the shaft keeps the dart crisp
+  where it crosses the rings (cut out with a mask in the monochrome icon). Source: `assets/brand/logo-target.svg`; the
+  same numbers are in `src/ui/brand/LogoMark.tsx` and `scripts/render-brand.mjs`. The wordmark is plain text,
+  "TickTack" in Space Grotesk SemiBold, cream, -0.4 letter spacing (not an outline drawing any more). No emoji, no
+  clock clip-art.
+- **Brand rasters** (`npm run render:brand`, from `scripts/render-brand.mjs`): `assets/icon.png` (1024, mark on charcoal,
+  about 60% wide, ink box centred), `assets/android-icon-foreground.png` (transparent, mark at 3.0 px per unit so the
+  farthest corner stays inside the launcher's 66/108 circle), `assets/android-icon-monochrome.png` (single white
+  silhouette), `assets/favicon.png` (256), `assets/splash-icon.png` (native splash image). The adaptive background
+  colour and the splash colour are the app charcoal `#17191B` (not pure black).
 - **Signature elements (ours, not the reference's):**
   1. **Day face** — the Today header shows the date as huge numerals (`09` over `Nov`, weekday beside it) with a thin
      orange arc underneath that fills as planned minutes are completed.
@@ -83,26 +94,21 @@ Contrast (night): white on `#5F6F6C` 5.28, midpoint 5.90, `#3F5F8A` 6.53; chips 
 when the app comes to the foreground and once a minute while open, and cross-fades over 600 ms (instant with Reduce
 Motion). Day start/end are the existing settings in Me > Planning.
 
-**Splash (Steeven, 2026-11-09, revised; day revised again in the phase 3 feedback, 2026-11-10).**
+**Splash (Steeven, 2026-11-09; replaced by the dart logo on charcoal in the phase 4 feedback, 2026-11-11).** The
+day/night gradient splashes are gone.
 
-- **Day:** a light white → orange gradient, orange at the bottom: `#FFFFFF` 0% → `#FFF1E6` 42% → `#FFC9A1` 74% →
-  `#FF7A24` 100%, with soft warm blooms near the bottom and faint grain. Because the background is light, the wordmark
-  is charcoal `#17191B` with the orange hand over the ı, and the tagline is charcoal (Manrope 500; same size and centre
-  as before). Charcoal contrast: on `#FFFFFF` 17.63, `#FFF1E6` 15.93, `#FFC9A1` 11.85, `#FF7A24` 6.77 (midpoints are
-  tested too), so "VIZAM portfolio concept" on the orange bottom stays readable. Native splash: the charcoal wordmark
-  on cream `#FFF1E6` (the colour of the in-app splash centre).
-- **Night (unchanged):** the blue "ember" flow: near-black charcoal at the top bending diagonally through deep blue
-  into a pale glow at the bottom right. Kept as approved: light morning / dark evening matches the header's day/night
-  logic, so the pair does not look inconsistent.
-- Night stops: `#0B0B0C` → `#17191B` → `#1E3A8A` → `#2B4FB0` → `#5B8FD6` → `#9DBEEA` → `#E6F0FF`.
-- Night: the `ticktack` wordmark (white, orange hand, Space Grotesk 500 at 68 pt, about 75% of the screen width) and the
-  tagline sit together at the exact centre of the screen; the tagline is 8 pt under the wordmark in Manrope 400, 13 pt, -0.4 tracking, white. The flow is placed so the centre
-  falls on the deep blue zone: white on `#1E3A8A` 10.36, on `#2B4FB0` 7.37.
-- Night: "VIZAM portfolio concept" sits at the bottom in charcoal on the pale glow (`#17191B` on `#E6F0FF` 15.34).
-- The backgrounds are pre-rendered images (day and night, 1290 x 2796, WebP for the in-app
-splash, PNG for the native one), not drawn live. Limitation: the native splash is a single static image shown before
-any code runs, so it is always the cream day version; the in-app splash that follows picks day or night (at night
-the cream native splash hands over to the dark blue one).
+- **Look:** solid charcoal `#17191B` (Steeven asked for not pure black; it is the app's own charcoal), the logo at the
+  exact screen centre, "TickTack" below it (Space Grotesk SemiBold 34, cream `#F4EFE6`, -0.4 letter spacing). Nothing
+  else. Contrast: cream on charcoal 14.9, orange on charcoal 6.8 (tested).
+- **Native splash** (`expo-splash-screen` in `app.config.ts`): charcoal, light and dark the same, image
+  `assets/splash-icon.png`, `imageWidth` 288. The image is the logo alone, on every platform: Android 12+ only allows a
+  centred icon (masked to a circle) on a solid colour, so a wordmark baked into the image would be clipped there, and
+  iOS would differ from Android. The expo-splash-screen config has no separate wordmark layer, so the wordmark appears
+  when the in-app splash takes over.
+- **No jump at hand-over:** the 200-unit logo box is 62% of the 288 dp image (178.56 dp). The in-app splash draws the
+  logo at that size with the bullseye at the exact centre, and the wordmark hangs 14 dp below the box without moving
+  the logo. Timing and fade are unchanged (1.2 s minimum, 280 ms fade, instant with Reduce Motion).
+- The tagline and "VIZAM portfolio concept" are no longer on the splash (they remain in onboarding and Me).
 
 **Language.** English and French (`fr-CA` wording, works for `fr-FR`). See section 8.
 

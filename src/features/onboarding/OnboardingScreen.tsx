@@ -18,7 +18,8 @@ import { decorativeProps } from '../../ui/platform';
 import { Text } from '../../ui/Text';
 import { space } from '../../ui/theme/layout';
 import { useTheme } from '../../ui/theme/ThemeProvider';
-import { Wordmark } from '../../ui/brand/Wordmark';
+import { LogoMark } from '../../ui/brand/LogoMark';
+import { charcoal } from '../../ui/theme/colors';
 
 const STEPS = [
   { numeral: '06:30', title: 'onboarding.step1Title', body: 'onboarding.step1Body', arc: 0.25 },
@@ -80,7 +81,12 @@ export function OnboardingScreen() {
       <ScrollView contentContainerStyle={styles.scroll} bounces={false}>
         <GradientHeader>
           <View style={styles.brand}>
-            <Wordmark width={132} color={header.on.text} />
+            <View style={styles.logoTile}>
+              <LogoMark size={36} />
+            </View>
+            <Text variant="title2" color={header.on.text} accessibilityRole="header">
+              {t('app.name')}
+            </Text>
           </View>
           <View style={styles.hero}>
             <View style={styles.flex}>
@@ -172,7 +178,15 @@ const styles = StyleSheet.create({
   root: { flex: 1 },
   flex: { flex: 1 },
   scroll: { flexGrow: 1 },
-  brand: { ...innerColumnStyle, alignItems: 'flex-start' },
+  brand: { ...innerColumnStyle, flexDirection: 'row', alignItems: 'center', gap: space.sm },
+  logoTile: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: charcoal,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   hero: { ...innerColumnStyle, flexDirection: 'row', alignItems: 'center', gap: space.md, marginTop: space.xl },
   numeral: { fontVariant: ['tabular-nums'] },
   panel: { paddingBottom: space.xxl },
