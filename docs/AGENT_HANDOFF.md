@@ -1,6 +1,6 @@
 # Agent handoff — TickTack (VIZAM portfolio concept)
 
-_Last updated: 2026-11-11 (local time) by vizam-fullstack-developer (Sonnet), phase 4c_
+_Last updated: 2026-11-11 (local time) by vizam-fullstack-developer (Sonnet), phase 5b_
 
 ## Objective
 Offline-first mobile planner (Today, calendar, recurring tasks, reminders, routines, goals) built with Expo, SQLite as
@@ -27,6 +27,29 @@ local source of truth and Firebase (Auth + Firestore) for sync. Portfolio concep
   `.claude\worktrees\agent-a0945abd2988561f4`, commits on its branch `worktree-agent-a0945abd2988561f4`
   (`git log --oneline 5f656be..`); the orchestrating session moves them onto `feat/phase-4a-task-views`. Not pushed.
 - `docs/PROJECT_PLAN.md` is the approved remaining plan (step 0 and 4a ticked).
+
+## Phase 5b: UI QA and verification (2026-11-11) — done
+Branch `feat/phase-5b-qa` from `1d52b91`, worktree `.claude\worktrees\phase-5b`. Not pushed. Phase 5a (rules, limits,
+sign-out wipe, guest migration, sync) is a separate branch; this one touches no `firebase/`, `src/data/sync*`, auth,
+migration or Zod model files. Full report: `docs/QA_REPORT.md`.
+- **Screens vs DESIGN.md:** `scripts/screenshots-5b.mjs` shoots 20 screens x 390 / 1440 px x light / dark x EN / FR
+  (160 webp + contact sheets + `report.json` in `docs/screenshots/phase-5b/`). Fixed: tab labels lost their descenders
+  (line height 20, bar 62 dp), task meta line wraps instead of cutting French names, select fields take two lines
+  ("Toute la journée"), stack-screen action lines up with the 20 px padding, French goal progress plural ("1 faite").
+- **Layout sweep:** 150 page loads (15 routes x 5 widths x EN / FR): 0 px horizontal overflow at 300 / 390 / 768 / 1440,
+  `#root` is 500 px at 240 px on all 30 loads, no console error or warning in 160 shots + 150 loads.
+- **i18n:** parity test already existed; added "no English left in French" (allow-list of 20 identical words) and the
+  French plural check. No missing key and no untranslated value was found.
+- **Flaky hunt:** 4 green baseline runs (parallel x2, `--runInBand`, 8 busy cores), the earlier failure did not
+  reproduce. Hardened `waitFor` 5 to 15 s and per-test 30 to 60 s. Final: 3 green runs of 646 tests / 37 suites
+  (parallel 166 s, `--runInBand` 280 s, parallel under 8 busy cores 462 s).
+- **`screenshots-feedback.mjs`:** one `splash` shot (the day / night pair was identical since the logo splash).
+- **Checks run here:** `npx tsc --noEmit` exit 0; full `npx jest` 3 of 3 green; `npx expo lint` and Prettier see
+  `docs/QA_REPORT.md` section 6.
+- **Kept WARNs (reasons in the report):** wide-screen tab bar not clamped to the 720 px column, intended ellipses
+  (note excerpt, week-grid block titles), 240 px pan by design, no real-device check yet.
+- **Machine notes:** the Metro watcher still misses edits in this worktree (restart with `--clear`); the screenshot run
+  takes about 25 minutes cold; a bash `sleep` over 170 s is moved to the background by the tool.
 
 ## Phase 4c: settings, states, accessibility (2026-11-11) — done
 Branch `worktree-agent-a53e11d683f610f2a`, stacked on `e1101bc` (tip of `feat/phase-4-feedback`). Not pushed.
@@ -603,7 +626,7 @@ Phase 4a — `docs/screenshots/phase-4a/` (`node scripts/screenshots-4a.mjs [--o
 2. Done: phase 4b (see "Phase 4b" above), apart from the on-phone check in a dev build.
 3. Done: phase 4c (see "Phase 4c" above). Still open from it: "Tomorrow / Pick date" swipe actions, a haptic tick when
    a drag starts, editing the day start / end, on-phone check of the 4c checklist.
-4. Phases 5–6.
+4. Phase 5b done (see "Phase 5b" above); phase 5a (rules, limits, wipe, migration, sync) on its own branch; then phase 6.
 
 ## Next step
 1. **Phase 5 (QA and security)** on top of this branch: full verification, access-control tests, rules, input

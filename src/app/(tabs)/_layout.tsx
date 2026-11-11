@@ -31,7 +31,7 @@ export default function TabsLayout() {
   const onboardingDone = usePreferences((s) => s.onboardingDone);
   // First run: onboarding (guest or account) before the tabs.
   if (!onboardingDone) return <Redirect href="/onboarding" />;
-  const tabBarHeight = 58 + bottom;
+  const tabBarHeight = 62 + bottom;
   return (
     <View style={styles.flex}>
       <Tabs
@@ -50,7 +50,7 @@ export default function TabsLayout() {
           tabBarLabelStyle: {
             fontFamily: fontFamilies.textMedium,
             fontSize: 12,
-            lineHeight: 16,
+            lineHeight: 20,
             letterSpacing: MANROPE_TRACKING,
           },
           tabBarAllowFontScaling: true,

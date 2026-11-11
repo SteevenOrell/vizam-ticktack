@@ -1,4 +1,5 @@
 import { readdirSync, readFileSync } from 'fs';
+import { createInstance } from 'i18next';
 import { join } from 'path';
 
 import en from '../locales/en.json';
@@ -52,6 +53,43 @@ describe('translation files', () => {
         expect({ key, vars: vars(value) }).toEqual({ key, vars: vars(counterpart) });
       }
     }
+  });
+
+  it('has no English left in French (identical values must be on the allow-list)', () => {
+    // Same word in both languages (names, loanwords, numerals, language names). Anything else identical is untranslated.
+    const sameInBoth = new Set([
+      'app.name',
+      'tabs.routines',
+      'today.routines',
+      'routines.title',
+      'routines.count_one',
+      'routines.count_other',
+      'routines.minutes',
+      'routines.pause',
+      'goals.colour_rose',
+      'me.languageEnglish',
+      'me.languageFrench',
+      'me.version',
+      'editor.date',
+      'editor.timePlaceholder',
+      'editor.notes',
+      'onboarding.step2Numeral',
+      'categoriesScreen.ok',
+      'categoriesScreen.colors.ember',
+      'categoriesScreen.colors.rose',
+      'failedSync.types.routines',
+    ]);
+    const untranslated = Object.keys(locales.en).filter((k) => locales.fr[k] === locales.en[k] && !sameInBoth.has(k));
+    expect(untranslated).toEqual([]);
+    // The allow-list must not rot: every entry still exists and is still identical.
+    expect([...sameInBoth].filter((k) => locales.fr[k] !== locales.en[k])).toEqual([]);
+  });
+
+  it('goal progress agrees with the total in French (1 faite, 2 faites)', async () => {
+    const instance = createInstance();
+    await instance.init({ lng: 'fr', resources: { fr: { translation: fr } }, interpolation: { escapeValue: false } });
+    expect(instance.t('goals.doneOfTotal', { done: 0, total: 1, count: 1 })).toBe('0 sur 1 faite');
+    expect(instance.t('goals.doneOfTotal', { done: 6, total: 12, count: 12 })).toBe('6 sur 12 faites');
   });
 
   it('every t() key used in the source exists in English', () => {

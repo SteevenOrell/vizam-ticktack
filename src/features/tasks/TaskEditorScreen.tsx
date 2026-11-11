@@ -552,7 +552,7 @@ const styles = StyleSheet.create({
   content: { ...columnStyle, paddingHorizontal: space.lg, gap: space.lg },
   section: { gap: space.xs },
   pills: { flexDirection: 'row', flexWrap: 'wrap', gap: space.xs },
-  timeRow: { flexDirection: 'row', alignItems: 'flex-start', gap: space.sm, flexWrap: 'wrap' },
+  timeRow: { flexDirection: 'row', alignItems: 'stretch', gap: space.sm, flexWrap: 'wrap' },
   timeCell: { flex: 1, minWidth: 140 },
   banner: { flexDirection: 'row', alignItems: 'center', gap: space.xs, borderRadius: radii.card, padding: space.sm },
   subtask: {

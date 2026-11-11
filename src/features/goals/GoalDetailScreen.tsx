@@ -183,11 +183,16 @@ export function GoalDetailScreen({ goalId, now = new Date() }: { goalId: string;
                       </Text>
                       <Text variant="caption" color={colors.textSecondary}>
                         {goal.period === 'once'
-                          ? t('goals.doneOfTotal', { done: summary.progress.done, total: summary.progress.total })
+                          ? t('goals.doneOfTotal', {
+                              done: summary.progress.done,
+                              total: summary.progress.total,
+                              count: summary.progress.total,
+                            })
                           : t('goals.thisPeriod', {
                               range: rangeLabel(lang, summary.range.start, summary.range.end),
                               done: summary.progress.done,
                               total: summary.progress.total,
+                              count: summary.progress.total,
                             })}
                       </Text>
                     </View>

@@ -153,7 +153,7 @@ export function SelectField<V extends string | number | null>({
           },
         ]}
       >
-        <Text variant="body" weight={500} style={[styles.flex, styles.tabular]} numberOfLines={1}>
+        <Text variant="body" weight={500} style={[styles.flex, styles.tabular]} numberOfLines={2}>
           {current ?? '—'}
         </Text>
         <Icon name="chevronDown" size={18} color={colors.textSecondary} />
@@ -207,7 +207,10 @@ const styles = StyleSheet.create({
   wrap: { gap: space.xxs, flexShrink: 1 },
   flex: { flex: 1 },
   tabular: { fontVariant: ['tabular-nums'] },
+  // Two lines allowed (French "Toute la journée" in a half-width field); flexGrow keeps side-by-side fields equal.
   trigger: {
+    flexGrow: 1,
+    paddingVertical: space.xs,
     minHeight: sizes.buttonLarge - 4,
     borderWidth: 2,
     borderRadius: radii.input,

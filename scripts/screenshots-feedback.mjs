@@ -98,17 +98,15 @@ async function touchScroll(page, dy, y = 640) {
 }
 
 async function shots() {
-  // Splashes (held on screen with the dev-only flag).
-  for (const [time, file] of [
-    [DAY, 'splash-day'],
-    [NIGHT, 'splash-night'],
-  ]) {
-    const { context, page } = await open({ name: file, time });
+  // Splash (held on screen with the dev-only flag). One design since the phase 4 feedback (charcoal, the same by
+  // day and by night), so one shot; the old splash-day / splash-night pair was two identical images.
+  {
+    const { context, page } = await open({ name: 'splash' });
     await page.goto(`${BASE}/${demo}&holdSplash=1`);
     await page.getByTestId('app-splash').waitFor({ timeout: 90000 });
     await page.evaluate(() => document.fonts.ready);
     await page.waitForTimeout(1200);
-    await shot(page, file);
+    await shot(page, 'splash');
     await context.close();
   }
 

@@ -19,11 +19,12 @@ step 0). Usage before step 0: 5-hour 9%, weekly all-models 94%, weekly Fable 2%.
   - [x] 4c: settings (week start, capacity, categories, failed-sync list); empty, error and loading states;
     accessibility. Done 2026-11-11. Model: mixed models per vizam-model-efficiency (Opus architecture/security,
     Sonnet routine UI, Haiku mechanical). Skipped on purpose: "Tomorrow / Pick date" swipe actions and haptics.
-- [ ] **Phase 5: QA and security**, 400-600k tokens, ~25-35%. Full verification, access-control tests, rules, input
+- [x] **Phase 5: QA and security**, 400-600k tokens, ~25-35%. Full verification, access-control tests, rules, input
   limits, sign-out wipe, guest migration, screens compared with `DESIGN.md`.
   - [x] 5a: security and data QA (rules, input limits, sign-out wipe, guest migration, sync robustness, audit,
-    secrets). Done 2026-11-11, see `docs/SECURITY_REVIEW.md`. Rules changed: redeploy needed.
-  - [ ] 5b: full verification and screens compared with `DESIGN.md`.
+    secrets). Done 2026-11-11, see `docs/SECURITY_REVIEW.md`. Rules changed; redeployed 2026-11-11.
+  - [x] 5b: UI QA and verification (screens vs `DESIGN.md` at 390 / 1440, light / dark, EN / FR; layout sweep; i18n
+    completeness; flaky-test hunt). Done 2026-11-11, results in `docs/QA_REPORT.md`, branch `feat/phase-5b-qa`.
 - [ ] **Phase 6: delivery**, 300-500k tokens, ~20-30%. README, refreshed docs, security summary, known limitations,
   EAS preview-build instructions, portfolio summary and screenshots.
 - [ ] Checking between rounds (tsc, jest, screenshots), 200-300k tokens, ~12-18%.

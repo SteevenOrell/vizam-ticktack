@@ -72,7 +72,7 @@ export function GoalCard({ goal, onPress }: { goal: GoalSummary; onPress: () => 
         accessibilityLabel={t('goals.progressLabel', { title: goal.title, percent: pct })}
       />
       <Text variant="caption" color={colors.textSecondary}>
-        {t('goals.doneOfTotal', { done: goal.progress.done, total: goal.progress.total })}
+        {t('goals.doneOfTotal', { done: goal.progress.done, total: goal.progress.total, count: goal.progress.total })}
       </Text>
     </Pressable>
   );
