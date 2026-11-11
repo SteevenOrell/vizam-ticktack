@@ -6,6 +6,7 @@ import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { deleteGoal, getGoalDetail, GoalNeedsTaskError, linkTasks, setGoalDone, unlinkTask } from '../../data/goals';
+import { setMilestoneDone } from '../../data/milestones';
 import { useQuery } from '../../data/useQuery';
 import { localDateOf } from '../../domain/localDate';
 import type { GoalReminders } from '../../domain/models';
@@ -207,6 +208,75 @@ export function GoalDetailScreen({ goalId, now = new Date() }: { goalId: string;
                     </Text>
                   ) : null}
 
+                  <View style={styles.section} testID="goal-milestones">
+                    <View style={styles.milestoneHead}>
+                      <Text variant="label" color={colors.textSecondary} accessibilityRole="header" style={styles.flex}>
+                        {t('goals.milestonesTitle')}
+                      </Text>
+                      {detail.milestones.length ? (
+                        <Text variant="caption" color={colors.textSecondary} testID="goal-milestone-count">
+                          {t('goals.milestonesCount', {
+                            done: detail.milestoneProgress.done,
+                            total: detail.milestoneProgress.total,
+                          })}
+                        </Text>
+                      ) : null}
+                    </View>
+                    {detail.milestones.length === 0 ? (
+                      <Text variant="bodySm" color={colors.textSecondary} testID="goal-milestones-empty">
+                        {t('goals.milestonesEmpty')}
+                      </Text>
+                    ) : (
+                      detail.milestones.map((m) => {
+                        const done = m.completedAt !== null;
+                        return (
+                          <Pressable
+                            key={m.id}
+                            onPress={() => {
+                              if (!ctx) return;
+                              setNotice(null);
+                              void setMilestoneDone(ctx, m.id, !done).then(state.reload, fail);
+                            }}
+                            accessibilityRole="checkbox"
+                            accessibilityState={{ checked: done }}
+                            accessibilityLabel={t(done ? 'goals.milestoneUndone' : 'goals.milestoneDone', {
+                              title: m.title,
+                            })}
+                            style={[styles.milestoneRow, { backgroundColor: colors.surface }]}
+                            testID={`milestone-check-${m.id}`}
+                          >
+                            <View
+                              style={[
+                                styles.box,
+                                {
+                                  borderColor: done ? colors.success : colors.border,
+                                  backgroundColor: done ? colors.success : 'transparent',
+                                },
+                              ]}
+                            >
+                              {done ? <Icon name="check" size={16} color={colors.bg} /> : null}
+                            </View>
+                            <View style={styles.flex}>
+                              <Text
+                                variant="body"
+                                weight={500}
+                                color={done ? colors.textSecondary : colors.text}
+                                style={done ? styles.struck : undefined}
+                              >
+                                {m.title}
+                              </Text>
+                              {m.dueDate ? (
+                                <Text variant="caption" color={colors.textSecondary}>
+                                  {shortDate(noonOf(m.dueDate), lang)}
+                                </Text>
+                              ) : null}
+                            </View>
+                          </Pressable>
+                        );
+                      })
+                    )}
+                  </View>
+
                   <View style={styles.section}>
                     <Text variant="label" color={colors.textSecondary} accessibilityRole="header">
                       {t('goals.tasksCount', { count: detail.linkedIds.length })}
@@ -403,6 +473,17 @@ const styles = StyleSheet.create({
   pct: { fontFamily: fontFamilies.displayMedium, fontSize: 40, lineHeight: 44, fontVariant: ['tabular-nums'] },
   pctSign: { fontFamily: fontFamilies.displayMedium, fontSize: 20, lineHeight: 24 },
   section: { gap: space.xs },
+  milestoneHead: { flexDirection: 'row', alignItems: 'center', gap: space.xs },
+  milestoneRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.sm,
+    borderRadius: radii.input,
+    paddingHorizontal: space.sm,
+    minHeight: sizes.touch,
+  },
+  box: { width: 24, height: 24, borderRadius: 7, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
+  struck: { textDecorationLine: 'line-through' },
   taskRow: { flexDirection: 'row', alignItems: 'center', gap: 2 },
   remCard: { flexDirection: 'row', alignItems: 'flex-start', gap: space.sm },
   historyRow: { flexDirection: 'row', alignItems: 'center', gap: space.sm },

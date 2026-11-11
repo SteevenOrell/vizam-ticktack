@@ -36,10 +36,13 @@ import { useTheme } from '../../ui/theme/ThemeProvider';
 import { useDataContext } from '../session/SessionProvider';
 import { DurationSelect, TimeSelect } from '../tasks/fields';
 import { periodLabel, rangeLabel } from './goalFormat';
+import { MilestonesEditor } from './MilestonesEditor';
 import { RemindersEditor } from './RemindersEditor';
 import { TaskPickerSheet } from './TaskPickerSheet';
 
-type Errors = Partial<Record<'title' | 'description' | 'dueDate' | 'startDate' | 'tasks' | 'newTask' | 'form', string>>;
+type Errors = Partial<
+  Record<'title' | 'description' | 'dueDate' | 'startDate' | 'tasks' | 'newTask' | 'milestones' | 'form', string>
+>;
 
 const COLORS = categoryColorSchema.options;
 
@@ -54,6 +57,7 @@ export function emptyGoalDraft(today: LocalDate): GoalDraft {
     reminders: DEFAULT_GOAL_REMINDERS,
     linkTaskIds: [],
     newTasks: [],
+    milestones: [],
   };
 }
 
@@ -74,13 +78,20 @@ function errorsFrom(error: ZodError, t: (k: string) => string): Errors {
   for (const issue of error.issues) {
     const field = String(issue.path[0] ?? 'form');
     const key: keyof Errors =
-      field === 'title' || field === 'description' || field === 'dueDate' || field === 'startDate' || field === 'tasks'
+      field === 'title' ||
+      field === 'description' ||
+      field === 'dueDate' ||
+      field === 'startDate' ||
+      field === 'tasks' ||
+      field === 'milestones'
         ? field
         : field === 'newTasks'
           ? 'newTask'
           : 'form';
     if (out[key]) continue;
     const known = [
+      'milestoneTitleRequired',
+      'milestoneTitleTooLong',
       'titleRequired',
       'titleTooLong',
       'descriptionTooLong',
@@ -499,6 +510,16 @@ export function GoalEditorScreen({ goalId, now = new Date() }: { goalId?: string
               disabled={!newTask.title.trim() || draft.newTasks.length >= 30}
             />
           </RevealTarget>
+        </Section>
+
+        <Section title={t('goals.milestonesTitle')} testID="goal-milestones-section">
+          <MilestonesEditor
+            value={draft.milestones ?? []}
+            onChange={(milestones) => update({ milestones })}
+            today={today}
+            lang={lang}
+            error={errors.milestones}
+          />
         </Section>
 
         <Section title={t('reminders.title')}>
