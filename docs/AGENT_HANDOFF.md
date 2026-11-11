@@ -1,6 +1,6 @@
 # Agent handoff — TickTack (VIZAM portfolio concept)
 
-_Last updated: 2026-11-11 (local time) by vizam-fullstack-developer (Sonnet), phase 5b_
+_Last updated: 2026-11-11 (local time) by vizam-fullstack-developer, phase 6_
 
 ## Objective
 Offline-first mobile planner (Today, calendar, recurring tasks, reminders, routines, goals) built with Expo, SQLite as
@@ -27,6 +27,17 @@ local source of truth and Firebase (Auth + Firestore) for sync. Portfolio concep
   `.claude\worktrees\agent-a0945abd2988561f4`, commits on its branch `worktree-agent-a0945abd2988561f4`
   (`git log --oneline 5f656be..`); the orchestrating session moves them onto `feat/phase-4a-task-views`. Not pushed.
 - `docs/PROJECT_PLAN.md` is the approved remaining plan (step 0 and 4a ticked).
+
+## Phase 6: delivery (2026-11-11) — done
+Branch `feat/phase-6-delivery` from `a0c4d6b` (phases 4c, 5a, 5b merged), worktree `.claude\worktrees\phase-6`. Not
+pushed, not merged. Documentation only; no code, rules or EAS command touched or run.
+- **New:** `README.md` (features, stack, architecture, setup with env var names, Expo Go and dev build commands, tests,
+  rules deploy, structure, doc links), `docs/SECURITY_SUMMARY.md`, `docs/KNOWN_LIMITATIONS.md`, `docs/RELEASE.md` (EAS
+  preview, APK install, merged phone checklist, Play Store steps), `docs/PORTFOLIO.md` (case study, numbers, screenshots).
+- **Numbers used:** jest 701 tests / 40 suites and rules 71 tests come from the phase 6 brief (not rerun here).
+- **Left for Steeven:** (1) phone checks in the dev build (`docs/RELEASE.md` section 2); (2) console hardening: deploy
+  the Firestore rules, App Check, API key restriction, budget alert, email enumeration protection
+  (`docs/SECURITY_SUMMARY.md`); (3) review and merge the branches into main.
 
 ## Phase 5b: UI QA and verification (2026-11-11) — done
 Branch `feat/phase-5b-qa` from `1d52b91`, worktree `.claude\worktrees\phase-5b`. Not pushed. Phase 5a (rules, limits,

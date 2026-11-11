@@ -25,8 +25,10 @@ step 0). Usage before step 0: 5-hour 9%, weekly all-models 94%, weekly Fable 2%.
     secrets). Done 2026-11-11, see `docs/SECURITY_REVIEW.md`. Rules changed; redeployed 2026-11-11.
   - [x] 5b: UI QA and verification (screens vs `DESIGN.md` at 390 / 1440, light / dark, EN / FR; layout sweep; i18n
     completeness; flaky-test hunt). Done 2026-11-11, results in `docs/QA_REPORT.md`, branch `feat/phase-5b-qa`.
-- [ ] **Phase 6: delivery**, 300-500k tokens, ~20-30%. README, refreshed docs, security summary, known limitations,
-  EAS preview-build instructions, portfolio summary and screenshots.
+- [x] **Phase 6: delivery**, 300-500k tokens, ~20-30%. README, refreshed docs, security summary, known limitations,
+  EAS preview-build instructions, portfolio summary and screenshots. Done 2026-11-11 on `feat/phase-6-delivery`
+  (`README.md`, `docs/SECURITY_SUMMARY.md`, `KNOWN_LIMITATIONS.md`, `RELEASE.md`, `PORTFOLIO.md`). Left for Steeven:
+  phone checks in the dev build, console hardening, merging to main.
 - [ ] Checking between rounds (tsc, jest, screenshots), 200-300k tokens, ~12-18%.
 
 Total: about 1.7-2.6M tokens, ~100-160% of one weekly Fable window, so two windows. Suggested split: step 0 and
