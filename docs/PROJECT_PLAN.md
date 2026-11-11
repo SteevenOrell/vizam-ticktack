@@ -21,6 +21,9 @@ step 0). Usage before step 0: 5-hour 9%, weekly all-models 94%, weekly Fable 2%.
     Sonnet routine UI, Haiku mechanical). Skipped on purpose: "Tomorrow / Pick date" swipe actions and haptics.
 - [ ] **Phase 5: QA and security**, 400-600k tokens, ~25-35%. Full verification, access-control tests, rules, input
   limits, sign-out wipe, guest migration, screens compared with `DESIGN.md`.
+  - [x] 5b: UI QA and verification (screens vs `DESIGN.md` at 390 / 1440, light / dark, EN / FR; layout sweep; i18n
+    completeness; flaky-test hunt). Done 2026-11-11, results in `docs/QA_REPORT.md`, branch `feat/phase-5b-qa`.
+  - [ ] 5a: rules, input limits, sign-out wipe, guest migration, sync robustness (parallel agent, own branch).
 - [ ] **Phase 6: delivery**, 300-500k tokens, ~20-30%. README, refreshed docs, security summary, known limitations,
   EAS preview-build instructions, portfolio summary and screenshots.
 - [ ] Checking between rounds (tsc, jest, screenshots), 200-300k tokens, ~12-18%.
