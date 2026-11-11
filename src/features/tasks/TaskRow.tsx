@@ -306,10 +306,11 @@ const styles = StyleSheet.create({
   body: { flex: 1, minWidth: 0 },
   main: { minHeight: sizes.touch, justifyContent: 'center', gap: 2, paddingTop: 2 },
   done: { textDecorationLine: 'line-through' },
-  // One line: the text parts truncate, the dot and icons keep their size.
-  metaRow: { flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'nowrap', minWidth: 0 },
-  metaText: { fontVariant: ['tabular-nums'], flexShrink: 1, minWidth: 0 },
-  goal: { flexDirection: 'row', alignItems: 'center', gap: 3, flexShrink: 2, minWidth: 0 },
+  // Wraps to a second line (French and long category / goal names) instead of cutting names to two letters; a part
+  // that is longer than the whole line still truncates. The dot and icons keep their size.
+  metaRow: { flexDirection: 'row', alignItems: 'center', columnGap: 6, rowGap: 2, flexWrap: 'wrap', minWidth: 0 },
+  metaText: { fontVariant: ['tabular-nums'], flexShrink: 1, minWidth: 0, maxWidth: '100%' },
+  goal: { flexDirection: 'row', alignItems: 'center', gap: 3, flexShrink: 1, minWidth: 0, maxWidth: '100%' },
   shrink: { flexShrink: 1 },
   preview: { gap: 3, paddingTop: space.xxs, paddingBottom: space.xxs, minHeight: 32, justifyContent: 'center' },
   subLine: { flexDirection: 'row', alignItems: 'center', gap: 6 },

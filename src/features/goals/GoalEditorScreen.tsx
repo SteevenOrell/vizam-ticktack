@@ -608,7 +608,7 @@ const styles = StyleSheet.create({
   },
   iconButton: { width: sizes.touch, height: sizes.touch, alignItems: 'center', justifyContent: 'center' },
   newTask: { borderWidth: StyleSheet.hairlineWidth, borderRadius: radii.card, padding: space.sm, gap: space.sm },
-  timeRow: { flexDirection: 'row', alignItems: 'flex-start', gap: space.sm, flexWrap: 'wrap' },
+  timeRow: { flexDirection: 'row', alignItems: 'stretch', gap: space.sm, flexWrap: 'wrap' },
   timeCell: { flex: 1, minWidth: 140 },
   footer: {
     ...columnStyle,

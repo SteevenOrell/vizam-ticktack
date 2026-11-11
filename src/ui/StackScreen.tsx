@@ -79,7 +79,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: space.xs,
-    paddingHorizontal: space.sm,
+    paddingLeft: space.sm,
+    // The action lines up with the 20 px screen padding of the content (the back button is a centred 44 px target).
+    paddingRight: space.lg,
     paddingBottom: space.xs,
   },
   back: {
