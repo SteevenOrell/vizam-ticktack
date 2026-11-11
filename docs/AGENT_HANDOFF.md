@@ -28,6 +28,39 @@ local source of truth and Firebase (Auth + Firestore) for sync. Portfolio concep
   (`git log --oneline 5f656be..`); the orchestrating session moves them onto `feat/phase-4a-task-views`. Not pushed.
 - `docs/PROJECT_PLAN.md` is the approved remaining plan (step 0 and 4a ticked).
 
+## Phase 5a: security and data QA (2026-11-11) — done
+Branch `feat/phase-5a-security` from `12950a3`, worktree `.claude\worktrees\phase-5a` (Opus). Commits:
+`05dfd55` rules + models, `8a6a089` sync, `34d7b6c` account flows, then docs. Not pushed. Full write-up with
+finding / severity / fix / test: `docs/SECURITY_REVIEW.md`. Ran in parallel with 4c (UI, Settings untouched; the
+only shared file is `src/features/session/SessionProvider.tsx`, two small additions).
+- **Rules changed: Steeven must redeploy `firebase/firestore.rules`.** Timestamps (`createdAt`, `clientUpdatedAt`,
+  `completedAt`, `achievedAt`, `onboardingCompletedAt`) must be ISO date-times (`isIso`). App data already complies.
+- Models (`src/domain/models/index.ts`): `ISO_DATETIME_RE`; goal cross-field checks (`superRefine`, same as the
+  rules); category names single-line. `limits.test.ts` pins every limit against the rules.
+- Sync (`src/sync/engine.ts`): rows failing their schema are marked `failed` with `last_error = 'invalid-local'`
+  and no longer abort the run; non-network errors give up after `MAX_RETRY_ATTEMPTS` (10); network codes
+  (`NETWORK_CODES`) retry forever; entries scheduled by a clock that moved back are due now; the profile is held back
+  until the first pull on the device (`sync_state.pulled_once`) and a never-synced local profile loses to the cloud
+  one (fixes the account profile being overwritten by device defaults on sign-in); after that first pull
+  `src/data/mergeCategories.ts` merges same-name categories (guest starters vs the account's).
+- **For 4c's failed-sync list:** shape unchanged (`outbox.state = 'failed'`, `last_error` = Firestore code), one new
+  `last_error` value `'invalid-local'` (local row damaged, never sent; retry cannot help, discard or edit).
+- Account (`src/services/accountFlows.ts`): `FlowDeps.clearDevice` (wired to `cancelAllReminders` in
+  `useFlowDeps`) cancels every `tt_` OS notification after the wipe on sign-out and account deletion; the sync status
+  store is reset; `clearSignedOutDevice` wipes a database still bound to an account when Auth reports no user
+  (called by `SessionProvider`; guest data is never bound, so kept).
+- Open (console, Steeven): App Check, API key restrictions, budget alert, email enumeration protection.
+- npm audit `--omit=dev`: 0 high / 0 critical, 21 moderate + 1 low, all tooling (glob, minimatch, deepmerge via Expo
+  CLI and Jest); fixes are major downgrades, none applied. Secrets: none tracked, none in history, `.env` ignored.
+
+| Check | Command | Result |
+|---|---|---|
+| Typecheck | `npx tsc --noEmit` | pass (exit 0) |
+| Lint | `npx expo lint` | pass (exit 0) |
+| Format | `npx prettier --check --end-of-line auto <changed files>` | pass |
+| Tests | `npx jest` | pass, 36 suites, 629 tests (574 before; +55) |
+| Rules + sync | `npm run test:rules` (`JAVA_TOOL_OPTIONS=-Djdk.net.unixdomain.tmpdir=C:\t`) | pass, 2 suites, 71 tests (64 before; +7). Flaky under load: the first sync test (`uploads from one device...`) timed out / pushed 0 in 3 runs while other agents were using the machine; the same suite passed alone and the final full run passed |
+
 ## New logo and splash (2026-11-11, on top of `86f6514`)
 Concept A "dart in the bullseye" (see `docs/DESIGN.md` section 1 and Splash). Source `assets/brand/logo-target.svg`;
 `npm run render:brand` renders `icon`, `android-icon-foreground`, `android-icon-monochrome`, `favicon`, `splash-icon`
@@ -527,7 +560,9 @@ Phase 4a — `docs/screenshots/phase-4a/` (`node scripts/screenshots-4a.mjs [--o
 1. In the Firebase console: confirm **Authentication → Email/Password** is enabled and **Firestore** (native mode,
    suggested `northamerica-northeast1`) is created.
 2. Review and deploy the rules and indexes to the real project (not done by the agent). **The goals round changed
-   `firestore.rules` (goal fields): signed-in sync of goals fails against the real project until it is redeployed.**
+   `firestore.rules` (goal fields): signed-in sync of goals fails against the real project until it is redeployed.
+   Phase 5a changed it again (ISO timestamps): deploy the 5a version.** Also from 5a: App Check, API key
+   restrictions, a budget alert and email enumeration protection (`docs/SECURITY_REVIEW.md` finding 11).
    `npx --yes firebase-tools@15.35.0 login` then
    `npx --yes firebase-tools@15.35.0 deploy --only firestore:rules,firestore:indexes --config firebase/firebase.json --project <your project id>`.
 3. Expo account: **done**. **EAS dev build: needs his go-ahead** (`eas.json` development profile is ready; no build

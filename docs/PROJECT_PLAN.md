@@ -20,6 +20,9 @@ step 0). Usage before step 0: 5-hour 9%, weekly all-models 94%, weekly Fable 2%.
     accessibility.
 - [ ] **Phase 5: QA and security**, 400-600k tokens, ~25-35%. Full verification, access-control tests, rules, input
   limits, sign-out wipe, guest migration, screens compared with `DESIGN.md`.
+  - [x] 5a: security and data QA (rules, input limits, sign-out wipe, guest migration, sync robustness, audit,
+    secrets). Done 2026-11-11, see `docs/SECURITY_REVIEW.md`. Rules changed: redeploy needed.
+  - [ ] 5b: full verification and screens compared with `DESIGN.md`.
 - [ ] **Phase 6: delivery**, 300-500k tokens, ~20-30%. README, refreshed docs, security summary, known limitations,
   EAS preview-build instructions, portfolio summary and screenshots.
 - [ ] Checking between rounds (tsc, jest, screenshots), 200-300k tokens, ~12-18%.
