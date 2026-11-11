@@ -19,7 +19,7 @@ import {
   type RoutineStepDraft,
 } from '../../data/routines';
 import { localDateOf } from '../../domain/localDate';
-import { defaultWeekStartsOn } from '../../i18n/dates';
+import { useWeekStartsOn } from '../settings/usePlanning';
 import { Button } from '../../ui/Button';
 import { columnStyle } from '../../ui/Centered';
 import { ConfirmDialog } from '../../ui/ConfirmDialog';
@@ -108,14 +108,13 @@ const prevMinutes = (v: number | null) => (v === null || v <= 1 ? null : v <= 10
 
 /** Create or edit a routine: name, part of day, start time, ordered steps with durations, repeat and reminder. */
 export function RoutineEditorScreen({ routineId, now = new Date() }: { routineId?: string; now?: Date }) {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const { colors } = useTheme();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const ctx = useDataContext();
-  const lang = i18n.language;
   const today = localDateOf(now);
-  const weekStartsOn = defaultWeekStartsOn(lang);
+  const weekStartsOn = useWeekStartsOn();
 
   const [draft, setDraft] = useState<RoutineDraft | null>(routineId ? null : emptyRoutineDraft(weekStartsOn));
   const [missing, setMissing] = useState(false);
@@ -158,7 +157,7 @@ export function RoutineEditorScreen({ routineId, now = new Date() }: { routineId
   if (missing || !draft) {
     return (
       <View style={[styles.root, { backgroundColor: colors.bg, paddingTop: insets.top + space.lg }]}>
-        <ErrorState onRetry={close} message={t('routines.notFound')} />
+        <ErrorState onRetry={close} message={t('routines.notFound')} actionLabel={t('modal.close')} />
       </View>
     );
   }

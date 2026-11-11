@@ -6,7 +6,8 @@ import { Calendar } from 'react-native-calendars';
 import { getAgenda, loadByDay, type AgendaItem } from '../../data/queries/agenda';
 import { useQuery } from '../../data/useQuery';
 import { localDateOf, type LocalDate } from '../../domain/localDate';
-import { defaultWeekStartsOn, monthTitle, shortDate } from '../../i18n/dates';
+import { monthTitle, shortDate } from '../../i18n/dates';
+import { useWeekStartsOn } from '../settings/usePlanning';
 import { noonOf } from '../../lib/dates';
 import { Card } from '../../ui/Card';
 import { useWide } from '../../ui/Centered';
@@ -61,7 +62,7 @@ export function CalendarScreen({
   const ctx = useDataContext();
   const lang = i18n.language;
   const today = localDateOf(now);
-  const weekStartsOn = defaultWeekStartsOn(lang);
+  const weekStartsOn = useWeekStartsOn();
   const [view, setView] = useState<CalendarView>(initialView);
   const [selected, setSelected] = useState<LocalDate>(today);
   const ownerId = ctx?.ownerId ?? 'local';

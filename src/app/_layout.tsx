@@ -100,6 +100,8 @@ function AppShell() {
         <Stack.Screen name="task/details/[id]" />
         <Stack.Screen name="overdue" />
         <Stack.Screen name="history" />
+        <Stack.Screen name="settings/categories" />
+        <Stack.Screen name="settings/sync" />
         <Stack.Screen name="goal/new" options={{ presentation: 'modal' }} />
         <Stack.Screen name="goal/[id]" />
         <Stack.Screen name="goal/edit/[id]" options={{ presentation: 'modal' }} />

@@ -33,7 +33,7 @@ export const radii = {
 export const sizes = {
   touch: 44,
   buttonLarge: 56,
-  buttonCompact: 40,
+  buttonCompact: 44,
   roundAction: 56,
   deckOverlap: 24,
 } as const;

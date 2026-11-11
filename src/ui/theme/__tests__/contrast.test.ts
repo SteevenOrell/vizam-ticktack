@@ -1,4 +1,13 @@
-import { charcoal, darkPalette, headerThemes, lightPalette, white, type ColorScheme, type Period } from '../colors';
+import {
+  categoryColors,
+  charcoal,
+  darkPalette,
+  headerThemes,
+  lightPalette,
+  white,
+  type ColorScheme,
+  type Period,
+} from '../colors';
 import { composite, contrastRatio, gradientSamples, mix } from '../contrast';
 
 const AA = 4.5;
@@ -60,10 +69,22 @@ describe('palette pairs used by the UI', () => {
     ['light danger/surface', light.danger, light.surface, AA],
     ['light success/surface', light.success, light.surface, AA],
     ['light focus/surface', light.focus, light.surface, NON_TEXT],
+    // Phase 4c: settings, failed-sync errors and empty/error states sit on the page background too.
+    ['dark focus/bg', dark.focus, dark.bg, NON_TEXT],
+    ['light danger/bg', light.danger, light.bg, AA],
+    ['light textTertiary/bg', light.textTertiary, light.bg, AA],
+    ['light textTertiary/surface', light.textTertiary, light.surface, AA],
+    ['light focus/bg', light.focus, light.bg, NON_TEXT],
   ];
 
   it.each(pairs)('%s passes', (_name, fg, bg, min) => {
     expect(contrastRatio(fg, bg)).toBeGreaterThanOrEqual(min);
+  });
+});
+
+describe('category colour swatches (phase 4c)', () => {
+  it.each(Object.entries(categoryColors))('the check mark on %s is visible', (_name, color) => {
+    expect(contrastRatio('#17191B', color)).toBeGreaterThanOrEqual(NON_TEXT);
   });
 });
 

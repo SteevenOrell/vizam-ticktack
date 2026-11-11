@@ -19,7 +19,8 @@ import { useQuery } from '../../data/useQuery';
 import { defaultPeriodStart, GOAL_PERIODS, periodContaining, type GoalPeriod } from '../../domain/goals';
 import { addDays, addMonthsClamped, localDateOf, type LocalDate } from '../../domain/localDate';
 import { categoryColorSchema, DEFAULT_GOAL_REMINDERS, type CategoryColor } from '../../domain/models';
-import { defaultWeekStartsOn, shortDate } from '../../i18n/dates';
+import { shortDate } from '../../i18n/dates';
+import { useWeekStartsOn } from '../settings/usePlanning';
 import { formatClock, formatMinutes, noonOf } from '../../lib/dates';
 import { Button } from '../../ui/Button';
 import { columnStyle } from '../../ui/Centered';
@@ -154,7 +155,7 @@ export function GoalEditorScreen({ goalId, now = new Date() }: { goalId?: string
   const ctx = useDataContext();
   const lang = i18n.language;
   const today = localDateOf(now);
-  const weekStartsOn = defaultWeekStartsOn(lang);
+  const weekStartsOn = useWeekStartsOn();
 
   const [draft, setDraft] = useState<GoalDraft | null>(goalId ? null : emptyGoalDraft(today));
   const [missing, setMissing] = useState(false);
@@ -205,7 +206,7 @@ export function GoalEditorScreen({ goalId, now = new Date() }: { goalId?: string
   if (missing || !draft) {
     return (
       <View style={[styles.root, { backgroundColor: colors.bg, paddingTop: insets.top + space.lg }]}>
-        <ErrorState onRetry={close} message={t('goals.notFound')} />
+        <ErrorState onRetry={close} message={t('goals.notFound')} actionLabel={t('modal.close')} />
       </View>
     );
   }

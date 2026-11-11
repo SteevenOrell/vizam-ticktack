@@ -151,12 +151,12 @@ export function TaskRow({
           <Pressable
             {...focusHandlers}
             style={styles.main}
-            onPress={isRoutine ? undefined : () => actions.open(item)}
+            onPress={() => actions.open(item)}
             onLongPress={() => actions.menu(item)}
             delayLongPress={350}
-            accessibilityRole={isRoutine ? undefined : 'button'}
+            accessibilityRole="button"
             accessibilityLabel={label}
-            accessibilityHint={isRoutine ? undefined : t('tasks.openHint')}
+            accessibilityHint={t(isRoutine ? 'tasks.openRoutineHint' : 'tasks.openHint')}
             accessibilityActions={
               isRoutine
                 ? undefined

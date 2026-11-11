@@ -1,6 +1,6 @@
 # Agent handoff — TickTack (VIZAM portfolio concept)
 
-_Last updated: 2026-11-10 (local time) by vizam-fullstack-developer (Opus), phase 4b native and security round_
+_Last updated: 2026-11-11 (local time) by vizam-fullstack-developer (Sonnet), phase 4c_
 
 ## Objective
 Offline-first mobile planner (Today, calendar, recurring tasks, reminders, routines, goals) built with Expo, SQLite as
@@ -27,6 +27,65 @@ local source of truth and Firebase (Auth + Firestore) for sync. Portfolio concep
   `.claude\worktrees\agent-a0945abd2988561f4`, commits on its branch `worktree-agent-a0945abd2988561f4`
   (`git log --oneline 5f656be..`); the orchestrating session moves them onto `feat/phase-4a-task-views`. Not pushed.
 - `docs/PROJECT_PLAN.md` is the approved remaining plan (step 0 and 4a ticked).
+
+## Phase 4c: settings, states, accessibility (2026-11-11) — done
+Branch `worktree-agent-a53e11d683f610f2a`, stacked on `e1101bc` (tip of `feat/phase-4-feedback`). Not pushed.
+- **Settings (Me tab):** week start (Monday / Sunday) and daily capacity (stepper, 30 min, 0-24 h) are saved in the
+  synced `profile` row (`weekStartsOn`, `dailyCapacityMin`; they follow the account). `usePlanning()` /
+  `useWeekStartsOn()` (`src/features/settings/usePlanning.ts`) replace the language default in the calendar, week
+  views, task / routine / goal editors and History; the language default (fr Monday, en Sunday) only applies until
+  the profile is read. Capacity was already read by the Today workload bar. Day start / end stay a read-only device
+  preference. Data layer: `src/data/settings.ts`.
+- **Categories:** pushed screen `/settings/categories` (`CategoriesScreen`): add, rename, recolour, delete.
+  Duplicate names (case-insensitive) and empty names are refused; delete asks where the tasks and routines go
+  (another category or "No category") and then tombstones the category (synced).
+- **Failed sync:** pushed screen `/settings/sync` (`FailedSyncScreen`), linked from Me > Account when `failed > 0`:
+  entity type, title, error text, Retry (one or all) and Discard (confirm). Discard drops the outbox entry and clears
+  the row's `dirty` flag; the item stays on the device and a newer server copy may replace it on the next pull.
+- **Reminders section in Me:** notification state, and on Android the exact-alarm note with "Ring on time" (explains,
+  then opens the system "Alarms & reminders" screen through the existing `requestExactAlarm`); denied notifications
+  get "Open settings".
+- **History:** `getHistory` now includes completed routine runs (a not-done routine run is never "missed").
+  Routine rows on Today now open the routine screen when tapped (they had no press action, so a screen reader could
+  not reach them).
+- **States:** the main screens already used `AsyncContent` / `EmptyState` / `ErrorState`; `tests/ui/states4c.test.tsx`
+  now proves loading, error-with-retry-that-recovers and empty for 8 screens. Editors whose item is gone show
+  "Close" instead of "Try again" (`ErrorState actionLabel`).
+- **Accessibility:** long-press menu has "Move 15 minutes earlier / later" for timed tasks (`nudgedTime` in
+  `src/domain/reschedule.ts`; the timeline's screen-reader actions use the same helper); compact buttons are now
+  44 px tall (was 40); contrast tests extended (more pairs on the page background, category swatch check marks);
+  `tests/ui/a11y4c.test.tsx` checks that every pressable on 8 screens has a role and a name.
+- **Demo seed:** its profile week start now follows the language (it was always Monday).
+- **Not done (by instruction):** "Tomorrow / Pick date" swipe actions, haptics. Day start / end editing.
+- **Screenshots:** `docs/screenshots/phase-4c/` (390 px, 2x, light-en, dark-en, light-fr: settings planning / changed /
+  reminders, categories, categories edit sheet, history empty, failed sync empty, history with a routine run).
+  Script `scripts/screenshots-4c.mjs`. The failed-sync list with items is covered by tests only (no way to create a
+  failed outbox row in the web demo).
+
+### Phase 4c checks (run here, 2026-11-11)
+| Check | Command | Result |
+|---|---|---|
+| Typecheck | `npx tsc --noEmit` | exit 0 |
+| Tests | `npx jest` | 37 suites, 644 tests passed |
+| Lint | `npx expo lint` | no output (clean) after fixing one error and one warning |
+| Format | `npx prettier --check --end-of-line auto src tests scripts` | clean |
+| Web screenshots | `node scripts/screenshots-4c.mjs` | 24 images, 0 px horizontal overflow, no console errors printed |
+New tests: `src/data/__tests__/settings.test.ts` (12), `tests/ui/phase4c.test.tsx` (9), `tests/ui/states4c.test.tsx`
+(24), `tests/ui/a11y4c.test.tsx` (9), `nudgedTime` (2), history routine (1), contrast (+13).
+Known gap: `.expo/types/router.d.ts` is not generated in this worktree, so `router.push('/settings/...')` is not
+route-type checked here; regenerate with `CI=1 timeout 90 npx expo start --port 8097` and rerun `npx tsc --noEmit`.
+
+### Check on the phone (Expo Go, Steeven)
+1. Me > Planning: switch week start to Monday: Calendar week / month start on Monday; New task > Repeat weekly lists
+   weekdays from Monday; a new weekly goal's period starts Monday. Change capacity: Today's workload bar changes.
+2. Me > Categories: add, rename, recolour (check Today rows and Calendar blocks update), delete one that has tasks
+   (move to another / none) and confirm the tasks changed.
+3. Me > Reminders on Android: with exact alarms off, "Ring on time" explains and opens Alarms & reminders.
+4. Complete a routine (Today tick or the runner): History lists it under today.
+5. Long-press a timed task: "Move 15 minutes earlier / later" works; with TalkBack / VoiceOver on, the timeline block
+   offers move earlier / later / Quick edit in the actions menu.
+6. Failed-sync list: only testable with a failing write (needs the real project with old rules); otherwise Me shows
+   no "Review failed changes" button.
 
 ## New logo and splash (2026-11-11, on top of `86f6514`)
 Concept A "dart in the bullseye" (see `docs/DESIGN.md` section 1 and Splash). Source `assets/brand/logo-target.svg`;
@@ -509,15 +568,14 @@ Phase 4a — `docs/screenshots/phase-4a/` (`node scripts/screenshots-4a.mjs [--o
 0. Done: goal repeats must end (see "Step 0" above).
 1. Done: phase 4a (see "Phase 4a" above).
 2. Done: phase 4b (see "Phase 4b" above), apart from the on-phone check in a dev build.
-3. Phase 4c per `docs/PROJECT_PLAN.md` and `docs/MILESTONES.md`: settings (week start, capacity, categories,
-   failed-sync list), empty / error / loading states, accessibility pass. Carry-overs: routine runs in History
-   (`getHistory`), "Tomorrow / Pick date" swipe actions, a haptic tick when a drag starts, the exact-alarm note in
-   the goal reminders editor.
+3. Done: phase 4c (see "Phase 4c" above). Still open from it: "Tomorrow / Pick date" swipe actions, a haptic tick when
+   a drag starts, editing the day start / end, on-phone check of the 4c checklist.
 4. Phases 5–6.
 
 ## Next step
-1. **Phase 4c**, on the 4b tip (`feat/phase-4b-routines-reminders` once the six commits of this round are moved
-   there). Start with settings (week start, capacity, categories, failed-sync list).
+1. **Phase 5 (QA and security)** on top of this branch: full verification, access-control tests, rules, input
+   limits, sign-out wipe, guest migration, screens compared with `docs/DESIGN.md`. Include the Firestore rules for
+   the profile fields now edited in Settings (`weekStartsOn`, `dailyCapacityMin`) and category deletes.
 2. Only after Steeven approves EAS: `npx eas-cli@latest build --profile development --platform android` (set the
    `EXPO_PUBLIC_FIREBASE_*` EAS environment variables first), install the APK, run the "Verify on the phone"
    checklist in the Phase 4b section.

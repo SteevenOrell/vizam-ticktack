@@ -61,7 +61,7 @@ export function EmptyState({
   icon: IconName;
   title: string;
   body: string;
-  action?: { label: string; onPress: () => void };
+  action?: { label: string; onPress: () => void; icon?: IconName };
 }) {
   const { colors } = useTheme();
   return (
@@ -75,12 +75,21 @@ export function EmptyState({
       <Text variant="body" color={colors.textSecondary} align="center" style={styles.body}>
         {body}
       </Text>
-      {action ? <Button label={action.label} onPress={action.onPress} icon="plus" /> : null}
+      {action ? <Button label={action.label} onPress={action.onPress} icon={action.icon ?? 'plus'} /> : null}
     </View>
   );
 }
 
-export function ErrorState({ onRetry, message }: { onRetry: () => void; message?: string }) {
+/** `actionLabel` replaces "Try again" when the way out is not a retry (an editor whose item is gone offers "Close"). */
+export function ErrorState({
+  onRetry,
+  message,
+  actionLabel,
+}: {
+  onRetry: () => void;
+  message?: string;
+  actionLabel?: string;
+}) {
   const { colors } = useTheme();
   const { t } = useTranslation();
   return (
@@ -94,7 +103,13 @@ export function ErrorState({ onRetry, message }: { onRetry: () => void; message?
       <Text variant="body" color={colors.textSecondary} align="center" style={styles.body}>
         {message ?? t('states.errorBody')}
       </Text>
-      <Button label={t('states.retry')} variant="secondary" icon="refresh" onPress={onRetry} />
+      <Button
+        label={actionLabel ?? t('states.retry')}
+        variant="secondary"
+        icon={actionLabel ? undefined : 'refresh'}
+        onPress={onRetry}
+        testID="state-error-action"
+      />
     </View>
   );
 }

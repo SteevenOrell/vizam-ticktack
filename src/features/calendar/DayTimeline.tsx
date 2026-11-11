@@ -4,7 +4,7 @@ import { PanResponder, Platform, Pressable, StyleSheet, View, type GestureRespon
 
 import type { AgendaItem } from '../../data/queries/agenda';
 import { minutesOf, type LocalDate } from '../../domain/localDate';
-import { dragStartMinutes, draggedTime, DRAG_STEP_MIN } from '../../domain/reschedule';
+import { dragStartMinutes, draggedTime, nudgedTime, NUDGE_MIN } from '../../domain/reschedule';
 import { layoutTimeline, timelineY } from '../../domain/timeline';
 import { hhmmOf } from '../../domain/timeOptions';
 import { dayLabel } from '../../i18n/dates';
@@ -21,9 +21,6 @@ import { useTaskActions } from '../tasks/TaskActions';
 export const HOUR_HEIGHT = 60;
 const MIN_BLOCK = 44;
 const GUTTER = 52;
-/** Step of the "move earlier / later" accessibility actions (the non-drag way to move a block). */
-export const NUDGE_MIN = 15;
-const LAST_START = 24 * 60 - DRAG_STEP_MIN;
 
 interface DragProps {
   onMove: (dy: number) => void;
@@ -130,8 +127,10 @@ function Block({
     setDy(0);
     setScrollEnabled(false);
   };
-  const nudge = (delta: number) =>
-    actions.reschedule(item, hhmmOf(Math.max(0, Math.min(LAST_START, startMin + delta))));
+  const nudge = (delta: number) => {
+    const next = nudgedTime(hhmmOf(startMin), delta);
+    if (next) actions.reschedule(item, next);
+  };
 
   useEffect(() => {
     drag.setProps({ onMove: setDy, onEnd: finish });

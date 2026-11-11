@@ -16,8 +16,9 @@ step 0). Usage before step 0: 5-hour 9%, weekly all-models 94%, weekly Fable 2%.
     exact alarms (asked in-app, inexact fallback), `eas.json` dev profile. Done 2026-11-10. Still open: the
     on-phone check in a dev build (needs Steeven's EAS approval; checklist in AGENT_HANDOFF.md), routine runs in
     History.
-  - [ ] 4c: settings (week start, capacity, categories, failed-sync list); empty, error and loading states;
-    accessibility.
+  - [x] 4c: settings (week start, capacity, categories, failed-sync list); empty, error and loading states;
+    accessibility. Done 2026-11-11. Model: mixed models per vizam-model-efficiency (Opus architecture/security,
+    Sonnet routine UI, Haiku mechanical). Skipped on purpose: "Tomorrow / Pick date" swipe actions and haptics.
 - [ ] **Phase 5: QA and security**, 400-600k tokens, ~25-35%. Full verification, access-control tests, rules, input
   limits, sign-out wipe, guest migration, screens compared with `DESIGN.md`.
 - [ ] **Phase 6: delivery**, 300-500k tokens, ~20-30%. README, refreshed docs, security summary, known limitations,
