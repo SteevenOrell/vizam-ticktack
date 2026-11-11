@@ -11,7 +11,13 @@ export const SCHEMA_VERSION = 1;
 
 export const localDateSchema = z.string().refine(isLocalDate, 'Expected a YYYY-MM-DD date');
 export const hhmmSchema = z.string().regex(HHMM_RE, 'Expected HH:mm');
-const isoSchema = z.string().min(10).max(40);
+/**
+ * ISO 8601 date-time as `Date.toISOString()` writes it (offsets accepted). Same pattern and length as `isIso` in
+ * firebase/firestore.rules, so a value the client accepts is never refused by the server.
+ */
+export const ISO_DATETIME_RE =
+  /^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]{1,9})?(Z|[+-][0-9]{2}:[0-9]{2})$/;
+const isoSchema = z.string().min(10).max(40).regex(ISO_DATETIME_RE, 'Expected an ISO date-time');
 /** Client UUIDs, plus deterministic occurrence IDs (`seriesId_YYYYMMDD`) and the profile ID (= uid). */
 export const idSchema = z
   .string()
@@ -53,7 +59,8 @@ export const profileSchema = baseSchema.extend({
 export type Profile = z.infer<typeof profileSchema>;
 
 export const categorySchema = baseSchema.extend({
-  name: trimmed(1, 40),
+  // The rules require `^\S(.*\S)?$`, where `.` does not match a line break: names are single-line.
+  name: trimmed(1, 40).regex(/^[^\n\r]*$/, 'Single line only'),
   color: categoryColorSchema,
   icon: categoryIconSchema,
   sortOrder: int(0, 10000),
@@ -186,23 +193,38 @@ export const goalHistoryEntrySchema = z.object({
 export type GoalHistoryEntry = z.infer<typeof goalHistoryEntrySchema>;
 export const GOAL_HISTORY_MAX = 60;
 
-export const goalSchema = baseSchema.extend({
-  title: trimmed(1, 120),
-  description: z.string().max(2000).nullable(),
-  /** Due date of a one-time goal; null for periodic goals (their due date is the end of the current period). */
-  targetDate: localDateSchema.nullable(),
-  status: z.enum(['active', 'achieved', 'archived']),
-  color: categoryColorSchema.nullable(),
-  progressMode: z.enum(['milestones', 'tasks', 'manual']),
-  manualProgress: int(0, 100),
-  achievedAt: isoSchema.nullable(),
-  // Migration 002. Defaults keep documents written before it valid.
-  period: goalPeriodSchema.default('once'),
-  /** Start of the first period (periodic goals); optional start of a one-time goal. */
-  startDate: localDateSchema.nullable().default(null),
-  reminders: goalRemindersSchema.default(DEFAULT_GOAL_REMINDERS),
-  history: z.array(goalHistoryEntrySchema).max(GOAL_HISTORY_MAX).default([]),
-});
+export const goalSchema = baseSchema
+  .extend({
+    title: trimmed(1, 120),
+    description: z.string().max(2000).nullable(),
+    /** Due date of a one-time goal; null for periodic goals (their due date is the end of the current period). */
+    targetDate: localDateSchema.nullable(),
+    status: z.enum(['active', 'achieved', 'archived']),
+    color: categoryColorSchema.nullable(),
+    progressMode: z.enum(['milestones', 'tasks', 'manual']),
+    manualProgress: int(0, 100),
+    achievedAt: isoSchema.nullable(),
+    // Migration 002. Defaults keep documents written before it valid.
+    period: goalPeriodSchema.default('once'),
+    /** Start of the first period (periodic goals); optional start of a one-time goal. */
+    startDate: localDateSchema.nullable().default(null),
+    reminders: goalRemindersSchema.default(DEFAULT_GOAL_REMINDERS),
+    history: z.array(goalHistoryEntrySchema).max(GOAL_HISTORY_MAX).default([]),
+  })
+  .superRefine((g, ctx) => {
+    // Same cross-field checks as goalOk / historyEntryOk in firebase/firestore.rules.
+    if (g.period !== 'once' && (g.startDate === null || g.targetDate !== null)) {
+      ctx.addIssue({ code: 'custom', path: ['startDate'], message: 'periodic goals need a start and no due date' });
+    }
+    if (g.period === 'once' && g.startDate && g.targetDate && g.startDate > g.targetDate) {
+      ctx.addIssue({ code: 'custom', path: ['targetDate'], message: 'due date before start' });
+    }
+    for (const [i, h] of g.history.entries()) {
+      if (h.start > h.end || h.done > h.total) {
+        ctx.addIssue({ code: 'custom', path: ['history', i], message: 'invalid history entry' });
+      }
+    }
+  });
 export type Goal = z.infer<typeof goalSchema>;
 
 export const milestoneSchema = baseSchema.extend({

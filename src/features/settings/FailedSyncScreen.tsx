@@ -18,7 +18,13 @@ import { useTheme } from '../../ui/theme/ThemeProvider';
 import { useDataContext, useServices } from '../session/SessionProvider';
 
 /** Error code from the sync engine -> translation key suffix; anything else reads as "unknown". */
-const KNOWN_ERRORS = ['permission-denied', 'invalid-argument', 'failed-precondition', 'out-of-range'] as const;
+const KNOWN_ERRORS = [
+  'permission-denied',
+  'invalid-argument',
+  'failed-precondition',
+  'out-of-range',
+  'invalid-local',
+] as const;
 const KNOWN_TYPES = [
   'profile',
   'categories',

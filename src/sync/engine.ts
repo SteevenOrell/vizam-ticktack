@@ -3,14 +3,20 @@
  *
  * - Push: due outbox entries -> full documents -> remote. Success clears the entry only if no newer local edit was
  *   queued meanwhile (in-flight edits are pushed again). Network-type errors back off exponentially (2 s doubling,
- *   cap 15 min); permission/validation errors move the entry to `failed`.
+ *   cap 15 min); permission/validation errors move the entry to `failed`, so do rows that fail local validation
+ *   (`invalid-local`) and entries still refused with a non-network error after MAX_RETRY_ATTEMPTS tries. Network
+ *   errors (offline, timeout) retry forever. A wall clock moved backwards cannot park an entry beyond the cap.
  * - Pull: per collection, `updatedAt > cursor - 60 s`, paged; each document is Zod-validated. Last write wins by
  *   server timestamp: a clean local row is replaced by a newer remote one, a dirty local row is kept (it is pushed
  *   next and becomes the last write). Tombstones are sticky: a remote tombstone always wins, even over local edits.
+ * - Until the first pull finished on this device the profile is held back, so a profile created locally with
+ *   device defaults right after sign-in never overwrites the account's real one (the cloud profile replaces a
+ *   never-synced local profile on pull); a held profile is pushed right after that first pull.
  * - One run at a time (mutex). Guests never sync.
  */
 import { localDateOf } from '../domain/localDate';
 import { getSyncValue, setSyncValue } from '../data/account';
+import { mergeDuplicateCategories } from '../data/mergeCategories';
 import { notifyDataChanged } from '../data/changes';
 import type { SqlDriver } from '../data/db/driver';
 import {
@@ -21,16 +27,23 @@ import {
   type EntityDef,
   type EntityType,
   type SqlRow,
+  parseEntity,
 } from '../data/entities';
 import { resetGenerated } from '../data/occurrences';
 import { fromRemote, toRemote } from './mappers';
-import { errorCode, FATAL_CODES, type PushWrite, type RemoteStore } from './types';
+import { errorCode, FATAL_CODES, NETWORK_CODES, type PushWrite, type RemoteStore } from './types';
 
 export const PUSH_BATCH = 200;
 export const PULL_PAGE = 500;
 export const CURSOR_OVERLAP_MS = 60_000;
 export const BACKOFF_BASE_MS = 2_000;
 export const BACKOFF_CAP_MS = 15 * 60_000;
+/** Tries before a non-network error (e.g. `internal`, `resource-exhausted`, `unknown`) marks an entry failed. */
+export const MAX_RETRY_ATTEMPTS = 10;
+/** `last_error` of an entry whose local row no longer passes the entity schema (never sent). */
+export const INVALID_LOCAL = 'invalid-local';
+/** sync_state key set once the first full pull finished on this device (wiped with the rest on sign-out). */
+export const PULLED_ONCE_KEY = 'pulled_once';
 
 export interface SyncDeps {
   db: SqlDriver;
@@ -60,19 +73,23 @@ export const backoffMs = (attempts: number) =>
 
 const tableOf = (type: EntityType) => (entities[type] as EntityDef).table;
 
-export async function pushOutbox(deps: SyncDeps, report: SyncReport): Promise<void> {
+/** Pushes due entries. Returns true when a profile was held back because nothing was pulled yet. */
+export async function pushOutbox(deps: SyncDeps, report: SyncReport): Promise<boolean> {
   const { db, remote, uid } = deps;
   const now = deps.now?.() ?? Date.now();
+  const pulledOnce = (await getSyncValue(db, PULLED_ONCE_KEY)) !== null;
+  let held = false;
   // Each entry is visited at most once per run: an entry re-queued by an in-flight edit keeps its outbox id, so it
   // waits for the next run instead of looping.
   let lastId = 0;
   for (;;) {
     const due = await db.all<OutboxRow & { id: number }>(
+      // An entry due later than now + cap was scheduled by a clock that has since moved backwards: it is due now.
       `SELECT id, entity_type, entity_id, enqueued_rev, attempts FROM outbox
-       WHERE state = 'pending' AND next_attempt_at <= ? AND id > ? ORDER BY id LIMIT ?`,
-      [now, lastId, PUSH_BATCH],
+       WHERE state = 'pending' AND (next_attempt_at <= ? OR next_attempt_at > ?) AND id > ? ORDER BY id LIMIT ?`,
+      [now, now + BACKOFF_CAP_MS, lastId, PUSH_BATCH],
     );
-    if (due.length === 0) return;
+    if (due.length === 0) return held;
     lastId = due[due.length - 1]?.id ?? lastId;
 
     const writes: (PushWrite & { rev: number; entry: OutboxRow })[] = [];
@@ -88,6 +105,10 @@ export async function pushOutbox(deps: SyncDeps, report: SyncReport): Promise<vo
         entry.entity_id,
         uid,
       ]);
+      if (entry.entity_type === 'profile' && !pulledOnce && row?.server_updated_at === null) {
+        held = true;
+        continue;
+      }
       if (!row) {
         await db.run('DELETE FROM outbox WHERE entity_type = ? AND entity_id = ?', [
           entry.entity_type,
@@ -95,14 +116,22 @@ export async function pushOutbox(deps: SyncDeps, report: SyncReport): Promise<vo
         ]);
         continue;
       }
-      const entity = rowToEntity(entry.entity_type, row) as Record<string, unknown>;
-      writes.push({
-        type: entry.entity_type,
-        id: entry.entity_id,
-        data: toRemote(entry.entity_type, entity),
-        rev: Number(row.local_rev ?? 0),
-        entry,
-      });
+      let data: Record<string, unknown>;
+      try {
+        // Same schema as every local write: a row corrupted on disk (or by an older build) is never sent and does
+        // not block the rest of the queue.
+        const entity = parseEntity(entry.entity_type, rowToEntity(entry.entity_type, row)) as Record<string, unknown>;
+        data = toRemote(entry.entity_type, entity);
+      } catch {
+        report.failed += 1;
+        await db.run(
+          `UPDATE outbox SET state = 'failed', attempts = attempts + 1, last_error = ?
+           WHERE entity_type = ? AND entity_id = ? AND enqueued_rev = ?`,
+          [INVALID_LOCAL, entry.entity_type, entry.entity_id, entry.enqueued_rev],
+        );
+        continue;
+      }
+      writes.push({ type: entry.entity_type, id: entry.entity_id, data, rev: Number(row.local_rev ?? 0), entry });
     }
     if (writes.length === 0) continue;
 
@@ -130,7 +159,10 @@ export async function pushOutbox(deps: SyncDeps, report: SyncReport): Promise<vo
             w.rev,
           ]);
           await db.run(`UPDATE ${tableOf(w.type)} SET dirty = 0 WHERE id = ? AND local_rev = ?`, [w.id, w.rev]);
-        } else if (FATAL_CODES.has(outcome.code)) {
+        } else if (
+          FATAL_CODES.has(outcome.code) ||
+          (!NETWORK_CODES.has(outcome.code) && w.entry.attempts + 1 >= MAX_RETRY_ATTEMPTS)
+        ) {
           report.failed += 1;
           await db.run(
             `UPDATE outbox SET state = 'failed', attempts = attempts + 1, last_error = ?
@@ -149,7 +181,7 @@ export async function pushOutbox(deps: SyncDeps, report: SyncReport): Promise<vo
       }
     });
     // Stop when nothing went through (offline): the rest waits for its backoff.
-    if (!progressed) return;
+    if (!progressed) return held;
   }
 }
 
@@ -169,7 +201,9 @@ async function applyRemote(deps: SyncDeps, type: EntityType, entity: Record<stri
   const remoteDeleted = entity.deleted === true;
 
   const stickyTombstone = remoteDeleted && local && local.deleted === 0;
-  if (!stickyTombstone) {
+  // A profile made on this device before the account's own profile was ever seen (device defaults) loses to it.
+  const unseenProfile = type === 'profile' && local?.server_updated_at === null;
+  if (!stickyTombstone && !unseenProfile) {
     if (local?.dirty === 1) return false; // local edit wins: it is pushed next
     if (local && local.server_updated_at !== null && remoteMs <= local.server_updated_at) return false;
   }
@@ -182,7 +216,7 @@ async function applyRemote(deps: SyncDeps, type: EntityType, entity: Record<stri
      ON CONFLICT(id) DO UPDATE SET ${updatable.map((c) => `${c} = excluded.${c}`).join(', ')}, dirty = 0`,
     names.map((c) => cols[c] ?? null),
   );
-  if (stickyTombstone) {
+  if (stickyTombstone || unseenProfile) {
     await db.run('DELETE FROM outbox WHERE entity_type = ? AND entity_id = ?', [type, id]);
   }
   return true;
@@ -222,6 +256,13 @@ export async function pullAll(deps: SyncDeps, report: SyncReport): Promise<void>
   // A rule changed elsewhere: regenerate its future occurrences from the new rule (exceptions are kept).
   const today = localDateOf(new Date(deps.now?.() ?? Date.now()));
   for (const seriesId of changedSeries) await resetGenerated(db, seriesId, today);
+  if ((await getSyncValue(db, PULLED_ONCE_KEY)) === null) {
+    // First pull for this account on this device: guest data adopted at sign-in may duplicate the account's
+    // starter categories; merge twins by name now that both sides are local.
+    // Local edits (queued like any other): screens refresh and the next sync pushes them.
+    if ((await mergeDuplicateCategories(db, uid, deps.now)) > 0) notifyDataChanged('local');
+    await setSyncValue(db, PULLED_ONCE_KEY, String(deps.now?.() ?? Date.now()));
+  }
 }
 
 const emptyReport = (): SyncReport => ({ pushed: 0, retrying: 0, failed: 0, pulled: 0, applied: 0, invalid: 0 });
@@ -229,8 +270,9 @@ const emptyReport = (): SyncReport => ({ pushed: 0, retrying: 0, failed: 0, pull
 /** One full sync run: push then pull. */
 export async function syncOnce(deps: SyncDeps): Promise<SyncReport> {
   const report = emptyReport();
-  await pushOutbox(deps, report);
+  const held = await pushOutbox(deps, report);
   await pullAll(deps, report);
+  if (held) await pushOutbox(deps, report);
   if (report.applied > 0) notifyDataChanged('sync');
   return report;
 }

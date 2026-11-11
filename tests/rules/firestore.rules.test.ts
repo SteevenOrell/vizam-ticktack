@@ -11,6 +11,7 @@ import {
 } from '@firebase/rules-unit-testing';
 import {
   collection,
+  collectionGroup,
   deleteDoc,
   doc,
   getDoc,
@@ -484,4 +485,101 @@ describe('phase 4b: milestones, routines and reminders', () => {
       await assertSucceeds(setDoc(doc(bob(), `users/bob/${type}/x-1`), docData(type, 'bob', 'x-1')));
     },
   );
+});
+
+describe('phase 5a: access-control and input hardening', () => {
+  const ref = (type: EntityType = 'tasks') => doc(alice(), path('alice', type));
+
+  it('denies listing every user and collection-group queries across users, even for a signed-in user', async () => {
+    await seed('alice', 'profile');
+    await seed('alice', 'tasks');
+    await assertFails(getDocs(collection(alice(), 'users')));
+    await assertFails(getDocs(collection(bob(), 'users')));
+    await assertFails(getDocs(collectionGroup(alice(), 'tasks')));
+    await assertFails(getDocs(query(collectionGroup(bob(), 'tasks'), where('ownerId', '==', 'alice'))));
+    await assertFails(getDocs(collectionGroup(anon(), 'tasks')));
+  });
+
+  it('denies privilege or bookkeeping fields on the profile and on entities', async () => {
+    const profile = doc(alice(), 'users/alice');
+    for (const extra of [{ role: 'admin' }, { isAdmin: true }, { plan: 'pro' }, { serverUpdatedAt: 1 }]) {
+      await assertFails(setDoc(profile, { ...docData('profile', 'alice', 'alice'), ...extra }));
+      await assertFails(setDoc(ref(), { ...docData('tasks', 'alice', 'tasks-1'), ...extra }));
+    }
+    await seed('alice', 'profile');
+    await assertFails(updateDoc(profile, { role: 'admin', updatedAt: serverTimestamp() }));
+  });
+
+  it('denies a profile whose id is not the uid, and malformed profile values', async () => {
+    const profile = doc(alice(), 'users/alice');
+    await assertFails(setDoc(profile, docData('profile', 'alice', 'bob')));
+    const bad = [
+      { displayName: '' },
+      { displayName: 'x'.repeat(61) },
+      { timeZone: 'x'.repeat(65) },
+      { weekStartsOn: 3 },
+      { theme: 'neon' },
+      { dayStart: '6:00' },
+      { dailyCapacityMin: 1441 },
+      { defaultReminderOffsetMin: -1 },
+      { onboardingCompletedAt: 'yesterday' },
+    ];
+    for (const patch of bad) await assertFails(setDoc(profile, docData('profile', 'alice', 'alice', patch)));
+  });
+
+  it('accepts ISO timestamps as the app writes them and denies anything else', async () => {
+    await assertSucceeds(
+      setDoc(ref(), docData('tasks', 'alice', 'tasks-1', { completedAt: '2026-11-09T10:00:00+01:00' })),
+    );
+    for (const value of ['2026-11-09', 'not a timestamp!', '2026-11-09 10:00:00', '9999999999999', `${ISO}x`]) {
+      await assertFails(setDoc(ref(), docData('tasks', 'alice', 'tasks-1', { createdAt: value })));
+      await assertFails(setDoc(ref(), docData('tasks', 'alice', 'tasks-1', { clientUpdatedAt: value })));
+      await assertFails(setDoc(ref(), docData('tasks', 'alice', 'tasks-1', { completedAt: value })));
+    }
+    await assertFails(setDoc(ref('goals'), docData('goals', 'alice', 'goals-1', { achievedAt: 'soon' })));
+    await assertFails(
+      setDoc(ref('milestones'), docData('milestones', 'alice', 'milestones-1', { completedAt: 'x'.repeat(12) })),
+    );
+  });
+
+  it('counts characters, not bytes: the longest titles the client allows are accepted', async () => {
+    // Zod counts UTF-16 units (an emoji is 2), the rules count characters: the client is never looser.
+    await assertSucceeds(setDoc(ref(), docData('tasks', 'alice', 'tasks-1', { title: 'é'.repeat(200) })));
+    await assertSucceeds(setDoc(ref(), docData('tasks', 'alice', 'tasks-1', { title: '🙂'.repeat(100) })));
+    await assertSucceeds(
+      setDoc(ref('categories'), docData('categories', 'alice', 'categories-1', { name: 'ü'.repeat(40) })),
+    );
+    await assertFails(setDoc(ref(), docData('tasks', 'alice', 'tasks-1', { title: 'é'.repeat(201) })));
+  });
+
+  it('denies a multi-line category name and type confusion on ids and lists', async () => {
+    await assertFails(setDoc(ref('categories'), docData('categories', 'alice', 'categories-1', { name: 'A\nB' })));
+    await assertFails(setDoc(ref(), docData('tasks', 'alice', 'tasks-1', { categoryId: 42 })));
+    await assertFails(setDoc(ref(), docData('tasks', 'alice', 'tasks-1', { goalId: '../../users/bob' })));
+    await assertFails(
+      setDoc(
+        doc(alice(), 'users/alice/occurrences/task-1_20261109'),
+        docData('occurrences', 'alice', 'task-1_20261109', { completedStepIds: 'all' }),
+      ),
+    );
+    await assertFails(
+      setDoc(
+        doc(alice(), 'users/alice/occurrences/task-1_20261109'),
+        docData('occurrences', 'alice', 'task-1_20261109', {
+          completedStepIds: Array.from({ length: 61 }, (_, i) => `s${i}`),
+        }),
+      ),
+    );
+    await assertFails(setDoc(ref('routines'), docData('routines', 'alice', 'routines-1', { steps: { a: 1 } })));
+  });
+
+  it('denies a tombstone that changes identity, and lets only the owner hard-delete (account deletion)', async () => {
+    await seed('alice', 'tasks', { deleted: true });
+    await assertFails(setDoc(ref(), docData('tasks', 'bob', 'tasks-1', { deleted: true })));
+    await assertFails(deleteDoc(doc(bob(), path('alice', 'tasks'))));
+    await assertSucceeds(deleteDoc(ref()));
+    await seed('alice', 'profile');
+    await assertFails(deleteDoc(doc(bob(), 'users/alice')));
+    await assertSucceeds(deleteDoc(doc(alice(), 'users/alice')));
+  });
 });

@@ -754,6 +754,7 @@
       "invalid-argument": "Le serveur a refusé les données.",
       "failed-precondition": "Le serveur ne peut pas encore l’accepter.",
       "out-of-range": "Une valeur était hors limites.",
+      "invalid-local": "Cet élément est endommagé sur cet appareil et n’a jamais été envoyé. Modifiez-le ou supprimez-le.",
       "unknown": "Erreur inconnue."
     }
   }

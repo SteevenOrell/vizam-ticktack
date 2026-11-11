@@ -17,8 +17,9 @@ import { ensureProfile, updateProfile } from '../../data/profile';
 import type { DataContext } from '../../data/store';
 import { localDateOf } from '../../domain/localDate';
 import { createFirebaseAuthGateway, type AuthGateway } from '../../services/auth';
-import { attachUser, type FlowDeps } from '../../services/accountFlows';
+import { attachUser, clearSignedOutDevice, type FlowDeps } from '../../services/accountFlows';
 import { getFirebase } from '../../services/firebase';
+import { cancelAllReminders } from '../../services/notifications/maintenance';
 import { usePreferences } from '../../state/preferences';
 import { ownerIdOf, useSession, useSyncStatus } from '../../state/session';
 import { setSyncDeps, syncNow } from '../../sync/controller';
@@ -57,7 +58,13 @@ export function useFlowDeps(): FlowDeps | null {
   return useMemo(
     () =>
       database.status === 'ready' && services.gateway
-        ? { db: database.db, gateway: services.gateway, remote: services.remote, syncNow: services.syncNow }
+        ? {
+            db: database.db,
+            gateway: services.gateway,
+            remote: services.remote,
+            syncNow: services.syncNow,
+            clearDevice: () => cancelAllReminders(database.db),
+          }
         : null,
     [database, services],
   );
@@ -111,6 +118,8 @@ export function SessionProvider({
     const unsubscribe = gateway.onChange((user) => {
       void (async () => {
         if (!user) {
+          // Signed out but the database still holds an account (interrupted sign-out, revoked session): wipe it.
+          if (!useSession.getState().busy) await clearSignedOutDevice(db, () => cancelAllReminders(db));
           if (!cancelled) useSession.getState().setGuest();
           return;
         }

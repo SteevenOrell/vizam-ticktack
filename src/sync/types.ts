@@ -48,6 +48,9 @@ export class RemoteError extends Error {
 /** Errors that will not succeed on retry: the entry moves to `failed` (ARCHITECTURE.md section 6). */
 export const FATAL_CODES = new Set(['permission-denied', 'invalid-argument', 'failed-precondition', 'out-of-range']);
 
+/** Connectivity errors: retried with backoff for as long as it takes (offline for days is normal). */
+export const NETWORK_CODES = new Set(['unavailable', 'deadline-exceeded', 'unauthenticated']);
+
 export function errorCode(error: unknown): string {
   if (error && typeof error === 'object' && 'code' in error && typeof error.code === 'string') {
     return error.code.replace(/^firestore\//, '');

@@ -723,6 +723,7 @@
       "invalid-argument": "The server rejected the data.",
       "failed-precondition": "The server could not accept it yet.",
       "out-of-range": "A value was out of range.",
+      "invalid-local": "This item is damaged on this device and was never sent. Edit it or discard it.",
       "unknown": "Unknown error."
     }
   }
