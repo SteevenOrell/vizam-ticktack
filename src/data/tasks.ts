@@ -21,6 +21,7 @@ import { CATEGORY_NAME_MAX, normalizeCategoryName } from '../domain/categoryName
 import { resolveCategoryName } from './categories';
 import { GoalRepeatError, goalRepeatLimit, insertGoal } from './goalBase';
 import { defaultWindow, ensureOccurrences, resetGenerated } from './occurrences';
+import { copyItemReminder, getItemReminder, itemReminderSchema, saveItemReminder } from './reminders';
 import { getEntity, listEntities, mutate, nowIso, tombstone, writeEntity, type DataContext } from './store';
 
 /** What the editor submits. The repeat part has no start date: the task's date is the series start. */
@@ -61,6 +62,8 @@ export const taskDraftSchema = z
     durationMin: z.number().int().min(1).max(1440).nullable(),
     repeat: repeatDraftSchema.nullable(),
     subtasks: z.array(subtaskDraftSchema).max(30),
+    /** Reminder of the task or series; null = none, undefined keeps the stored one. */
+    reminder: itemReminderSchema.nullable().optional(),
   })
   .superRefine((d, ctx) => {
     if (d.repeat && !d.date) ctx.addIssue({ code: 'custom', path: ['date'], message: 'dateRequiredForRepeat' });
@@ -146,6 +149,13 @@ export async function clampSeriesToGoal(ctx: DataContext, task: Task, limit: Loc
   return true;
 }
 
+/** Saves the draft's reminder for `taskId`; when the draft leaves it alone, a task split off `fromId` inherits it. */
+async function applyReminder(ctx: DataContext, draft: TaskDraft, taskId: string, fromId?: string) {
+  const timed = !!(draft.date && draft.startTime);
+  if (draft.reminder !== undefined) await saveItemReminder(ctx, 'task', taskId, draft.reminder, timed);
+  else if (fromId && fromId !== taskId) await copyItemReminder(ctx, 'task', fromId, taskId, timed);
+}
+
 async function syncSubtasks(ctx: DataContext, parent: Task, subtasks: TaskDraft['subtasks']) {
   const existing = await listEntities(ctx.db, 'tasks', ctx.ownerId, 'parent_task_id = ?', [parent.id], 'sort_order');
   const keep = new Set(subtasks.map((s) => s.id).filter(Boolean));
@@ -229,6 +239,7 @@ export async function insertTask(ctx: DataContext, parsed: TaskDraft): Promise<T
     await writeRule(ctx, id, { ...draft.repeat, startDate: draft.date }, ruleId);
   }
   await syncSubtasks(ctx, t, draft.subtasks);
+  await applyReminder(ctx, draft, id);
   return t;
 }
 
@@ -282,6 +293,7 @@ export async function loadTaskForm(
       title: s.title,
       done: occurrence ? ticked.has(s.id) : s.status === 'done',
     })),
+    reminder: await getItemReminder(ctx.db, ctx.ownerId, 'task', task.id),
   };
   return { task, rule, occurrence, draft };
 }
@@ -386,6 +398,7 @@ export async function updateTask(
         regenerate.push(task.id);
       }
       await syncSubtasks(ctx, t, draft.subtasks);
+      await applyReminder(ctx, draft, task.id);
       return;
     }
 
@@ -447,6 +460,7 @@ export async function updateTask(
         t,
         draft.subtasks.map((s) => ({ title: s.title, done: false })),
       );
+      await applyReminder(ctx, { ...draft, date: start }, newId, task.id);
       return;
     }
 
@@ -470,6 +484,7 @@ export async function updateTask(
         t,
         draft.subtasks.map((s) => ({ title: s.title, done: s.done })),
       );
+      await applyReminder(ctx, draft, t.id, task.id);
       return;
     }
 
@@ -489,6 +504,7 @@ export async function updateTask(
       task,
       draft.subtasks.map((s) => ({ id: s.id, title: s.title, done: false })),
     );
+    await applyReminder(ctx, { ...draft, date: rule.startDate }, task.id);
   });
 
   for (const seriesId of regenerate) {
