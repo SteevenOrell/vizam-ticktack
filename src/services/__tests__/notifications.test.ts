@@ -231,7 +231,11 @@ describe('expo-notifications adapter (mocked)', () => {
     await api.schedule(n!, { exact: false });
     expect(N.scheduleNotificationAsync).toHaveBeenCalledWith({
       identifier: n!.id,
-      content: { title: 'Run a 10K', body: 'notifications.due_0', data: { url: n!.url, goalId: 'goal-1' } },
+      content: {
+        title: 'Run a 10K',
+        body: 'notifications.due_0',
+        data: { url: n!.url, goalId: 'goal-1', targetType: 'goal', targetId: 'goal-1' },
+      },
       trigger: { type: 'date', date: n!.fireAt, channelId: 'reminders' },
     });
     expect(N.setNotificationHandler).toHaveBeenCalledTimes(1);

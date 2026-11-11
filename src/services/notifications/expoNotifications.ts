@@ -3,9 +3,12 @@
  * so people who never turn a reminder on never load it (in Expo Go it prints a "not fully supported" warning on
  * import; local notifications still work there). Web has no local scheduling: reminders show as unavailable.
  */
+import { isRunningInExpoGo } from 'expo';
 import { Linking, Platform } from 'react-native';
 
+import { resolveExactAlarm, type ExactAlarmFacts, type ExactAlarmState } from './exactAlarm';
 import type { NotificationsApi } from './scheduler';
+import { reminderPayload, reminderRoute, type ReminderRoute } from './tapRoute';
 
 type ExpoNotifications = typeof import('expo-notifications');
 
@@ -77,6 +80,34 @@ export async function requestReminderPermission(): Promise<ReminderPermission> {
   }
 }
 
+/** Exact-alarm access on this device (see exactAlarm.ts). Never throws; a failed check counts as unavailable. */
+export async function getExactAlarmState(): Promise<ExactAlarmState> {
+  const platform = Platform.OS;
+  if (platform !== 'android') return resolveExactAlarm({ platform, expoGo: false, permission: null });
+  let permission: ExactAlarmFacts['permission'] = null;
+  try {
+    permission = await load().getExactAlarmPermissionsAsync();
+  } catch {
+    permission = null;
+  }
+  return resolveExactAlarm({ platform, expoGo: isRunningInExpoGo(), permission });
+}
+
+/**
+ * Opens the system "Alarms & reminders" screen (only after the in-app explanation) and reports the state on return.
+ * Does nothing unless the state is askable, so Expo Go and builds without the permission never call it.
+ */
+export async function requestExactAlarm(): Promise<ExactAlarmState> {
+  const before = await getExactAlarmState();
+  if (before !== 'askable') return before;
+  try {
+    await load().requestExactAlarmPermissionsAsync();
+  } catch {
+    return 'unavailable';
+  }
+  return getExactAlarmState();
+}
+
 export function openNotificationSettings(): void {
   void Linking.openSettings();
 }
@@ -96,10 +127,11 @@ export function expoNotificationsApi(): NotificationsApi {
         content: {
           title: n.title,
           body: n.body,
-          // `goalId` drives the tap handler; task and routine reminders only carry their link for now.
-          data: n.targetType === 'goal' ? { url: n.url, goalId: n.targetId } : { url: n.url },
+          // Read back by the tap handler (see tapRoute.ts).
+          data: reminderPayload(n),
         },
-        // Inexact delivery is accepted (no exact-alarm permission requested; see ARCHITECTURE.md section 8).
+        // Default delivery ('bestEffort'): exact once exact-alarm access is granted, approximate otherwise
+        // (see exactAlarm.ts), so the same call is the fallback.
         trigger: { type: N.SchedulableTriggerInputTypes.DATE, date: n.fireAt, channelId: CHANNEL_ID },
       });
     },
@@ -109,15 +141,25 @@ export function expoNotificationsApi(): NotificationsApi {
   };
 }
 
-/** Opens the goal when a reminder is tapped (cold start included). Returns an unsubscribe function. */
-export function listenForReminderTaps(open: (goalId: string) => void): () => void {
+/**
+ * Opens the goal, task (day) or routine when a reminder is tapped (cold start included). The last response is
+ * handled once per process, so remounting the listener does not open it again. Returns an unsubscribe function.
+ */
+export function listenForReminderTaps(open: (route: ReminderRoute) => void): () => void {
   if (!remindersSupported) return () => undefined;
   const N = load();
-  const handle = (data: unknown) => {
-    const goalId = (data as { goalId?: unknown } | null)?.goalId;
-    if (typeof goalId === 'string' && /^[A-Za-z0-9_-]{1,128}$/.test(goalId)) open(goalId);
+  const handle = (r: {
+    notification: { date: number; request: { identifier: string; content: { data?: unknown } } };
+  }) => {
+    const key = `${r.notification.request.identifier}@${r.notification.date}`;
+    if (lastHandled === key) return;
+    lastHandled = key;
+    const route = reminderRoute(r.notification.request.content.data);
+    if (route) open(route);
   };
-  void N.getLastNotificationResponseAsync().then((r) => r && handle(r.notification.request.content.data));
-  const sub = N.addNotificationResponseReceivedListener((r) => handle(r.notification.request.content.data));
+  void N.getLastNotificationResponseAsync().then((r) => r && handle(r));
+  const sub = N.addNotificationResponseReceivedListener(handle);
   return () => sub.remove();
 }
+
+let lastHandled: string | null = null;
