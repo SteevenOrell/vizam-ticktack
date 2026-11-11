@@ -7,7 +7,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { getHistory, HISTORY_DAYS, MISSED_DAYS, type HistoryEntry } from '../../data/queries/agenda';
 import { useQuery } from '../../data/useQuery';
 import { localDateOf, startOfWeek, type LocalDate } from '../../domain/localDate';
-import { defaultWeekStartsOn, shortDate } from '../../i18n/dates';
+import { shortDate } from '../../i18n/dates';
+import { useWeekStartsOn } from '../settings/usePlanning';
 import { noonOf } from '../../lib/dates';
 import { Card } from '../../ui/Card';
 import { Pill } from '../../ui/Pill';
@@ -52,7 +53,8 @@ export function HistoryScreen({ now = new Date() }: { now?: Date }) {
   const state = useQuery(query);
   const pending = usePendingDeletes((s) => s.pending);
   const [filter, setFilter] = useState<HistoryFilter>('all');
-  const weekStart = startOfWeek(today, defaultWeekStartsOn(lang));
+  const weekStartsOn = useWeekStartsOn();
+  const weekStart = startOfWeek(today, weekStartsOn);
 
   const back = useCallback(() => {
     if (router.canGoBack()) router.back();

@@ -20,7 +20,8 @@ import {
 import { useQuery } from '../../data/useQuery';
 import { addDays, localDateOf, type LocalDate } from '../../domain/localDate';
 import type { EditScope } from '../../domain/recurrence/seriesEdit';
-import { defaultWeekStartsOn, shortDate } from '../../i18n/dates';
+import { shortDate } from '../../i18n/dates';
+import { useWeekStartsOn } from '../settings/usePlanning';
 import { noonOf } from '../../lib/dates';
 import { Button } from '../../ui/Button';
 import { columnStyle } from '../../ui/Centered';
@@ -114,7 +115,7 @@ export function TaskEditorScreen({
   const ctx = useDataContext();
   const lang = i18n.language;
   const today = localDateOf(now);
-  const weekStartsOn = defaultWeekStartsOn(lang);
+  const weekStartsOn = useWeekStartsOn();
 
   const [form, setForm] = useState<TaskForm | null | 'missing'>(null);
   const [draft, setDraft] = useState<TaskDraft | null>(taskId ? null : emptyDraft(initialDate ?? today));

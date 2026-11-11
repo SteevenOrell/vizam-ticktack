@@ -322,7 +322,8 @@
     "signOutBody": "Your plans are removed from this device. They stay in your account.",
     "signOutPending_one": "{{count}} change has not reached your account yet and will be lost if you sign out now.",
     "signOutPending_other": "{{count}} changes have not reached your account yet and will be lost if you sign out now.",
-    "deleteAccount": "Delete account"
+    "deleteAccount": "Delete account",
+    "reviewFailed": "Review failed changes"
   },
   "modal": {
     "close": "Close",
@@ -635,5 +636,93 @@
     "emptyDone": "Nothing completed in this period.",
     "emptyMissed": "No missed repeating tasks. Nice.",
     "range": "Completed tasks from the last {{days}} days. Missed repeating tasks from the last {{missedDays}} days."
+  },
+  "settings": {
+    "weekStart": "Week starts on",
+    "weekMonday": "Monday",
+    "weekSunday": "Sunday",
+    "weekStartHint": "Used by the calendar, the week views and goal periods.",
+    "capacity": "Daily capacity",
+    "capacityLess": "Decrease daily capacity by 30 minutes",
+    "capacityMore": "Increase daily capacity by 30 minutes",
+    "capacityHint": "How much time you plan per day. The workload bar on Today compares your plan with it.",
+    "categories": "Categories",
+    "categoriesHint": "Add, rename, recolour or delete the groups for your tasks.",
+    "remindersOk": "Reminders are on and ring at the exact time.",
+    "remindersNotAsked": "Reminders are off until you add one to a task, goal or routine."
+  },
+  "categoriesScreen": {
+    "title": "Categories",
+    "intro": "Categories group your tasks and routines and give them a colour.",
+    "add": "Add category",
+    "newTitle": "New category",
+    "editTitle": "Edit category",
+    "nameLabel": "Name",
+    "colorLabel": "Colour",
+    "save": "Save",
+    "delete": "Delete category",
+    "usedBy_zero": "Not used yet",
+    "usedBy_one": "1 item",
+    "usedBy_other": "{{count}} items",
+    "editHint": "Opens the editor to rename, recolour or delete",
+    "emptyTitle": "No categories",
+    "emptyBody": "Add one to group your tasks and routines.",
+    "nameRequired": "Give the category a name.",
+    "duplicate": "You already have a category with this name.",
+    "tooLong": "Use at most {{max}} characters.",
+    "saveFailed": "Could not save. Try again.",
+    "deleteTitle": "Delete “{{name}}”?",
+    "deleteUnused": "No task or routine uses this category.",
+    "deleteBody_one": "1 item uses this category. Where should it go?",
+    "deleteBody_other": "{{count}} items use this category. Where should they go?",
+    "moveTo": "Move to “{{name}}”",
+    "moveToNone": "No category",
+    "deleteFailedTitle": "Could not delete",
+    "deleteFailedBody": "The category was not deleted. Nothing was changed. Try again.",
+    "ok": "OK",
+    "colors": {
+      "ember": "Orange",
+      "sage": "Sage",
+      "sky": "Blue",
+      "plum": "Purple",
+      "moss": "Green",
+      "sand": "Sand",
+      "rose": "Rose",
+      "slate": "Slate"
+    }
+  },
+  "failedSync": {
+    "title": "Sync problems",
+    "intro": "These changes were refused by your account storage. Retry sends them again; Discard stops trying and keeps the item on this phone.",
+    "emptyTitle": "Nothing failed",
+    "emptyBody": "Every change has reached your account or is waiting its turn.",
+    "retry": "Retry",
+    "retryItem": "Retry {{name}}",
+    "retryAll_other": "Retry all {{count}}",
+    "retryAll_one": "Retry {{count}}",
+    "discard": "Discard",
+    "discardItem": "Discard the change to {{name}}",
+    "discardTitle": "Discard this change?",
+    "discardBody": "TickTack stops trying to upload it. The item stays on this device, but this change may never reach your account.",
+    "untitled": "Untitled",
+    "deleteOp": "delete",
+    "types": {
+      "profile": "Settings",
+      "categories": "Category",
+      "tasks": "Task",
+      "recurrenceRules": "Repeat rule",
+      "occurrences": "Repeat occurrence",
+      "reminders": "Reminder",
+      "goals": "Goal",
+      "milestones": "Milestone",
+      "routines": "Routine"
+    },
+    "errors": {
+      "permission-denied": "Not allowed by your account rules.",
+      "invalid-argument": "The server rejected the data.",
+      "failed-precondition": "The server could not accept it yet.",
+      "out-of-range": "A value was out of range.",
+      "unknown": "Unknown error."
+    }
   }
 }

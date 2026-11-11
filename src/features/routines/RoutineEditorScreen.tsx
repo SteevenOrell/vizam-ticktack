@@ -19,7 +19,7 @@ import {
   type RoutineStepDraft,
 } from '../../data/routines';
 import { localDateOf } from '../../domain/localDate';
-import { defaultWeekStartsOn } from '../../i18n/dates';
+import { useWeekStartsOn } from '../settings/usePlanning';
 import { Button } from '../../ui/Button';
 import { columnStyle } from '../../ui/Centered';
 import { ConfirmDialog } from '../../ui/ConfirmDialog';
@@ -115,7 +115,7 @@ export function RoutineEditorScreen({ routineId, now = new Date() }: { routineId
   const ctx = useDataContext();
   const lang = i18n.language;
   const today = localDateOf(now);
-  const weekStartsOn = defaultWeekStartsOn(lang);
+  const weekStartsOn = useWeekStartsOn();
 
   const [draft, setDraft] = useState<RoutineDraft | null>(routineId ? null : emptyRoutineDraft(weekStartsOn));
   const [missing, setMissing] = useState(false);

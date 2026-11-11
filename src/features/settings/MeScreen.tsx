@@ -7,7 +7,6 @@ import { StyleSheet, View } from 'react-native';
 import { pendingChangeCount } from '../../data/account';
 import { useDatabase } from '../../data/DatabaseProvider';
 import { shortTime } from '../../i18n/dates';
-import { formatClock } from '../../lib/dates';
 import { signOutFlow } from '../../services/accountFlows';
 import { usePreferences, type LanguagePreference, type ThemePreference } from '../../state/preferences';
 import { useSession, useSyncStatus } from '../../state/session';
@@ -21,6 +20,8 @@ import { Text } from '../../ui/Text';
 import { space } from '../../ui/theme/layout';
 import { useTheme } from '../../ui/theme/ThemeProvider';
 import { useFlowDeps, useServices } from '../session/SessionProvider';
+import { PlanningSection } from './PlanningSection';
+import { RemindersSection } from './RemindersSection';
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
   const { colors } = useTheme();
@@ -65,7 +66,7 @@ function SyncLine() {
 }
 
 export function MeScreen() {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const { colors, header } = useTheme();
   const router = useRouter();
   const prefs = usePreferences();
@@ -143,6 +144,15 @@ export function MeScreen() {
                   onPress={() => void retryFailed(database.db).then(() => syncNow())}
                 />
               ) : null}
+              {sync.failed > 0 ? (
+                <Button
+                  label={t('me.reviewFailed')}
+                  variant="secondary"
+                  size="compact"
+                  onPress={() => router.push('/settings/sync')}
+                  testID="open-failed-sync"
+                />
+              ) : null}
             </View>
             <Button
               label={t('me.signOut')}
@@ -209,14 +219,11 @@ export function MeScreen() {
       </Section>
 
       <Section title={t('me.planning')}>
-        <View style={styles.kv}>
-          <Text variant="body">{t('me.dayStarts')}</Text>
-          <Text variant="title3">{formatClock(prefs.dayStart, i18n.language)}</Text>
-        </View>
-        <View style={styles.kv}>
-          <Text variant="body">{t('me.dayEnds')}</Text>
-          <Text variant="title3">{formatClock(prefs.dayEnd, i18n.language)}</Text>
-        </View>
+        <PlanningSection />
+      </Section>
+
+      <Section title={t('reminders.title')}>
+        <RemindersSection />
       </Section>
 
       <Section title={t('me.about')}>
