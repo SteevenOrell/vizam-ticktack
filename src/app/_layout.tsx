@@ -21,6 +21,7 @@ import { migrate } from '../data/db/migrate';
 import { devWebFlag, maybeSeedDemo } from '../data/devSeed';
 import { SessionProvider, useDataContext } from '../features/session/SessionProvider';
 import { AppSplash } from '../features/splash/AppSplash';
+import '../services/background/defineTasks';
 import { getFirebase } from '../services/firebase';
 import { useGoalMaintenance } from '../services/notifications/useGoalMaintenance';
 import i18n, { initI18n, resolveLanguage } from '../i18n';

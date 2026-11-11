@@ -55,6 +55,9 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     'expo-secure-store',
     // Local goal reminders only (no remote push, so no APNs entitlement). See src/services/notifications.
     ['expo-notifications', { color: '#FF7A24', enableRemoteNotifications: false }],
+    // Periodic upkeep while the app is closed: tops up the reminder window, then syncs.
+    // See src/services/background/maintenanceTask.ts.
+    'expo-background-task',
   ],
   experiments: {
     typedRoutes: true,

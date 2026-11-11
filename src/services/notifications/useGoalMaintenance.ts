@@ -9,6 +9,7 @@ import { AppState } from 'react-native';
 import { subscribeDataChanges } from '../../data/changes';
 import type { DataContext } from '../../data/store';
 import { usePreferences } from '../../state/preferences';
+import { registerMaintenanceTask, rememberOwner, setMaintenanceContext } from '../background/maintenanceTask';
 import { listenForReminderTaps, remindersSupported } from './expoNotifications';
 import { maintainGoals } from './maintenance';
 
@@ -27,9 +28,15 @@ export function useGoalMaintenance(ctx: DataContext | null): void {
       timer = setTimeout(run, 1500);
     };
     run();
+    // Background task: hand it the live context and the owner for cold runs, then register it (no-op in Expo Go).
+    setMaintenanceContext(ctx);
+    void rememberOwner(ctx.db, ctx.ownerId)
+      .then(() => registerMaintenanceTask())
+      .catch(() => undefined);
     const unsubData = subscribeDataChanges(later);
     const app = AppState.addEventListener('change', (state) => state === 'active' && run());
     return () => {
+      setMaintenanceContext(null);
       if (timer) clearTimeout(timer);
       unsubData();
       app.remove();

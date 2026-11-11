@@ -9,6 +9,19 @@ jest.mock('expo-crypto', () => ({
   randomUUID: () => require('crypto').randomUUID(),
 }));
 
+// Background tasks: no native module under Jest; report "restricted" so screens never register anything.
+jest.mock('expo-task-manager', () => ({
+  defineTask: jest.fn(),
+  isTaskDefined: jest.fn(() => false),
+  isTaskRegisteredAsync: jest.fn(async () => false),
+}));
+jest.mock('expo-background-task', () => ({
+  BackgroundTaskResult: { Success: 1, Failed: 2 },
+  BackgroundTaskStatus: { Restricted: 1, Available: 2 },
+  getStatusAsync: jest.fn(async () => 1),
+  registerTaskAsync: jest.fn(async () => undefined),
+}));
+
 // Local notifications: a small stand-in for expo-notifications (tests drive permissions per case).
 jest.mock('expo-notifications', () => ({
   getAllScheduledNotificationsAsync: jest.fn(async () => []),
