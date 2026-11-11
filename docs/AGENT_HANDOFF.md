@@ -34,6 +34,29 @@ Worked in worktree `.claude\worktrees\agent-a342ec3a40fcf3473`, branch `worktree
 **Only data, domain and scheduler groundwork is committed. No screen, route, string, rule, config or test was
 added, so nothing of 4b is visible in the app yet and 4b is not ticked in the plan.**
 
+**Update (screens round, Sonnet agent, worktree `agent-a05dd6cfd6764550f`, two commits on top of `d05e379`).**
+Milestones, routines and the reminder field now have screens, EN/FR strings and tests; 4b is still not ticked.
+- Milestones: `features/goals/MilestonesEditor.tsx` (add, rename, optional date, up / down, remove) in
+  `GoalEditorScreen`; checklist plus "n of m" on `GoalDetailScreen` (percentage stays task-based).
+- Routines: routes `src/app/routine/new.tsx`, `[id].tsx`, `edit/[id].tsx` (registered in `_layout.tsx`);
+  `RoutinesScreen` (list, empty state, New routine), `RoutineScreen` (overview, Start, recent runs),
+  `RoutineRunner` (driven by `domain/routineRun`, ticks 1 s, records through `recordRoutineRun` when finished,
+  retry on a failed save), `RoutineEditorScreen` (steps with minutes, reorder, repeat, reminder, delete with Undo via
+  `pendingDeletes` kind `routine`, `isRoutineHidden`). Routine rows in Today / Calendar now open `/routine/[id]`.
+- Reminder field: `features/goals/ItemReminderField.tsx` (switch, offset pills when the item has a start time,
+  time of day otherwise, permission primer, denied banner) in the task editor and routine editor;
+  `TaskDetail.reminder` (read model) replaces the `detail-reminders` placeholder. `ToggleRow` / `TimeOnlySelect` are
+  now exported from `RemindersEditor.tsx`.
+- Tests: `src/data/__tests__/{milestones,routines}.test.ts`, `src/domain/__tests__/routineRun.test.ts`,
+  `tests/ui/{milestones,routines}.test.tsx` (the demo-task reminder assertion in `phase4a.test.tsx` was updated).
+- Not done or not verified: screenshots (the scripts need a web export plus a browser, not run); tests/rules for
+  `milestones`, `routines`, `reminders` (off limits, Opus); routine runs in History (`getHistory`) unchanged;
+  `TimeSelect` shows "All day" as its empty option, which reads oddly for a routine start time (cosmetic).
+- TODOs left for the Opus agent: exact-alarm permission and `app.config.ts`; background task and the two packages;
+  `useGoalMaintenance.maintainGoals` -> `hasAnyReminder` + `rescheduleReminders`; `listenForReminderTaps` for task and
+  routine links (the routes `/task/details/[id]` and `/routine/[id]` now exist); `notifications.task* / routine*`
+  strings; `firebase/` rules tests.
+
 **Finding: no migration is needed.** Migration 001 already has `milestones`, `routines`, `reminders` tables, the
 entity map, Zod models and Firestore rules (`milestoneOk`, `routineOk`, `reminderOk`) for them. A routine run is
 stored on the day's occurrence (`seriesType = 'routine'`, `status`, `completedAt`, `completedStepIds`).
@@ -80,7 +103,7 @@ stored on the day's occurrence (`seriesType = 'routine'`, `status`, `completedAt
   `BackgroundTaskResult.Success / Failed`), task defined with `TaskManager.defineTask` at module scope in an
   early-loaded file. Not available in Expo Go (it warns): guard with `isRunningInExpoGo()` from `expo`.
 
-**Left of 4b, in the brief's order.**
+**Left of 4b, in the brief's order (items 1, 2 and the screen part of 3 are done, see the Update above).**
 1. Milestones: editor section in `GoalEditorScreen` (add, rename, date, up / down, delete), checklist + "n of m"
    on `GoalDetailScreen`, EN/FR strings, tests (data + UI), tighter `milestoneOk` if wanted plus cross-user denial
    tests for `milestones` in `tests/rules`.
