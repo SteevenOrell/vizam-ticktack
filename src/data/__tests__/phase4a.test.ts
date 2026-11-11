@@ -6,6 +6,7 @@ import type { SqlDriver } from '../db/driver';
 import { GoalRepeatError } from '../goalBase';
 import { createGoal } from '../goals';
 import { getAgenda, getHistory, getOverdue, getTaskDetail, HISTORY_DAYS } from '../queries/agenda';
+import { createRoutine, emptyRoutineDraft, recordRoutineRun } from '../routines';
 import { getEntity, mutate, writeEntity } from '../store';
 import { createTask, emptyDraft, rescheduleTime, setDone, setSubtaskDone, updateTask, type TaskDraft } from '../tasks';
 
@@ -241,6 +242,26 @@ describe('getHistory', () => {
       ['2026-11-06', 'Daily', true],
     ]);
     expect(entries.find((e) => e.item.title === 'Old task')?.item.date).toBe(addDays(TODAY, -7));
+  });
+
+  it('lists completed routine runs, never a not-done routine as missed', async () => {
+    const ctx = context(db, 'local', at(2026, 11, 9, 8));
+    const routine = await createRoutine(ctx, {
+      ...emptyRoutineDraft(1),
+      title: 'Morning',
+      steps: [
+        { title: 'Water', durationMin: 2 },
+        { title: 'Stretch', durationMin: 4 },
+      ],
+    });
+    const stepId = routine.steps[0]?.id ?? '';
+    await recordRoutineRun(ctx, routine.id, TODAY, { completedStepIds: [stepId] });
+    // Yesterday's run was not done: it is not history, and it is not "missed" either.
+    const entries = await getHistory(db, 'local', TODAY);
+    expect(entries.map((e) => [e.day, e.item.kind, e.item.title, e.missed])).toEqual([
+      [TODAY, 'routine', 'Morning', false],
+    ]);
+    expect(await getHistory(db, 'other', TODAY)).toEqual([]);
   });
 
   it('drops what is older than the window and un-completing removes the entry', async () => {

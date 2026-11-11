@@ -360,7 +360,7 @@ export interface HistoryEntry {
 /**
  * History: tasks and occurrences completed in the last `HISTORY_DAYS` days (filed under the local day they were
  * completed) and occurrences of repeating tasks missed in the last `MISSED_DAYS` days. Newest day first; inside a
- * day, in time order. Routines are not included (their history comes with the routine runner).
+ * day, in time order. Completed routine runs are included; a routine run that was not done is never "missed".
  */
 export async function getHistory(db: SqlDriver, ownerId: string, today: LocalDate): Promise<HistoryEntry[]> {
   const from = addDays(today, -HISTORY_DAYS);
@@ -382,9 +382,9 @@ export async function getHistory(db: SqlDriver, ownerId: string, today: LocalDat
   );
   const occurrences = await db.all<OccRow>(
     `${OCC_SELECT}
-     WHERE o.owner_id = ? AND o.deleted = 0 AND o.series_type = 'task' AND t.id IS NOT NULL
+     WHERE o.owner_id = ? AND o.deleted = 0 AND (t.id IS NOT NULL OR r.id IS NOT NULL)
        AND ((o.status = 'done' AND (o.completed_at >= ? OR (o.completed_at IS NULL AND o.date >= ?)))
-         OR (o.status = 'scheduled' AND o.date >= ? AND o.date < ?))
+         OR (o.series_type = 'task' AND o.status = 'scheduled' AND o.date >= ? AND o.date < ?))
      ORDER BY o.date DESC LIMIT 1000`,
     [ownerId, since, from, missedFrom, today],
   );
