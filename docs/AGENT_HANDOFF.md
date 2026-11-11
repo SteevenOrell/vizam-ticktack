@@ -1,6 +1,6 @@
 # Agent handoff — TickTack (VIZAM portfolio concept)
 
-_Last updated: 2026-11-10 (local time) by vizam-fullstack-developer, phase 4a "task views"_
+_Last updated: 2026-11-10 (local time) by vizam-fullstack-developer, phase 4b stopped early (partial)_
 
 ## Objective
 Offline-first mobile planner (Today, calendar, recurring tasks, reminders, routines, goals) built with Expo, SQLite as
@@ -27,6 +27,83 @@ local source of truth and Firebase (Auth + Firestore) for sync. Portfolio concep
   `.claude\worktrees\agent-a0945abd2988561f4`, commits on its branch `worktree-agent-a0945abd2988561f4`
   (`git log --oneline 5f656be..`); the orchestrating session moves them onto `feat/phase-4a-task-views`. Not pushed.
 - `docs/PROJECT_PLAN.md` is the approved remaining plan (step 0 and 4a ticked).
+
+## Phase 4b: PARTIAL, stopped early on the usage cap (2026-11-10)
+Worked in worktree `.claude\worktrees\agent-a342ec3a40fcf3473`, branch `worktree-agent-a342ec3a40fcf3473`, based on
+`1468fa8`; three code commits (`git log --oneline 1468fa8..`), to be moved onto `feat/phase-4b-routines-reminders`.
+**Only data, domain and scheduler groundwork is committed. No screen, route, string, rule, config or test was
+added, so nothing of 4b is visible in the app yet and 4b is not ticked in the plan.**
+
+**Finding: no migration is needed.** Migration 001 already has `milestones`, `routines`, `reminders` tables, the
+entity map, Zod models and Firestore rules (`milestoneOk`, `routineOk`, `reminderOk`) for them. A routine run is
+stored on the day's occurrence (`seriesType = 'routine'`, `status`, `completedAt`, `completedStepIds`).
+
+**Committed (typecheck and the existing 496 tests pass; none of this has its own tests yet).**
+- `src/data/milestones.ts`: drafts, `syncMilestones` (order = `sortOrder`, create / update / tombstone),
+  `setMilestoneDone`, `removeMilestones`, `milestoneProgress`, `moveItem`. `src/data/goals.ts`: `GoalDraft.milestones`
+  (optional, undefined keeps), saved in `createGoal` / `updateGoal`, removed in `deleteGoal`, loaded by
+  `loadGoalForm`, `GoalDetail.milestones` + `milestoneProgress`. Decision: the percentage stays task-based;
+  milestones are a separate "n of m".
+- `src/data/reminders.ts`: one `reminders` row per task or routine (`offsetMin` before the start time, `atTime` on
+  untimed days; `kind` = relative when timed). `src/data/tasks.ts`: `TaskDraft.reminder` (null = none, undefined
+  keeps), written by `insertTask` and every `updateTask` branch except "this occurrence"; a split or
+  stop-repeating copy inherits it; `loadTaskForm` returns it. `deleteTask` already tombstoned reminders.
+- `src/data/routines.ts`: `routineDraftSchema` (a routine always repeats, at least one step), `createRoutine`,
+  `updateRoutine` (regenerates from today, keeps days that hold a run), `deleteRoutine`, `recordRoutineRun` (done
+  when at least one step was done; an unplanned day gets its own occurrence), `getRoutineList`,
+  `getRoutineDetail` (last 7 runs), `loadRoutineForm`.
+- `src/domain/routineRun.ts`: pure run state machine (start, pause, resume, done, skip, back, finish; time derived
+  from event timestamps), `summarizeRun`, `formatTimer`.
+- `src/services/notifications/plan.ts`: `PlannedNotification.goalId` replaced by `targetType` / `targetId` /
+  `occurrenceId`; `planItemNotifications` (ids `tt_<itemKey>_<task|routine>`, so a moved item replaces its
+  notification), `capPlan`. `scheduler.ts`: `loadItemReminderInputs`, `planReminders` (goals + items capped
+  together at 50 in the 7-day window), `rescheduleReminders` (`rescheduleGoalReminders` kept as an alias),
+  `hasAnyReminder`, `exact` recorded in the stored fingerprint so a permission change reschedules.
+  `exactAlarm.ts`: `resolveExactAlarm` (notNeeded / granted / askable / unavailable). `expoNotifications.ts`: only
+  the data payload changed.
+
+**Uncommitted on disk in that worktree.**
+- `package.json`, `package-lock.json`: `npx expo install expo-background-task expo-task-manager` (~58.0.12,
+  ~58.0.13). Not used by any code yet, `expo-doctor` not run. The installer asked for `"expo-background-task"` in
+  the `plugins` of `app.config.ts` (not added). Either finish item 4 below or `git checkout` these two files.
+
+**SDK 58 facts already checked (versioned docs + installed types), so the next agent need not refetch.**
+- Exact alarms: declare `android.permission.SCHEDULE_EXACT_ALARM` with `android.permissions` in the app config;
+  `Notifications.getExactAlarmPermissionsAsync()` (`canAskAgain: false` when the build does not declare it; always
+  granted on iOS) and `requestExactAlarmPermissionsAsync()` (opens the system screen, rejects when not declared; if
+  the user revokes there Android restarts the app and the promise never resolves). Keep `delivery: 'bestEffort'`
+  (default): it is exact once access is granted; `'alarmClock'` shows an alarm icon per pending reminder.
+- Play policy note for delivery: `SCHEDULE_EXACT_ALARM` is user-granted and denied by default on Android 14+, and
+  Play expects the Console declaration to justify it; `USE_EXACT_ALARM` is auto-granted but restricted by Play to
+  alarm-clock, timer and calendar apps, so it was not chosen.
+- Background: `expo-background-task` (`registerTaskAsync(name, { minimumInterval })` in minutes, 15 min minimum,
+  `BackgroundTaskResult.Success / Failed`), task defined with `TaskManager.defineTask` at module scope in an
+  early-loaded file. Not available in Expo Go (it warns): guard with `isRunningInExpoGo()` from `expo`.
+
+**Left of 4b, in the brief's order.**
+1. Milestones: editor section in `GoalEditorScreen` (add, rename, date, up / down, delete), checklist + "n of m"
+   on `GoalDetailScreen`, EN/FR strings, tests (data + UI), tighter `milestoneOk` if wanted plus cross-user denial
+   tests for `milestones` in `tests/rules`.
+2. Routines: routes `routine/new`, `routine/[id]` (overview + runner), `routine/edit/[id]` registered in
+   `src/app/_layout.tsx`; replace the placeholder `RoutinesScreen`; delete with Undo (`pendingDeletes` needs a
+   `routine` kind); routine rows open the routine (`TaskActions.openTask` returns early today); strings; tests for
+   `routines.ts` and `routineRun.ts`; rules tests for `routines`.
+3. Reminders: a shared reminder field (switch, offset or time, permission primer as in `RemindersEditor`) in the
+   task editor and routine editor; replace the `detail-reminders` placeholder in `TaskDetailScreen`; switch
+   `useGoalMaintenance.maintainGoals` to `hasAnyReminder` + `rescheduleReminders` with `exact` and a clock
+   formatter; make `listenForReminderTaps` open task and routine links; `notifications.task* / routine*` strings
+   (`Now`, `At` with `{{time}}`, `Today`); tests for the window, rescheduling and the cap; rules tests for
+   `reminders`.
+4. Background task: custom entry or module-scope `defineTask`, registration, top up the window and run sync, Expo
+   Go guard, plugin in `app.config.ts`.
+5. Exact alarms: the permission in `app.config.ts`, in-app explanation (EN/FR) and request, adapter functions in
+   `expoNotifications.ts` around `resolveExactAlarm`, tests for the fallback.
+6. Routine runs in History (`getHistory` filters `series_type = 'task'` today).
+Then: `eas.json` development profile and the phone checklist, screenshots, all checks, tick 4b in the plan.
+
+**Checks run in this round.** `npx tsc --noEmit`: pass. `npx jest`: pass, 23 suites, 496 tests (unchanged count).
+Not run: `expo lint`, `prettier --check .` (changed files were formatted with `prettier --write`), `test:rules`,
+`expo-doctor`, Android export, `npm audit`, screenshots.
 
 ## Phase 4a: task views (2026-11-10) — done
 1. **Task details** (`src/features/tasks/TaskDetailScreen.tsx`, route `src/app/task/details/[id].tsx`, `?occ=` for an
@@ -361,7 +438,8 @@ Phase 4a — `docs/screenshots/phase-4a/` (`node scripts/screenshots-4a.mjs [--o
 3. Phases 5–6.
 
 ## Next step
-1. **Phase 4b** on a new branch stacked on the phase 4a tip: milestones inside goals; routine editing and the
+1. **Resume Phase 4b** from the "Left of 4b" list above (start with item 1, the milestone screens), on the partial
+   4b commits. Original scope for reference: milestones inside goals; routine editing and the
    routine runner; task and routine reminders on the goal-reminder scheduler (`src/services/notifications/`), then
    replace the reminders placeholder on the task details screen (`detail-reminders` in `TaskDetailScreen.tsx`) and
    wire the Today bell; background task; exact-alarm decision and EAS dev build need Steeven first (see Waiting).
