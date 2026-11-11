@@ -34,7 +34,7 @@ pushed, not merged. Documentation only; no code, rules or EAS command touched or
 - **New:** `README.md` (features, stack, architecture, setup with env var names, Expo Go and dev build commands, tests,
   rules deploy, structure, doc links), `docs/SECURITY_SUMMARY.md`, `docs/KNOWN_LIMITATIONS.md`, `docs/RELEASE.md` (EAS
   preview, APK install, merged phone checklist, Play Store steps), `docs/PORTFOLIO.md` (case study, numbers, screenshots).
-- **Numbers used:** jest 701 tests / 40 suites and rules 71 tests come from the phase 6 brief (not rerun here).
+- **Numbers used:** jest 701 tests / 40 suites and rules 71 tests : jest from the full run on `a0c4d6b` (2026-11-11); rules from the phase 5a run (`npm run test:rules`).
 - **Left for Steeven:** (1) phone checks in the dev build (`docs/RELEASE.md` section 2); (2) console hardening: deploy
   the Firestore rules, App Check, API key restriction, budget alert, email enumeration protection
   (`docs/SECURITY_SUMMARY.md`); (3) review and merge the branches into main.

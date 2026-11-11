@@ -45,8 +45,8 @@ Jest, Firebase Emulator Suite, EAS Build.
 
 | Measure | Value | Source |
 |---|---|---|
-| Jest tests | 701 tests in 40 suites | latest full run on the merged phase 4c / 5a / 5b tip (not rerun here) |
-| Firestore rules tests | 71 | `npm run test:rules` (not rerun here) |
+| Jest tests | 701 tests in 40 suites | latest full run on the merged phase 4c / 5a / 5b tip (`a0c4d6b`, 2026-11-11) |
+| Firestore rules tests | 71 | `npm run test:rules` (phase 5a run, 2026-11-11) |
 | Client limit tests | 38 cases (each limit at and past its value) | SECURITY_REVIEW |
 | Screens shot for UI QA | 20 screens x 390 / 1440 px x light / dark x EN / FR = 160 shots | QA_REPORT |
 | Layout sweep | 150 page loads (15 routes x 5 widths x 2 languages), 0 px horizontal overflow at 300 / 390 / 768 / 1440 | QA_REPORT |
