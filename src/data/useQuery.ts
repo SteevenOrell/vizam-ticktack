@@ -11,7 +11,10 @@ type Result<T> = { status: 'success'; data: T } | { status: 'error'; error: unkn
  * Runs a read against the local database and exposes loading / error / success. A database that failed to open
  * surfaces as the error state; `reload` retries the query (and reopens the database if needed).
  */
-export function useQuery<T>(query: (db: SqlDriver) => Promise<T>): AsyncState<T> & { reload: () => void } {
+export function useQuery<T>(
+  query: (db: SqlDriver) => Promise<T>,
+  { keepPrevious = false }: { keepPrevious?: boolean } = {},
+): AsyncState<T> & { reload: () => void; stale: boolean } {
   const database = useDatabase();
   const [attempt, setAttempt] = useState(0);
   const [version, setVersion] = useState(0);
@@ -39,12 +42,18 @@ export function useQuery<T>(query: (db: SqlDriver) => Promise<T>): AsyncState<T>
   }, [database]);
 
   let state: AsyncState<T>;
+  let stale = false;
   if (database.status === 'opening') state = { status: 'loading' };
   else if (database.status === 'error') state = { status: 'error', error: database.error };
   // While a refresh runs after a change, keep showing the previous result instead of flashing the skeleton.
   else if (result?.token === token) state = result.value;
   else if (result && result.token.query === query && result.token.database === database) state = result.value;
-  else state = { status: 'loading' };
+  // A different query (for example the next calendar page) with `keepPrevious`: keep the last result, flagged stale,
+  // so the caller can keep the old page on screen instead of unmounting it for a skeleton.
+  else if (keepPrevious && result && result.token.database === database) {
+    state = result.value;
+    stale = true;
+  } else state = { status: 'loading' };
 
-  return { ...state, reload };
+  return { ...state, reload, stale };
 }

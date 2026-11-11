@@ -243,6 +243,27 @@ describe('Calendar swipe and keyboard math', () => {
     expect(await screen.findByText('December 2026')).toBeTruthy();
   });
 
+  it('arrows and Today slide to the new page without unmounting it for a skeleton', async () => {
+    await renderWithProviders(<CalendarScreen now={NOW} initialView="week" />, { open: seeded });
+    expect(await screen.findByTestId('strip-2026-11-09')).toBeTruthy();
+    const pager = screen.getByTestId('calendar-pager-week');
+    let sawSkeleton = false;
+    const landOn = (testID: string) =>
+      waitFor(() => {
+        if (screen.queryByTestId('state-loading')) sawSkeleton = true;
+        expect(screen.getByTestId(testID)).toBeTruthy();
+      });
+
+    await fireEvent.press(screen.getByLabelText('Next week'));
+    await landOn('strip-2026-11-16');
+    await fireEvent.press(screen.getByText('Today'));
+    await landOn('strip-2026-11-09');
+    expect(sawSkeleton).toBe(false);
+    // The same pager instance stayed mounted through both page changes (the old page is kept while the next loads).
+    expect(screen.getByTestId('calendar-pager-week')).toBe(pager);
+    expect(screen.getByTestId('week-day-2026-11-09')).toBeTruthy();
+  });
+
   it('keyboard overlap and reveal distance', () => {
     // View 0..844, keyboard top at 500 -> pad 344; a resized window (view ends at 500) -> 0.
     expect(keyboardOverlap({ y: 0, height: 844 }, 500)).toBe(344);

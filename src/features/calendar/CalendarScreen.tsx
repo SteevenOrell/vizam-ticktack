@@ -1,20 +1,11 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { StyleSheet, View } from 'react-native';
 import { Calendar } from 'react-native-calendars';
 
 import { getAgenda, loadByDay, type AgendaItem } from '../../data/queries/agenda';
 import { useQuery } from '../../data/useQuery';
-import {
-  addDays,
-  addMonthsClamped,
-  daysInMonth,
-  formatYmd,
-  localDateOf,
-  parseYmd,
-  startOfWeek,
-  type LocalDate,
-} from '../../domain/localDate';
+import { localDateOf, type LocalDate } from '../../domain/localDate';
 import { defaultWeekStartsOn, monthTitle, shortDate } from '../../i18n/dates';
 import { noonOf } from '../../lib/dates';
 import { Card } from '../../ui/Card';
@@ -24,7 +15,7 @@ import { Pill } from '../../ui/Pill';
 import { SegmentedControl } from '../../ui/SegmentedControl';
 import { AsyncContent, EmptyState } from '../../ui/states';
 import { Stepper } from '../../ui/Stepper';
-import { SwipePager } from '../../ui/SwipePager';
+import { SwipePager, type SwipePagerHandle } from '../../ui/SwipePager';
 import { Text } from '../../ui/Text';
 import { contentWidth, radii, space } from '../../ui/theme/layout';
 import { useTheme } from '../../ui/theme/ThemeProvider';
@@ -36,20 +27,9 @@ import { TaskRow } from '../tasks/TaskRow';
 import { applyCalendarLocale } from './calendarLocale';
 import { DateStrip } from './DateStrip';
 import { AllDayStrip, DayTimeline, WeekGrid } from './DayTimeline';
+import { pageDirection, pageKeyOf, rangeFor, samePage, stepDate, type CalendarView, type ShownPage } from './paging';
 
-export type CalendarView = 'day' | 'week' | 'month';
-
-function rangeFor(view: CalendarView, selected: LocalDate, weekStartsOn: number) {
-  if (view === 'day') return { from: selected, to: selected };
-  if (view === 'week') {
-    const from = startOfWeek(selected, weekStartsOn);
-    return { from, to: addDays(from, 6) };
-  }
-  const { y, m } = parseYmd(selected);
-  const first = formatYmd({ y, m, d: 1 });
-  const last = formatYmd({ y, m, d: daysInMonth(y, m) });
-  return { from: startOfWeek(first, weekStartsOn), to: addDays(startOfWeek(last, weekStartsOn), 6) };
-}
+export type { CalendarView } from './paging';
 
 /** Rows in time order; each row's time column shows its start time and duration. */
 function DayList({ items }: { items: AgendaItem[] }) {
@@ -90,7 +70,8 @@ export function CalendarScreen({
     (db: Parameters<typeof getAgenda>[0]) => getAgenda(db, ownerId, range.from, range.to, today),
     [ownerId, range.from, range.to, today],
   );
-  const state = useQuery(query);
+  // Keep the current page on screen while the next one loads (no skeleton between pages).
+  const state = useQuery(query, { keepPrevious: true });
   const pending = usePendingDeletes((s) => s.pending);
   applyCalendarLocale(lang);
 
@@ -104,8 +85,22 @@ export function CalendarScreen({
     [t],
   );
 
-  const step = view === 'day' ? 1 : view === 'week' ? 7 : 0;
-  const move = (dir: -1 | 1) => setSelected((d) => (step ? addDays(d, dir * step) : addMonthsClamped(d, dir)));
+  // The page on screen: the live selection once its data has loaded, the previous one while it loads.
+  const live: ShownPage = { view, selected, from: range.from, to: range.to };
+  const [page, setPage] = useState(live);
+  if (!state.stale && !samePage(page, live)) setPage(live);
+  const shown = state.stale ? page : live;
+
+  const pagerRef = useRef<SwipePagerHandle>(null);
+  const turn = (dir: -1 | 1) => setSelected((d) => stepDate(view, d, dir));
+  // Arrows, Today and taps that leave the page use the same slide as a swipe.
+  const move = (dir: -1 | 1) => (pagerRef.current ? pagerRef.current.go(dir) : turn(dir));
+  const goTo = (date: LocalDate) => {
+    if (date === selected) return;
+    const dir = pageDirection(view, selected, date, weekStartsOn);
+    if (dir === 0 || !pagerRef.current) setSelected(date);
+    else pagerRef.current.go(dir, () => setSelected(date));
+  };
   const label =
     view === 'day'
       ? shortDate(noonOf(selected), lang)
@@ -118,7 +113,7 @@ export function CalendarScreen({
       <HeaderScreen
         testID="screen-calendar"
         title={t('calendar.title')}
-        maxWidth={isWide && view === 'week' ? contentWidth.grid : undefined}
+        maxWidth={isWide && shown.view === 'week' ? contentWidth.grid : undefined}
         header={
           <View style={styles.segments}>
             <SegmentedControl
@@ -142,7 +137,7 @@ export function CalendarScreen({
               onNext={() => move(1)}
             />
           </View>
-          {selected !== today ? <Pill label={t('calendar.today')} onPress={() => setSelected(today)} /> : null}
+          {selected !== today ? <Pill label={t('calendar.today')} onPress={() => goTo(today)} /> : null}
         </View>
         {notice ? (
           <Text
@@ -160,78 +155,94 @@ export function CalendarScreen({
         <AsyncContent state={state} onRetry={state.reload} isEmpty={() => false} empty={null}>
           {(all) => {
             const items = all.filter((i) => !isHidden(i, pending));
-            if (view === 'day') {
+            // Everything below renders the page whose data is loaded (`shown`), never a mix of old and new.
+            const sel = shown.selected;
+            const pageKey = pageKeyOf(shown);
+            if (shown.view === 'day') {
               const allDay = items.filter((i) => !i.startTime);
               return (
-                <SwipePager onPage={move} testID="calendar-pager-day" accessibilityHint={t('calendar.swipeHint_day')}>
+                <SwipePager
+                  ref={pagerRef}
+                  onPage={turn}
+                  pageKey={pageKey}
+                  testID="calendar-pager-day"
+                  accessibilityHint={t('calendar.swipeHint_day')}
+                >
                   <View style={styles.day}>
                     {items.length === 0 ? (
                       <EmptyState icon="calendar" title={t('calendar.emptyTitle')} body={t('calendar.emptyBody')} />
                     ) : null}
                     <AllDayStrip items={allDay} label={t('calendar.allDay')} />
-                    <DayTimeline items={items} isToday={selected === today} now={now} dayKey={selected} />
+                    {/* Scrolls itself: to now on today, otherwise an hour above the first item (8:00 if none). */}
+                    <DayTimeline items={items} isToday={sel === today} now={now} dayKey={sel} />
                   </View>
                 </SwipePager>
               );
             }
 
-            if (view === 'week') {
-              const loads = loadByDay(items, range.from, range.to);
+            if (shown.view === 'week') {
+              const loads = loadByDay(items, shown.from, shown.to);
               const byDay = loads.filter((l) => l.total > 0);
               if (isWide) {
-                // Tablet and desktop: seven day columns on one hour grid.
+                // Tablet and desktop: seven day columns on one hour grid (scrolls itself like the day timeline).
                 return (
                   <SwipePager
-                    onPage={move}
+                    ref={pagerRef}
+                    onPage={turn}
+                    pageKey={pageKey}
                     testID="calendar-pager-week"
                     accessibilityHint={t('calendar.swipeHint_week')}
                   >
                     <WeekGrid
                       days={loads.map((l) => ({ date: l.date, items: items.filter((i) => i.date === l.date) }))}
                       today={today}
-                      selected={selected}
+                      selected={sel}
                       now={now}
-                      onSelect={setSelected}
+                      onSelect={goTo}
                       allDayLabel={t('calendar.allDay')}
                     />
                   </SwipePager>
                 );
               }
+              // The strip and the agenda below it move together, and the screen goes back to the top.
               return (
-                <View style={styles.week}>
-                  <SwipePager
-                    onPage={move}
-                    testID="calendar-pager-week"
-                    accessibilityHint={t('calendar.swipeHint_week')}
-                  >
-                    <DateStrip days={loads} selected={selected} today={today} onSelect={setSelected} />
-                  </SwipePager>
-                  {byDay.length === 0 ? (
-                    <EmptyState
-                      icon="calendar"
-                      title={t('calendar.emptyWeekTitle')}
-                      body={t('calendar.emptyWeekBody')}
-                    />
-                  ) : (
-                    byDay.map((l) => (
-                      <View key={l.date} style={styles.dayBlock} testID={`week-day-${l.date}`}>
-                        <Text
-                          variant="label"
-                          color={l.date === selected ? colors.accentText : colors.textSecondary}
-                          accessibilityRole="header"
-                        >
-                          {shortDate(noonOf(l.date), lang)} · {t('calendar.itemCount', { count: l.total })}
-                        </Text>
-                        <DayList items={items.filter((i) => i.date === l.date)} />
-                      </View>
-                    ))
-                  )}
-                </View>
+                <SwipePager
+                  ref={pagerRef}
+                  onPage={turn}
+                  pageKey={pageKey}
+                  resetScroll
+                  testID="calendar-pager-week"
+                  accessibilityHint={t('calendar.swipeHint_week')}
+                >
+                  <View style={styles.week}>
+                    <DateStrip days={loads} selected={sel} today={today} onSelect={goTo} />
+                    {byDay.length === 0 ? (
+                      <EmptyState
+                        icon="calendar"
+                        title={t('calendar.emptyWeekTitle')}
+                        body={t('calendar.emptyWeekBody')}
+                      />
+                    ) : (
+                      byDay.map((l) => (
+                        <View key={l.date} style={styles.dayBlock} testID={`week-day-${l.date}`}>
+                          <Text
+                            variant="label"
+                            color={l.date === sel ? colors.accentText : colors.textSecondary}
+                            accessibilityRole="header"
+                          >
+                            {shortDate(noonOf(l.date), lang)} · {t('calendar.itemCount', { count: l.total })}
+                          </Text>
+                          <DayList items={items.filter((i) => i.date === l.date)} />
+                        </View>
+                      ))
+                    )}
+                  </View>
+                </SwipePager>
               );
             }
 
             // month
-            const loads = loadByDay(items, range.from, range.to);
+            const loads = loadByDay(items, shown.from, shown.to);
             const marked: Record<
               string,
               {
@@ -243,30 +254,34 @@ export function CalendarScreen({
               }
             > = {};
             for (const l of loads) if (l.total > 0) marked[l.date] = { marked: true, dotColor: colors.accent };
-            marked[selected] = {
-              ...marked[selected],
+            marked[sel] = {
+              ...marked[sel],
               selected: true,
               selectedColor: colors.accent,
               selectedTextColor: colors.onAccent,
             };
-            const dayItems = items.filter((i) => i.date === selected);
+            const dayItems = items.filter((i) => i.date === sel);
+            // The month grid and the day preview move together, and the screen goes back to the top.
             return (
-              <View style={styles.week}>
-                <SwipePager
-                  onPage={move}
-                  testID="calendar-pager-month"
-                  accessibilityHint={t('calendar.swipeHint_month')}
-                >
+              <SwipePager
+                ref={pagerRef}
+                onPage={turn}
+                pageKey={pageKey}
+                resetScroll
+                testID="calendar-pager-month"
+                accessibilityHint={t('calendar.swipeHint_month')}
+              >
+                <View style={styles.week}>
                   <Card style={styles.monthCard}>
                     <Calendar
-                      key={`${lang}-${theme.scheme}-${selected.slice(0, 7)}`}
-                      current={selected}
+                      key={`${lang}-${theme.scheme}-${sel.slice(0, 7)}`}
+                      current={sel}
                       firstDay={weekStartsOn}
                       hideArrows
                       disableMonthChange
                       renderHeader={() => null}
                       markedDates={marked}
-                      onDayPress={(d: { dateString: string }) => setSelected(d.dateString)}
+                      onDayPress={(d: { dateString: string }) => goTo(d.dateString)}
                       theme={{
                         calendarBackground: 'transparent',
                         dayTextColor: colors.text,
@@ -284,20 +299,20 @@ export function CalendarScreen({
                       }}
                     />
                   </Card>
-                </SwipePager>
-                <View style={styles.dayBlock} testID="month-preview">
-                  <Text variant="label" color={colors.textSecondary} accessibilityRole="header">
-                    {shortDate(noonOf(selected), lang)} · {t('calendar.itemCount', { count: dayItems.length })}
-                  </Text>
-                  {dayItems.length ? (
-                    <DayList items={dayItems} />
-                  ) : (
-                    <Text variant="bodySm" color={colors.textSecondary}>
-                      {t('calendar.emptyBody')}
+                  <View style={styles.dayBlock} testID="month-preview">
+                    <Text variant="label" color={colors.textSecondary} accessibilityRole="header">
+                      {shortDate(noonOf(sel), lang)} · {t('calendar.itemCount', { count: dayItems.length })}
                     </Text>
-                  )}
+                    {dayItems.length ? (
+                      <DayList items={dayItems} />
+                    ) : (
+                      <Text variant="bodySm" color={colors.textSecondary}>
+                        {t('calendar.emptyBody')}
+                      </Text>
+                    )}
+                  </View>
                 </View>
-              </View>
+              </SwipePager>
             );
           }}
         </AsyncContent>

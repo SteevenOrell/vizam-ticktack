@@ -38,6 +38,27 @@ tile plus the name. The splash colour tokens `splashInk`/`splashStops` were remo
 `scripts/screenshots-brand.mjs` -> `docs/screenshots/phase-4-feedback/`. Only a phone or dev build can confirm the
 native splash (Expo Go shows its own).
 
+## Calendar swipe fix (Steeven's phone test, 2026-11-11), on top of `86f6514`
+- **Bug:** swiping day / week / month "glitches" and the new page does not come back to the top.
+- **Cause 1 (glitch):** `useQuery` went to `loading` on every new range, so `AsyncContent` swapped the pager for the
+  skeleton mid-slide (pager unmounted, fresh offset 0) and then remounted it. The slide-in also set its offset before
+  React had rendered the new page, so the old page flashed back from the other side.
+- **Fix:** `useQuery(query, { keepPrevious: true })` keeps the last result (flag `stale`); `CalendarScreen` renders the
+  loaded page (`shown`) until the next page's data is in; `SwipePager` slides the old page out, swaps the content off
+  screen and enters only when the parent renders a new `pageKey` (layout effect; 2 s safety timer). Arrows, Today and
+  taps outside the page go through `pagerRef.go()`, so they slide the same way. Paging maths in
+  `src/features/calendar/paging.ts`.
+- **Cause 2 (scroll):** week and month never reset the scroll, and `KeyboardAwareScrollView` re-created its
+  imperative handle every render, so the header's scroll ref was empty in a child's layout effect. Handle now made
+  once (`[]` deps). Week and month pagers pass `resetScroll` (screen to top); day and the tablet week grid keep their
+  own scroll: to now on today, otherwise one hour above the first item (8:00 if none).
+- **Changed behaviour:** the week agenda and the month day preview are now inside the pager (they slide with the
+  strip / grid). A horizontal swipe on a task row still opens the row's Edit / Delete, not the next page.
+- **Check on the phone (Expo Go):** swipe day, week and month both ways several times: no blank flash, no old page
+  coming back; scroll down in week or month, swipe: the screen is at the top; arrows and Today slide the same way;
+  long-press drag a block on the day timeline still moves it; vertical scroll still works when the drag starts
+  sideways a little.
+
 ## Phase 4b: DONE (2026-11-10), except the on-phone check, which needs a dev build
 Three rounds: groundwork (worktree `agent-a342ec3a40fcf3473`), screens (`agent-a05dd6cfd6764550f`, tip `76dff9b` on
 `feat/phase-4b-routines-reminders`), then the native and security round (worktree `agent-afdbc8d116b636c6b`, branch
