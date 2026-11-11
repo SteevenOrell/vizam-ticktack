@@ -362,7 +362,8 @@ export function buildDemoData(options: {
       ...base(ownerId === LOCAL_OWNER ? 'local-profile' : ownerId),
       display_name: S.planner,
       time_zone: 'America/Toronto',
-      week_starts_on: 1,
+      // Same default as a first run: Monday in French, Sunday in English (the week start is a setting now).
+      week_starts_on: options.language === 'fr' ? 1 : 0,
       theme: 'system',
       day_start: '06:00',
       day_end: '19:00',

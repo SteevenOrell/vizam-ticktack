@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { StyleSheet, View } from 'react-native';
 
@@ -29,15 +29,18 @@ export function RemindersSection() {
   const [exact, setExact] = useState<ExactAlarmState>('notNeeded');
   const [explain, setExplain] = useState(false);
 
-  const refresh = useCallback(async () => {
-    if (!remindersSupported) return;
-    const [p, e] = await Promise.all([getReminderPermission(), getExactAlarmState()]);
-    setPermission(p);
-    setExact(e);
-  }, []);
   useEffect(() => {
-    void refresh();
-  }, [refresh]);
+    if (!remindersSupported) return;
+    let cancelled = false;
+    void Promise.all([getReminderPermission(), getExactAlarmState()]).then(([p, e]) => {
+      if (cancelled) return;
+      setPermission(p);
+      setExact(e);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const allowExact = async () => {
     setExplain(false);

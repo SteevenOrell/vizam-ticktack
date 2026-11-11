@@ -108,12 +108,11 @@ const prevMinutes = (v: number | null) => (v === null || v <= 1 ? null : v <= 10
 
 /** Create or edit a routine: name, part of day, start time, ordered steps with durations, repeat and reminder. */
 export function RoutineEditorScreen({ routineId, now = new Date() }: { routineId?: string; now?: Date }) {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const { colors } = useTheme();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const ctx = useDataContext();
-  const lang = i18n.language;
   const today = localDateOf(now);
   const weekStartsOn = useWeekStartsOn();
 

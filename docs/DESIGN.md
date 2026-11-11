@@ -174,7 +174,7 @@ Dynamic Type is honoured: body styles scale up to 2x, `dayFace`/`display` cap at
 ## 6. Components (phase 2 builds these as `src/ui` primitives)
 
 `Text` (style variants above), `Button` (primary orange with charcoal label, secondary chip, ghost, destructive; large
-56 px and compact 40 px), `RoundAction` (56 px circular accent button, e.g. add, bell), `Card`, `DeckPanel` (overlapping
+56 px and compact 44 px (the 44 px touch minimum)), `RoundAction` (56 px circular accent button, e.g. add, bell), `Card`, `DeckPanel` (overlapping
 panel), `Pill`/`Chip` (filter, category, priority, toggle), `DayFace`, `DateStrip` (horizontal week/day selector with
 completion dots), `WorkloadBar`, `ProgressArc`, `ProgressBar`, `TaskRow` (checkbox, title, time, category dot, priority
 flag, swipe actions), `TimelineBlock`, `NowLine`, `Sheet` (bottom sheet for quick add, recurrence, reschedule),
@@ -280,6 +280,13 @@ Every screen has explicit loading (skeleton), empty, error and success states.
 13. **Profile and settings** (Me tab) — account (or guest + "Create account"), theme (System / Dark / Light), week
     start, day start/end and capacity, categories manager, sync status and failed items, data export (later), About (concept
     label, licences), sign out, delete account.
+    **As built (phase 4c):** Me > Planning has week start (Monday / Sunday, saved in the synced profile and used by
+    the calendar, week views, repeat editors and goal periods; the language default applies until the profile is
+    read), daily capacity (stepper, 30 min steps, 0-24 h; the workload bar reads it) and a link to Categories
+    (pushed screen: add, rename, recolour, delete; deleting asks where the items go: another category or none).
+    Me > Reminders shows the notification state and, on Android, the exact-alarm note with a button that explains
+    and opens "Alarms & reminders". Me > Account shows "Review failed changes" when sync has failures: a pushed
+    list with entity, error, Retry and Discard (confirm). Day start / end stay read-only (device preference).
 
 ## 8. Language (English and French)
 

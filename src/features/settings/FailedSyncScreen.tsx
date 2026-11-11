@@ -75,9 +75,6 @@ export function FailedSyncScreen() {
 
   return (
     <StackScreen testID="screen-failed-sync" title={t('failedSync.title')} backLabel={t('details.back')} onBack={back}>
-      <Text variant="bodySm" color={colors.textSecondary} style={styles.intro}>
-        {t('failedSync.intro')}
-      </Text>
       <AsyncContent
         state={state}
         onRetry={state.reload}
@@ -86,6 +83,9 @@ export function FailedSyncScreen() {
       >
         {(items) => (
           <View style={styles.list}>
+            <Text variant="bodySm" color={colors.textSecondary}>
+              {t('failedSync.intro')}
+            </Text>
             {items.length > 1 ? (
               <Button
                 label={t('failedSync.retryAll', { count: items.length })}
@@ -155,7 +155,6 @@ export function FailedSyncScreen() {
 }
 
 const styles = StyleSheet.create({
-  intro: { marginBottom: space.md },
   list: { gap: space.sm },
   card: { gap: space.sm },
   buttons: { flexDirection: 'row', flexWrap: 'wrap', gap: space.xs },
