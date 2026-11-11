@@ -190,7 +190,9 @@ export const KeyboardAwareScrollView = forwardRef<ComponentRef<typeof ScrollView
     const scrollRef = useRef<ComponentRef<typeof ScrollView>>(null);
     const frameRef = useRef<Measurable>(null);
     const offset = useRef(0);
-    useImperativeHandle(forwarded, () => scrollRef.current as ComponentRef<typeof ScrollView>);
+    // Created once: without deps the handle is detached and re-attached on every render, so a child's layout effect
+    // (the calendar pager resetting the scroll on a page change) would find the parent's ref empty.
+    useImperativeHandle(forwarded, () => scrollRef.current as ComponentRef<typeof ScrollView>, []);
 
     const reveal = useCallback(async (node?: Measurable | null) => {
       if (!native || keyboardTop === null) return;
