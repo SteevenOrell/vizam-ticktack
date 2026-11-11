@@ -10,6 +10,8 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
   name: APP_NAME,
   slug: 'ticktack',
+  // EAS builds live under the VIZAM Expo account (Steeven's choice, 2026-11-11).
+  owner: 'vizam',
   scheme: 'ticktack',
   version: '0.1.0',
   orientation: 'portrait',
@@ -63,5 +65,9 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   ],
   experiments: {
     typedRoutes: true,
+  },
+  extra: {
+    ...config.extra,
+    eas: { projectId: '723e9099-62d2-45cf-b893-581e504c9447' },
   },
 });
