@@ -28,6 +28,9 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       monochromeImage: './assets/android-icon-monochrome.png',
     },
     predictiveBackGestureEnabled: false,
+    // Exact reminder times (Steeven's decision, phase 4b): user-granted from the in-app explanation; reminders fall
+    // back to approximate delivery without it. USE_EXACT_ALARM is not used (Play limits it to alarm-clock apps).
+    permissions: ['android.permission.SCHEDULE_EXACT_ALARM'],
   },
   web: {
     favicon: './assets/favicon.png',

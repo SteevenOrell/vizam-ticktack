@@ -244,6 +244,36 @@ describe('Task reminder field', () => {
     expect(await getItemReminder(db, 'local', 'task', task.id)).toMatchObject({ offsetMin: 30 });
   });
 
+  it('Android without exact alarms: explains the access before opening the setting, keeps the reminder', async () => {
+    const adapter = jest.requireActual<typeof import('../../src/services/notifications/expoNotifications')>(
+      '../../src/services/notifications/expoNotifications',
+    );
+    const state = jest.spyOn(adapter, 'getExactAlarmState').mockResolvedValue('askable');
+    const request = jest.spyOn(adapter, 'requestExactAlarm').mockResolvedValue('granted');
+    try {
+      await empty();
+      const task = await createTask(ctx(), { ...emptyDraft(TODAY), title: 'Call Sam', startTime: '09:00' });
+      await renderWithProviders(<TaskEditorScreen taskId={task.id} now={NOW} />, { open: async () => db });
+      await fireEvent(await screen.findByTestId('item-reminder-switch'), 'valueChange', true);
+      await fireEvent.press(await screen.findByTestId('item-reminder-allow'));
+      // The explanation comes first; "Not now" keeps the reminder and leaves a note to come back to it.
+      expect(await screen.findByText('Ring reminders on time?')).toBeTruthy();
+      expect(request).not.toHaveBeenCalled();
+      await fireEvent.press(screen.getByText('Not now'));
+      expect(await screen.findByTestId('item-reminder-inexact')).toBeTruthy();
+      await fireEvent.press(screen.getByTestId('item-reminder-exact'));
+      await fireEvent.press(await screen.findByTestId('item-reminder-exact-allow'));
+      await waitFor(() => expect(request).toHaveBeenCalledTimes(1));
+      await waitFor(() => expect(screen.queryByTestId('item-reminder-inexact')).toBeNull());
+      await fireEvent.press(screen.getByTestId('save-task'));
+      await waitFor(() => expect(mockRouter.back).toHaveBeenCalled());
+      expect(await getItemReminder(db, 'local', 'task', task.id)).toMatchObject({ offsetMin: 10 });
+    } finally {
+      state.mockRestore();
+      request.mockRestore();
+    }
+  });
+
   it('offers a time of day for a task without a start time', async () => {
     await empty();
     const task = await createTask(ctx(), { ...emptyDraft(TODAY), title: 'Water plants' });

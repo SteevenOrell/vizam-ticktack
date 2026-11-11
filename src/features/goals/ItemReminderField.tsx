@@ -3,10 +3,13 @@ import { useTranslation } from 'react-i18next';
 import { StyleSheet, View } from 'react-native';
 
 import { DEFAULT_ITEM_REMINDER, REMINDER_OFFSETS, type ItemReminder } from '../../data/reminders';
+import type { ExactAlarmState } from '../../services/notifications/exactAlarm';
 import {
+  getExactAlarmState,
   getReminderPermission,
   openNotificationSettings,
   remindersSupported,
+  requestExactAlarm,
   requestReminderPermission,
   type ReminderPermission,
 } from '../../services/notifications/expoNotifications';
@@ -25,6 +28,8 @@ import { TimeOnlySelect, ToggleRow } from './RemindersEditor';
  * The reminder of one task or routine: a switch, then either how long before the start time it rings (the item has
  * a start time) or the time of day it rings at (it has none). The first time it is switched on the permission is
  * explained before the system prompt; when denied the reminder stays saved and a banner links to the settings.
+ * On Android, once reminders are allowed but exact alarms are not, a note offers on-time delivery; its dialog explains
+ * the "Alarms & reminders" access before the system screen opens. Without it reminders stay approximate.
  */
 export function ItemReminderField({
   value,
@@ -40,6 +45,8 @@ export function ItemReminderField({
   const { colors } = useTheme();
   const [permission, setPermission] = useState<ReminderPermission>(remindersSupported ? 'undetermined' : 'unavailable');
   const [explain, setExplain] = useState(false);
+  const [exact, setExact] = useState<ExactAlarmState>('notNeeded');
+  const [explainExact, setExplainExact] = useState(false);
   const setRemindersUsed = usePreferences((s) => s.setRemindersUsed);
   const on = value !== null;
 
@@ -47,6 +54,7 @@ export function ItemReminderField({
     if (!remindersSupported || !on) return;
     let cancelled = false;
     void getReminderPermission().then((p) => !cancelled && setPermission(p));
+    void getExactAlarmState().then((e) => !cancelled && setExact(e));
     return () => {
       cancelled = true;
     };
@@ -67,7 +75,16 @@ export function ItemReminderField({
     setExplain(false);
     const p = await requestReminderPermission();
     setPermission(p);
-    if (p === 'granted') setRemindersUsed(true);
+    if (p !== 'granted') return;
+    setRemindersUsed(true);
+    const e = await getExactAlarmState();
+    setExact(e);
+    if (e === 'askable') setExplainExact(true);
+  };
+
+  const allowExact = async () => {
+    setExplainExact(false);
+    setExact(await requestExactAlarm());
   };
 
   return (
@@ -91,6 +108,21 @@ export function ItemReminderField({
               size="compact"
               onPress={openNotificationSettings}
               testID="item-reminder-open-settings"
+            />
+          </View>
+        </Card>
+      ) : null}
+      {on && permission === 'granted' && exact === 'askable' ? (
+        <Card style={styles.note} testID="item-reminder-inexact">
+          <Icon name="bell" size={18} color={colors.textSecondary} />
+          <View style={styles.flex}>
+            <Text variant="bodySm">{t('reminders.exactNote')}</Text>
+            <Button
+              label={t('reminders.exactButton')}
+              variant="ghost"
+              size="compact"
+              onPress={() => setExplainExact(true)}
+              testID="item-reminder-exact"
             />
           </View>
         </Card>
@@ -132,6 +164,16 @@ export function ItemReminderField({
         body={t('reminders.primerBody')}
         actions={[{ label: t('reminders.allow'), onPress: () => void allow(), testID: 'item-reminder-allow' }]}
         onCancel={() => setExplain(false)}
+        cancelLabel={t('reminders.notNow')}
+      />
+      <ConfirmDialog
+        visible={explainExact}
+        title={t('reminders.exactTitle')}
+        body={t('reminders.exactBody')}
+        actions={[
+          { label: t('reminders.exactAllow'), onPress: () => void allowExact(), testID: 'item-reminder-exact-allow' },
+        ]}
+        onCancel={() => setExplainExact(false)}
         cancelLabel={t('reminders.notNow')}
       />
     </View>
