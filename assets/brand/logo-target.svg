@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200" fill="none">
+  <title>TickTack mark: a dart in the bullseye</title>
+  <!-- Target: two rings and a solid centre, centred at (100,100) -->
+  <g stroke="#FF7A24" stroke-width="12">
+    <circle cx="100" cy="100" r="68"/>
+    <circle cx="100" cy="100" r="42"/>
+  </g>
+  <circle cx="100" cy="100" r="15" fill="#FF7A24"/>
+  <!-- Dart: a 3-unit charcoal gap keeps it crisp where it crosses the rings, then the cream shaft and fletching -->
+  <path d="M166 34 L104 96" stroke="#17191B" stroke-width="12" stroke-linecap="round"/>
+  <g stroke="#F4EFE6" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M166 34 L104 96" stroke-width="6"/>
+    <path d="M175 38 L162 38 L162 25" stroke-width="4"/>
+    <path d="M163 50 L150 50 L150 37" stroke-width="4"/>
+  </g>
+</svg>

@@ -41,12 +41,14 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     [
       'expo-splash-screen',
       {
-        // Android 12+ only allows a centred icon on a solid colour, so the native splash is the charcoal wordmark on
-        // the cream centre of the day splash; the full-bleed gradient follows in-app (src/features/splash).
-        backgroundColor: '#FFF1E6',
-        image: './assets/splash-wordmark.png',
+        // Android 12+ only allows a centred icon on a solid colour, so the native splash is the logo alone on charcoal
+        // (the same on iOS and in dark mode); the in-app splash (src/features/splash) takes over at the exact same
+        // position and adds the "TickTack" wordmark. The 200-unit logo box is 62% of the 288 dp image.
+        backgroundColor: '#17191B',
+        image: './assets/splash-icon.png',
         imageWidth: 288,
         resizeMode: 'contain',
+        dark: { backgroundColor: '#17191B', image: './assets/splash-icon.png' },
       },
     ],
     'expo-sqlite',
