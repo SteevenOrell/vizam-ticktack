@@ -15,11 +15,13 @@ import {
   doc,
   getDoc,
   getDocs,
+  query,
   serverTimestamp,
   setDoc,
   setLogLevel,
   Timestamp,
   updateDoc,
+  where,
 } from 'firebase/firestore';
 import { readFileSync } from 'fs';
 import { join } from 'path';
@@ -402,4 +404,84 @@ describe('write validation', () => {
     await assertFails(setDoc(doc(alice(), 'public/p1'), docData('tasks', 'alice', 'p1')));
     await assertFails(setDoc(doc(alice(), 'users/alice/tasks/t1/sub/x'), docData('tasks', 'alice', 'x')));
   });
+});
+
+describe('phase 4b: milestones, routines and reminders', () => {
+  const at = (type: EntityType, id: string) => doc(alice(), `users/alice/${type}/${id}`);
+  const steps = (n: number) =>
+    Array.from({ length: n }, (_, i) => ({ id: `s${i}`, title: `Step ${i}`, durationMin: i % 2 ? null : 5 }));
+
+  it('lets the owner save what the app writes: task, routine and goal reminders, steps, done milestones', async () => {
+    await assertSucceeds(setDoc(at('reminders', 'r-task'), docData('reminders', 'alice', 'r-task')));
+    await assertSucceeds(
+      setDoc(
+        at('reminders', 'r-routine'),
+        docData('reminders', 'alice', 'r-routine', {
+          targetType: 'routine',
+          targetId: 'routines-1',
+          kind: 'absolute',
+          offsetMin: 10,
+          atTime: '09:00',
+        }),
+      ),
+    );
+    // Switching a reminder off keeps the row (enabled: false).
+    await assertSucceeds(updateDoc(at('reminders', 'r-routine'), { enabled: false, updatedAt: serverTimestamp() }));
+    await assertSucceeds(
+      setDoc(
+        at('routines', 'routine-2'),
+        docData('routines', 'alice', 'routine-2', { partOfDay: 'anytime', startTime: null, steps: steps(30) }),
+      ),
+    );
+    await assertSucceeds(
+      setDoc(
+        at('milestones', 'm-2'),
+        docData('milestones', 'alice', 'm-2', { dueDate: '2026-12-01', completedAt: ISO, sortOrder: 3 }),
+      ),
+    );
+    await assertSucceeds(
+      getDocs(query(collection(alice(), 'users/alice/milestones'), where('goalId', '==', 'goal-1'))),
+    );
+    // Deleting a routine tombstones it.
+    await assertSucceeds(
+      setDoc(at('routines', 'routine-2'), docData('routines', 'alice', 'routine-2', { deleted: true })),
+    );
+  });
+
+  it.each([
+    ['reminders', { offsetMin: 10081 }],
+    ['reminders', { offsetMin: -5 }],
+    ['reminders', { kind: 'push' }],
+    ['reminders', { targetType: 'note' }],
+    ['reminders', { targetId: 'a/b' }],
+    ['reminders', { atTime: '25:00' }],
+    ['reminders', { enabled: 'yes' }],
+    ['routines', { steps: steps(31) }],
+    ['routines', { title: 'x'.repeat(81) }],
+    ['routines', { partOfDay: 'night' }],
+    ['routines', { startTime: '7:00' }],
+    ['milestones', { title: '' }],
+    ['milestones', { sortOrder: -1 }],
+    ['milestones', { dueDate: '2026-13-01' }],
+    ['milestones', { goalId: null }],
+  ] as const)('denies a malformed %s document %j', async (type, patch) => {
+    await assertFails(setDoc(at(type, `${type}-bad`), docData(type, 'alice', `${type}-bad`, patch)));
+  });
+
+  it.each(['milestones', 'routines', 'reminders'] as const)(
+    'denies bob reading, querying, creating, editing or deleting alice’s %s',
+    async (type) => {
+      await seed('alice', type);
+      const theirs = doc(bob(), path('alice', type));
+      await assertFails(getDoc(theirs));
+      await assertFails(getDocs(query(collection(bob(), `users/alice/${type}`), where('ownerId', '==', 'alice'))));
+      await assertFails(setDoc(doc(bob(), `users/alice/${type}/bob-new`), docData(type, 'alice', 'bob-new')));
+      await assertFails(setDoc(doc(bob(), `users/alice/${type}/bob-new`), docData(type, 'bob', 'bob-new')));
+      await assertFails(setDoc(theirs, docData(type, 'alice', idFor(type), { deleted: true })));
+      await assertFails(deleteDoc(theirs));
+      // Bob's own documents cannot claim alice as owner either; his own valid ones are fine.
+      await assertFails(setDoc(doc(bob(), `users/bob/${type}/x-1`), docData(type, 'alice', 'x-1')));
+      await assertSucceeds(setDoc(doc(bob(), `users/bob/${type}/x-1`), docData(type, 'bob', 'x-1')));
+    },
+  );
 });
