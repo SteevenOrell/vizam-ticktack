@@ -37,6 +37,8 @@ jest.mock('expo-notifications', () => ({
   SchedulableTriggerInputTypes: { DATE: 'date' },
 }));
 
-// UI flows that save through SQLite can exceed the default 1 s waitFor on a cold, uncached run.
+// UI flows that save through SQLite can exceed the default 1 s waitFor on a cold, uncached run, and a loaded machine
+// (parallel workers, other processes) can push them past 5 s. 15 s only costs time when a test is really failing
+// (phase 5b flaky-test hunt).
 // eslint-disable-next-line @typescript-eslint/no-require-imports
-require('@testing-library/react-native').configure({ asyncUtilTimeout: 5000 });
+require('@testing-library/react-native').configure({ asyncUtilTimeout: 15000 });
