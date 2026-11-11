@@ -10,8 +10,8 @@ step 0). Usage before step 0: 5-hour 9%, weekly all-models 94%, weekly Fable 2%.
   A repeating task linked to a goal must end by the goal's due date, or by the end of the period for periodic goals.
   Block "Never" for these tasks, count progress only up to that end, fix the demo goal showing "1 of 37".
 - [ ] **Phase 4: features**, 700k-1M tokens, ~40-60%, in three slices:
-  - [ ] 4a: task details screen, drag to reschedule, overdue and history views, week hour grid on tablet and desktop,
-    desktop maximum width.
+  - [x] 4a: task details screen, drag to reschedule, overdue and history views, week hour grid on tablet and desktop,
+    desktop maximum width. Done 2026-11-10.
   - [ ] 4b: milestones in goals, routine editing and the routine runner; task and routine reminders, background task,
     exact-alarm decision, dev build check on the phone. Needs Steeven: exact-alarm choice, EAS dev build approval.
   - [ ] 4c: settings (week start, capacity, categories, failed-sync list); empty, error and loading states;

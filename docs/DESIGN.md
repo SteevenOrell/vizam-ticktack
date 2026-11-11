@@ -158,6 +158,9 @@ Dynamic Type is honoured: body styles scale up to 2x, `dayFace`/`display` cap at
 - Elevation: on dark, depth comes from surface steps and a 24 px overlap, not shadows; light theme uses a soft shadow
   (y 6, blur 20, 8% black) on cards.
 - Touch targets at least 44 x 44 pt. Bottom tab bar 5 items with labels.
+- Wide screens (phase 4a): backgrounds (header gradient, deck panel) stay full width, the content sits in a centred
+  column of at most **720 pt** (`contentWidth.text`); the week hour grid gets **1120 pt** (`contentWidth.grid`). The
+  tablet / desktop layout starts at **768 pt** (`WIDE_BREAKPOINT`). The floating "+" stays with the column.
 - Motion: 200–280 ms ease-out; cards expand from their position; check-off draws the tick and slides the card to the
   "Done" group; the day arc animates. With Reduce Motion on, all of it becomes instant cross-fades.
 - Haptics: light impact on complete, selection tick on date strip.
@@ -195,13 +198,22 @@ Every screen has explicit loading (skeleton), empty, error and success states.
    above the tab bar and the "+" button; series ask This / Following / All first. **Quick edit** is a bottom sheet:
    title, date (No date / Today / Tomorrow + stepper), start time and duration dropdowns, category field, "Save task"
    and "Open full editor". Every screen keeps room under its last row for the "+" button and the undo bar.
+   **Phase 4a:** tapping a row opens the task details (the editor stays in the "⋯" menu and on the details screen).
+   Under the workload line the header has two link chips on the action fill: "Overdue · n" (alert icon) and
+   "History" (check icon); they open the overdue and history screens.
 4. **Calendar** (tab) — `SegmentedControl` Day / Week / Month. *Day (phase 3 feedback):* 24 hour rows of 60 pt that
    grow inside the screen's single scroll (no nested scroller), timed tasks at their start with a height proportional
    to their duration (44 pt minimum), overlapping tasks side by side in equal columns, a category-coloured left bar, an
    orange "now" line with a knob on today and an all-day strip of chips above the grid; the screen scrolls to one hour
-   before now (today) or before the first task. Dragging a block to move it stays phase 4. *Week:* `DateStrip` with big
-   numerals plus the stacked 7-day agenda whose rows show the time column, in time order (no 7-column hour grid at
-   ≥ 768 pt yet). *Month:* grid with load dots per day; tapping a day previews its items in a deck panel
+   before now (today) or before the first task. **Drag to move (phase 4a):** long-press a block (350 ms), then drag
+   it up or down; the block lifts (accent border, chip fill), shows the new time while it moves and snaps to
+   5 minutes; the screen scroll is frozen during the drag and a normal drag over a block still scrolls. A repeating
+   task asks This / Following / All. A long press without a move opens the row menu. Without dragging: the
+   "Move 15 minutes earlier / later" accessibility actions, or Quick edit. *Week:* on phones, `DateStrip` with big
+   numerals plus the stacked 7-day agenda whose rows show the time column, in time order. **From 768 pt (phase
+   4a)** the week is a 7-column hour grid: a header of weekday + date per column (tap selects the day, today in
+   accent text), a row of small chips for untimed items, then the same hour grid and blocks as the day view (title
+   only, start time when the block is tall); blocks drag the same way (time only, not across days). *Month:* grid with load dots per day; tapping a day previews its items in a deck panel
    (upcoming preview).
 5. **Task create / edit** (sheet that expands to full screen) — title field large, date pills, then **start time and
    duration dropdowns** side by side (a field-like button with a chevron that opens a bottom-sheet list on phones and a
@@ -214,6 +226,12 @@ Every screen has explicit loading (skeleton), empty, error and success states.
    subtasks checklist. Save is the large orange button, pinned in a footer (above the keyboard when it is open).
 6. **Task details** — header with big start time numerals and date; status toggle; pills; notes; subtasks; linked goal
    card; reminder list; for series: "This occurrence / Whole series" choice on edit and delete.
+   **As built (phase 4a):** pushed screen with a back chevron and a compact "Edit" button; start time in `display`
+   numerals ("Anytime" when untimed) over the date and duration (danger "Overdue ·" prefix when late); title1
+   (struck through when done); chips for Done, category and priority; large "Mark done" / "Mark not done"; repeat
+   card with a one-line summary ("Every 2 weeks on Mon, Thu · until Sun, Dec 20"); tickable subtasks; notes; goal
+   card that opens the goal; reminders card (placeholder until task reminders exist); "Reschedule" (quick-edit
+   sheet) and destructive "Delete" (series ask This / Following / All; Undo 5 s after the screen closes).
 7. **Recurrence settings** (sheet) — frequency segmented (Daily / Weekly / Monthly), "Every [n]" stepper, weekday pill
    row (weekly), day-of-month picker (monthly), ends (**Never** by default, "Repeats with no end date." / On date /
    After n times), live preview "Next: Tue 10, Thu
@@ -247,6 +265,12 @@ Every screen has explicit loading (skeleton), empty, error and success states.
     offset, exact-alarm explanation (Android), test reminder button.
 12. **Completed / history** — grouped by day, with done, missed (recurring) and cancelled filters, and a per-week
     count numeral; restore (un-complete) action.
+    **As built (phase 4a):** pushed screen "History": a card with the number done this week (`display` numeral),
+    filter pills All / Done / Missed, then day groups ("Today · 2", "Sat, Nov 7 · 3") of task rows filed under the
+    day they were completed; missed occurrences of repeating tasks carry a danger "Missed" label; unticking a row
+    restores it. Covers 60 days (missed: 30). No "cancelled" filter (nothing can be cancelled yet).
+    **Overdue (phase 4a):** pushed screen "Overdue": count line, "Move all to today", then the open one-off tasks
+    from before today, oldest first, each with compact "Move to today" and "Mark done" buttons under the row.
 13. **Profile and settings** (Me tab) — account (or guest + "Create account"), theme (System / Dark / Light), week
     start, day start/end and capacity, categories manager, sync status and failed items, data export (later), About (concept
     label, licences), sign out, delete account.

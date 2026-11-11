@@ -1,6 +1,6 @@
 # Agent handoff — TickTack (VIZAM portfolio concept)
 
-_Last updated: 2026-11-10 (local time) by vizam-fullstack-developer, step 0 "goal repeats must end"_
+_Last updated: 2026-11-10 (local time) by vizam-fullstack-developer, phase 4a "task views"_
 
 ## Objective
 Offline-first mobile planner (Today, calendar, recurring tasks, reminders, routines, goals) built with Expo, SQLite as
@@ -23,7 +23,45 @@ local source of truth and Firebase (Auth + Firestore) for sync. Portfolio concep
   `76dfedd`, checked out in worktree `agent-a976d2411a03e53b9`). To bring it over, in that worktree: delete its
   untracked `docs/PROJECT_PLAN.md` (the committed copy replaces it), then
   `git merge --ff-only worktree-agent-ab6e3c45cb9a9e728`. Not pushed, not merged.
-- `docs/PROJECT_PLAN.md` is the approved remaining plan (step 0 ticked).
+- **Phase 4a, task views:** based on the step 0 tip (`5f656be`). Worked in worktree
+  `.claude\worktrees\agent-a0945abd2988561f4`, commits on its branch `worktree-agent-a0945abd2988561f4`
+  (`git log --oneline 5f656be..`); the orchestrating session moves them onto `feat/phase-4a-task-views`. Not pushed.
+- `docs/PROJECT_PLAN.md` is the approved remaining plan (step 0 and 4a ticked).
+
+## Phase 4a: task views (2026-11-10) — done
+1. **Task details** (`src/features/tasks/TaskDetailScreen.tsx`, route `src/app/task/details/[id].tsx`, `?occ=` for an
+   occurrence; read model `getTaskDetail` in `src/data/queries/agenda.ts`). Tapping a row or a calendar block now
+   opens details (`TaskActionsApi.open`); the editor is `TaskActionsApi.edit` ("Open full editor" in the "⋯" menu,
+   "Edit" on the details screen). Shows time, date, duration, status, category, priority, repeat summary
+   (`repeatSummary.ts`), tickable subtasks, notes, goal card (opens the goal), reminders placeholder. Actions: Edit,
+   Mark done / not done, Reschedule (quick-edit sheet), Delete (scope dialog for series, Undo 5 s). After a delete
+   the screen closes itself; it also closes when an edit moved the occurrence to another series.
+2. **Drag to reschedule** (`src/features/calendar/DayTimeline.tsx`, pure maths in `src/domain/reschedule.ts`, write
+   in `rescheduleTime` in `src/data/tasks.ts`). Long press (350 ms) arms the drag, the block then captures the moves
+   (`PanResponder` capture phase) and `HeaderScreen` freezes its scroll (`useHeaderScroll().setScrollEnabled`);
+   before the long press nothing is claimed, so scrolling over a block still works. Snaps to 5 minutes, stays inside
+   the day. Repeating tasks ask this / following / all (`move-scope-*`). A long press without a move opens the row
+   menu as before. Non-drag ways: accessibility actions "Move 15 minutes earlier / later" and "Quick edit" on every
+   block, the row menu, and Reschedule on the details screen.
+   - `rescheduleTime` goes through `updateTask` (validation, outbox, step 0 rule). It never changes the repeat
+     settings and leaves the goal link as stored, so a goal-linked series that breaks the rule (older data) is
+     refused with `GoalRepeatError` for "following" / "all" and the calendar shows the message; "this occurrence"
+     stays possible. "All" also clears the dragged occurrence's own start time so it follows the series.
+3. **Overdue and history** (`OverdueScreen.tsx`, `HistoryScreen.tsx`, routes `/overdue` and `/history`, read models
+   `getOverdue` and `getHistory`). **Entry points: two link chips in the Today header** ("Overdue · n", "History");
+   DESIGN.md and MILESTONES.md did not name any. Overdue = open one-off tasks before today (same definition as the
+   Today group), oldest first, with "Move to today", "Mark done" and "Move all to today". History = tasks and
+   occurrences completed in the last 60 days, filed under the local day they were completed, plus occurrences of
+   repeating tasks missed in the last 30 days (label "Missed"); filters All / Done / Missed; "done this week"
+   numeral; unticking restores. Both screens have their own undo bar (`UndoSnackbar` is otherwise in the tab layout).
+4. **Week hour grid** from 768 pt (`WeekGrid` in `DayTimeline.tsx`, `useWide()` in `src/ui/Centered.tsx`;
+   `CalendarScreen` takes a `wide` prop for tests): seven lanes on the shared hour grid, header of weekday + date
+   per column, untimed chips row, same blocks and drag. Phones keep the stacked week.
+5. **Desktop maximum width** (`src/ui/Centered.tsx`, tokens `contentWidth` and `WIDE_BREAKPOINT` in
+   `src/ui/theme/layout.ts`): 720 pt column, 1120 for the week grid; applied in `HeaderScreen` (all tab and auth
+   screens), `StackScreen` (new pushed screens), task editor, goal editor, goal detail, onboarding. DESIGN.md had no
+   number; the values are recorded there now (section 5).
+No migration, no Firestore rules change, no sync change, no new dependency.
 
 ## Step 0: repeating tasks in a goal must end (2026-11-10) — done
 **Rule.** A repeating task linked to a goal may not repeat forever and may not run past the goal's _limit_: the due
@@ -156,7 +194,18 @@ Demo data gained notes, a third subtask, a goal link and an overlapping "Team ch
 - Web: 250 px lock (`src/ui/webLayout.ts`, pans at 500 px), focus ring only for keyboard focus on web (fixes the
   phase 2 known issue).
 
-## Last verified checks (2026-11-10, step 0, branch worktree-agent-ab6e3c45cb9a9e728)
+## Last verified checks (2026-11-10, phase 4a, branch worktree-agent-a0945abd2988561f4)
+| Check | Command | Result |
+|---|---|---|
+| Typecheck | `npx tsc --noEmit` | pass |
+| Lint | `npx expo lint` | pass (0 problems) |
+| Format | `npx prettier --check .` | pass (after `npx prettier --write .` for the CRLF checkout, see Known issues) |
+| Unit/data/sync/UI tests | `npx jest` | pass — 23 suites, 496 tests (460 before; +6 domain, +12 data, +18 UI) |
+| Rules + sync on emulators | `npm run test:rules` | not run (rules and sync untouched) |
+| Browser probe, screenshots, sweep | `node scripts/screenshots-4a.mjs` (web :8096, emulator flag, Chromium) | pass — mouse drag +47 px moves 8:00 PM → 8:45 PM with the live label; long press without a move opens the menu; a repeating task asks this / following / all; week grid drag works; emulated touch: a quick drag over a block scrolls the screen (1073 → 962), long press + 60 px moves the block one hour and the screen does not scroll; delete from details returns to Today with the undo bar; 0 px overflow at 300 / 390 / 768 / 1440 on Today, Overdue, History, Calendar week, New task; 240 px locked at 500; content column 720 (week grid 1120 at 1440); no console errors or warnings |
+| Expo doctor, Android bundle, npm audit | | not run (no dependency or config change) |
+
+### Previous round (step 0, branch worktree-agent-ab6e3c45cb9a9e728)
 | Check | Command | Result |
 |---|---|---|
 | Typecheck | `npx tsc --noEmit` | pass |
@@ -208,7 +257,17 @@ Demo data gained notes, a third subtask, a goal link and an overlapping "Team ch
 - Rules/emulator tests: set `JAVA_TOOL_OPTIONS=-Djdk.net.unixdomain.tmpdir=<short dir>` on this sandbox; suites
   run serially (`maxWorkers: 1`) because the rules suite clears the shared emulator.
 - Real Firebase project not touched: no users created, no data written, rules/indexes not deployed (see Waiting).
-- Desktop widths stretch the phone layout full width (usable, no overflow); a max content width is phase 4 polish.
+- Phase 4a, not verified on a device: the drag gesture on iOS and Android (verified in Chromium with mouse and
+  emulated touch only; on native it relies on `scrollEnabled={false}` reaching the scroll view while the finger is
+  down). No haptic tick at drag start yet (DESIGN.md asks for haptics; expo-haptics is installed but unused).
+- Phase 4a limits: a drag changes the time only, not the day (week grid included); the screen does not auto-scroll
+  while dragging, so a move beyond the visible hours needs two drags or Quick edit; no keyboard shortcut to move a
+  block on desktop web (menu / Quick edit / details cover it); history has no "cancelled" filter (nothing can be
+  cancelled) and leaves routines out (4b); missed occurrences only go back 30 days (the local prune limit); the
+  demo seed stamps its completed items with the seeding time, so the demo history files them under today.
+- Git: a fresh worktree checks out CRLF and `prettier --write .` rewrites every file as LF; `git status` then lists
+  ~150 files although `git diff` is empty for them. Stage by path, never `git add -A`.
+- The tab bar and the undo bar are not limited to the content column on wide screens (tab bar full width by choice).
 - Month view shows a dot on every day when a daily routine exists (correct, but less informative).
 - Native runtime still unverified on a device (Timeline, Auth persistence, SQLite); needs a dev build (phase 4).
 - Local SQLite unencrypted; refresh token in AsyncStorage (ARCHITECTURE.md section 9).
@@ -230,7 +289,7 @@ Demo data gained notes, a third subtask, a goal link and an overlapping "Team ch
 ## Deviations from the spec (for review)
 1. Week view = DateStrip (7 columns with load dots) + stacked 7-day agenda instead of a 7-column agenda grid
    (unreadable at 390 px).
-2. No separate read-only task details screen yet: tapping a task opens the editor (phase 4 adds details).
+2. (Resolved in phase 4a) tapping a task opens the read-only details screen; the editor opens from there.
 3. (Replaced in the feedback round) time entry is now a 15-minute dropdown; `parseTimeInput` stays exported but
    unused by the UI.
 6. Feedback round: quick edit / swipe / menu are not offered for routines (routine editing is phase 4); a
@@ -285,19 +344,29 @@ Goals round — `docs/screenshots/phase-3-goals/` (`node scripts/screenshots-goa
 `-goal-delete-confirm`, `-goal-deleted-undo`, `dark-day-en-task-editor-keyboard-space` (short viewport standing in
 for the keyboard), `light-day-en-goal-detail`, `sweep-{240,768,1440}-{goals,calendar-month,goal-detail}`.
 
+Phase 4a — `docs/screenshots/phase-4a/` (`node scripts/screenshots-4a.mjs [--only shots|drag|sweep]`):
+`{dark-day-en,light-day-fr}-{today-links,task-detail,task-detail-end,task-detail-quick-edit,overdue,history}`,
+`dark-day-en-task-detail-repeat`, `-task-detail-delete-scope`, `-task-detail-deleted-undo`, `-overdue-empty`,
+`-history-empty`, `-calendar-day-dragging`, `wide-{768,1440}-calendar-week-grid`,
+`wide-1440-fr-light-calendar-week-grid`, `wide-1024-calendar-day-dragging`, `wide-1024-calendar-day-move-scope`,
+`sweep-{240,768,1440}-{today,overdue,history,calendar-week,task-new}`.
+
 ## Pending (priority order)
 0. Done: goal repeats must end (see "Step 0" above).
-1. Phase 4 per `docs/PROJECT_PLAN.md` (slices 4a, 4b, 4c) and `docs/MILESTONES.md`: task/routine reminders on the
-   existing scheduler, background task, Android
-   exact-alarm decision, task details, drag reschedule, history/overdue views, milestones, routines editing and
-   runner, settings (week start, capacity, categories, failed-sync list), desktop max width.
-2. Phases 5–6.
+1. Done: phase 4a (see "Phase 4a" above).
+2. Phase 4b, then 4c, per `docs/PROJECT_PLAN.md` and `docs/MILESTONES.md`: milestones in goals, routine editing and
+   runner, task and routine reminders on the existing scheduler, background task, Android exact-alarm decision, dev
+   build check; then settings (week start, capacity, categories, failed-sync list), empty / error / loading states,
+   accessibility pass. Still open from MILESTONES phase 4: "Tomorrow / Pick date" swipe actions.
+3. Phases 5–6.
 
 ## Next step
-1. **Phase 4a** (task details screen, drag to reschedule, overdue and history views, week hour grid on tablet and
-   desktop, desktop maximum width) on a new branch stacked on the step 0 tip (fast-forward
-   `feat/phase-3-goal-repeats` first, see Repository).
-2. Steeven tests step 0 on his phone (Expo Go: `npx expo start --tunnel --clear` from that worktree; his Wi-Fi is a Public
+1. **Phase 4b** on a new branch stacked on the phase 4a tip: milestones inside goals; routine editing and the
+   routine runner; task and routine reminders on the goal-reminder scheduler (`src/services/notifications/`), then
+   replace the reminders placeholder on the task details screen (`detail-reminders` in `TaskDetailScreen.tsx`) and
+   wire the Today bell; background task; exact-alarm decision and EAS dev build need Steeven first (see Waiting).
+   Worth adding there: a haptic tick when a drag starts, routines in the history.
+2. Steeven tests step 0 and phase 4a on his phone (details, long-press drag in Calendar day, Overdue, History) (Expo Go: `npx expo start --tunnel --clear` from that worktree; his Wi-Fi is a Public
    network with Node blocked by the firewall, so LAN mode times out; he is logged in with
    `npx expo login --no-browser`): swipe months/weeks/days, keyboard on the forms, create / edit / delete a goal,
    repeating tasks in goals, turn on a reminder and wait for one.
