@@ -12,8 +12,10 @@ step 0). Usage before step 0: 5-hour 9%, weekly all-models 94%, weekly Fable 2%.
 - [ ] **Phase 4: features**, 700k-1M tokens, ~40-60%, in three slices:
   - [x] 4a: task details screen, drag to reschedule, overdue and history views, week hour grid on tablet and desktop,
     desktop maximum width. Done 2026-11-10.
-  - [ ] 4b: milestones in goals, routine editing and the routine runner; task and routine reminders, background task,
-    exact-alarm decision, dev build check on the phone. Needs Steeven: exact-alarm choice, EAS dev build approval.
+  - [x] 4b: milestones in goals, routine editing and the routine runner; task and routine reminders, background task,
+    exact alarms (asked in-app, inexact fallback), `eas.json` dev profile. Done 2026-11-10. Still open: the
+    on-phone check in a dev build (needs Steeven's EAS approval; checklist in AGENT_HANDOFF.md), routine runs in
+    History.
   - [ ] 4c: settings (week start, capacity, categories, failed-sync list); empty, error and loading states;
     accessibility.
 - [ ] **Phase 5: QA and security**, 400-600k tokens, ~25-35%. Full verification, access-control tests, rules, input
