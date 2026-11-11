@@ -31,11 +31,21 @@ import {
   type CategoryColor,
   type Goal,
   type GoalHistoryEntry,
+  type Milestone,
   type RuleCore,
 } from '../domain/models';
 import type { SqlDriver } from './db/driver';
 import { rowToEntity, type SqlRow } from './entities';
 import { goalRepeatLimit, insertGoal, timingOf } from './goalBase';
+import {
+  listMilestones,
+  milestoneDraftOf,
+  milestoneDraftsSchema,
+  milestoneProgress,
+  removeMilestones,
+  syncMilestones,
+  type MilestoneProgress,
+} from './milestones';
 import { defaultWindow, ensureOccurrences } from './occurrences';
 import { getAgenda, getTaskItems, type AgendaItem } from './queries/agenda';
 import { getEntity, listEntities, mutate, nowIso, tombstone, writeEntity, type DataContext } from './store';
@@ -93,6 +103,8 @@ export const goalDraftSchema = z
     reminders: goalRemindersSchema,
     linkTaskIds: z.array(idSchema).max(200),
     newTasks: z.array(newGoalTaskSchema).max(30),
+    /** The goal's milestones in order; undefined leaves the stored ones untouched. */
+    milestones: milestoneDraftsSchema.optional(),
   })
   .superRefine((d, ctx) => {
     if (d.period === 'once' && !d.dueDate) ctx.addIssue({ code: 'custom', path: ['dueDate'], message: 'dueRequired' });
@@ -222,6 +234,7 @@ export async function createGoal(ctx: DataContext, input: GoalDraft): Promise<Go
     const goal = await insertGoal(ctx, goalFields(draft));
     await attachTasks(ctx, goal.id, [...new Set(draft.linkTaskIds)], draft.newTasks);
     if ((await linkedTaskIds(ctx.db, ctx.ownerId, goal.id)).length === 0) throw new GoalNeedsTaskError();
+    if (draft.milestones) await syncMilestones(ctx, goal.id, draft.milestones);
     return { goal, changed: await clampGoalSeries(ctx, goal) };
   });
   await regenerate(ctx, changed);
@@ -249,6 +262,7 @@ export async function updateGoal(ctx: DataContext, goalId: string, input: GoalDr
     const fields = goalFields(draft);
     const reset = fields.period !== goal.period || fields.startDate !== goal.startDate;
     const saved = await writeEntity(ctx, 'goals', { ...goal, ...fields, history: reset ? [] : goal.history });
+    if (draft.milestones) await syncMilestones(ctx, goalId, draft.milestones);
     return { goal: saved, changed: await clampGoalSeries(ctx, saved) };
   });
   await regenerate(ctx, changed);
@@ -310,6 +324,7 @@ export async function deleteGoal(ctx: DataContext, goalId: string): Promise<void
       goalId,
     ]);
     for (const r of reminders) await tombstone(ctx, 'reminders', r.id);
+    await removeMilestones(ctx, goalId);
     await tombstone(ctx, 'goals', goalId);
   });
 }
@@ -463,6 +478,9 @@ export interface GoalDetail {
   items: AgendaItem[];
   linkedIds: string[];
   history: GoalHistoryEntry[];
+  /** Ordered milestones and their own "n of m" count (the percentage in `summary` stays task-based). */
+  milestones: Milestone[];
+  milestoneProgress: MilestoneProgress;
 }
 
 export async function getGoalDetail(
@@ -489,7 +507,10 @@ export async function getGoalDetail(
     }
   }
   items.sort((a, b) => (a.date || '9999').localeCompare(b.date || '9999') || a.title.localeCompare(b.title));
+  const milestones = await listMilestones(db, ownerId, goalId);
   return {
+    milestones,
+    milestoneProgress: milestoneProgress(milestones),
     goal,
     summary: summarize(goal, linked, today),
     // The goal is the screen itself: rows leave its name out to keep room for date and category.
@@ -520,6 +541,7 @@ export async function loadGoalForm(ctx: Pick<DataContext, 'db' | 'ownerId'>, goa
       reminders: goal.reminders,
       linkTaskIds: await linkedTaskIds(ctx.db, ctx.ownerId, goalId),
       newTasks: [],
+      milestones: (await listMilestones(ctx.db, ctx.ownerId, goalId)).map(milestoneDraftOf),
     },
   };
 }
