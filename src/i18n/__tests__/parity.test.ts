@@ -54,6 +54,36 @@ describe('translation files', () => {
     }
   });
 
+  it('has no English left in French (identical values must be on the allow-list)', () => {
+    // Same word in both languages (names, loanwords, numerals, language names). Anything else identical is untranslated.
+    const sameInBoth = new Set([
+      'app.name',
+      'tabs.routines',
+      'today.routines',
+      'routines.title',
+      'routines.count_one',
+      'routines.count_other',
+      'routines.minutes',
+      'routines.pause',
+      'goals.colour_rose',
+      'me.languageEnglish',
+      'me.languageFrench',
+      'me.version',
+      'editor.date',
+      'editor.timePlaceholder',
+      'editor.notes',
+      'onboarding.step2Numeral',
+      'categoriesScreen.ok',
+      'categoriesScreen.colors.ember',
+      'categoriesScreen.colors.rose',
+      'failedSync.types.routines',
+    ]);
+    const untranslated = Object.keys(locales.en).filter((k) => locales.fr[k] === locales.en[k] && !sameInBoth.has(k));
+    expect(untranslated).toEqual([]);
+    // The allow-list must not rot: every entry still exists and is still identical.
+    expect([...sameInBoth].filter((k) => locales.fr[k] !== locales.en[k])).toEqual([]);
+  });
+
   it('every t() key used in the source exists in English', () => {
     const root = join(__dirname, '..', '..', '..');
     const files: string[] = [];
