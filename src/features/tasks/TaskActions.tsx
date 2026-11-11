@@ -20,15 +20,21 @@ import { QuickEditSheet } from './QuickEditSheet';
 const routeParams = (item: AgendaItem) =>
   item.occurrenceId ? { id: item.taskId, occ: item.occurrenceId } : { id: item.taskId };
 
-/** Opens the full editor for a task or one occurrence (`?occ=`). Routines open in phase 4. */
+/** Opens the full editor for a task or one occurrence (`?occ=`); a routine opens its routine screen. */
 export function openItem(router: ReturnType<typeof useRouter>, item: AgendaItem) {
-  if (item.kind === 'routine') return;
+  if (item.kind === 'routine') {
+    router.push({ pathname: '/routine/[id]', params: { id: item.taskId } });
+    return;
+  }
   router.push({ pathname: '/task/[id]', params: routeParams(item) });
 }
 
 /** Opens the read view of a task or one occurrence (tapping a row or a calendar block). */
 export function openDetails(router: ReturnType<typeof useRouter>, item: AgendaItem) {
-  if (item.kind === 'routine') return;
+  if (item.kind === 'routine') {
+    router.push({ pathname: '/routine/[id]', params: { id: item.taskId } });
+    return;
+  }
   router.push({ pathname: '/task/details/[id]', params: routeParams(item) });
 }
 

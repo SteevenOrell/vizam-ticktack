@@ -34,7 +34,9 @@ export function UndoSnackbar({ bottom }: { bottom: number }) {
         <Text variant="bodySm" weight={500} color={fg} style={styles.flex} numberOfLines={2}>
           {latest.kind === 'goal'
             ? t('goals.deleted', { title: latest.label })
-            : t('tasks.deleted', { title: latest.label })}
+            : latest.kind === 'routine'
+              ? t('routines.deleted', { title: latest.label })
+              : t('tasks.deleted', { title: latest.label })}
         </Text>
         <Button
           testID="undo-delete"

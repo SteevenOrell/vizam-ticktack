@@ -31,7 +31,7 @@ export const anyReminderOn = (r: GoalReminders, period: GoalPeriod) =>
   r.monthlyDay !== null ||
   (r.periodic && (period === 'daily' || period === 'weekly'));
 
-function TimeOnlySelect({
+export function TimeOnlySelect({
   value,
   onChange,
   label,
@@ -69,7 +69,7 @@ function TimeOnlySelect({
   );
 }
 
-function ToggleRow({
+export function ToggleRow({
   title,
   hint,
   value,

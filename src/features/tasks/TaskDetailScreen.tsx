@@ -8,7 +8,7 @@ import { getTaskDetail, type TaskDetail } from '../../data/queries/agenda';
 import { useQuery } from '../../data/useQuery';
 import { localDateOf } from '../../domain/localDate';
 import { shortDate } from '../../i18n/dates';
-import { clockParts, formatMinutes, noonOf } from '../../lib/dates';
+import { clockParts, formatClock, formatMinutes, noonOf } from '../../lib/dates';
 import { Button } from '../../ui/Button';
 import { Card } from '../../ui/Card';
 import { CategoryDot, Checkbox } from '../../ui/Checkbox';
@@ -206,9 +206,20 @@ function Body({ detail, today }: { detail: TaskDetail; today: string }) {
 
       <Section title={t('reminders.title')}>
         <Card style={styles.line}>
-          <Icon name="bell" size={20} color={colors.textSecondary} />
-          <Text variant="bodySm" color={colors.textSecondary} style={styles.flex} testID="detail-reminders">
-            {t('details.remindersSoon')}
+          <Icon name="bell" size={20} color={detail.reminder ? colors.accentText : colors.textSecondary} />
+          <Text
+            variant="bodySm"
+            color={detail.reminder ? colors.text : colors.textSecondary}
+            style={styles.flex}
+            testID="detail-reminders"
+          >
+            {detail.reminder
+              ? item.startTime
+                ? t(`reminders.itemOffset_${detail.reminder.offsetMin}` as never, {
+                    defaultValue: t('reminders.itemOffsetOther', { count: detail.reminder.offsetMin }),
+                  })
+                : t('reminders.itemSummaryAt', { time: formatClock(detail.reminder.atTime, lang) })
+              : t('reminders.itemNone')}
           </Text>
         </Card>
       </Section>

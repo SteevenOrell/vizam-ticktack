@@ -17,13 +17,15 @@ export interface HideMatch {
   fromDate?: LocalDate;
   /** A goal (goal deletes). */
   goalId?: string;
+  /** A routine (routine deletes). */
+  routineId?: string;
 }
 
 export interface PendingDelete {
   id: string;
   label: string;
   /** What was deleted (snackbar text). */
-  kind?: 'task' | 'goal';
+  kind?: 'task' | 'goal' | 'routine';
   hide: HideMatch;
   /** The delete has run; the rows stay hidden briefly while screens refresh. */
   committed?: boolean;
@@ -63,7 +65,7 @@ async function commit(id: string, onError?: (e: unknown) => void) {
 
 /** Hides the rows and schedules the delete. A newer delete commits the older ones (one snackbar at a time). */
 export function scheduleDelete(
-  input: { label: string; hide: HideMatch; run: () => Promise<void>; kind?: 'task' | 'goal' },
+  input: { label: string; hide: HideMatch; run: () => Promise<void>; kind?: 'task' | 'goal' | 'routine' },
   onError?: (e: unknown) => void,
 ): string {
   for (const id of [...runners.keys()]) void commit(id, onError);
@@ -93,9 +95,16 @@ export async function flushDeletes() {
 export function isHidden(item: { key: string; taskId: string; date: LocalDate }, pending: readonly PendingDelete[]) {
   return pending.some(({ hide }) => {
     if (hide.key && hide.key === item.key) return true;
+    // A pending routine delete hides its days (routine ids are item.taskId for routine rows).
+    if (hide.routineId && hide.routineId === item.taskId) return true;
     if (hide.taskId && hide.taskId === item.taskId) return !hide.fromDate || item.date >= hide.fromDate;
     return false;
   });
+}
+
+/** True while a routine delete is pending (the routine is hidden from lists until it commits or is undone). */
+export function isRoutineHidden(routineId: string, pending: readonly PendingDelete[]) {
+  return pending.some(({ hide }) => hide.routineId === routineId);
 }
 
 /** True while a goal delete is pending (the goal is hidden from lists until it commits or is undone). */

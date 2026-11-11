@@ -75,7 +75,7 @@ describe('Task details', () => {
     );
   });
 
-  it('shows time, date, notes, subtasks and the reminders placeholder, and opens the editor', async () => {
+  it('shows time, date, notes, subtasks and the reminder, and opens the editor', async () => {
     await seeded();
     const id = await idOf('Draft the project outline');
     await renderWithProviders(<TaskDetailScreen taskId={id} now={NOW} />, { open: async () => db });
@@ -85,7 +85,7 @@ describe('Task details', () => {
     expect(screen.getByTestId('detail-date')).toHaveTextContent('Mon, Nov 9 · 1h 30m');
     expect(screen.getByTestId('detail-notes')).toBeTruthy();
     expect(within(detail).getByText(/Subtasks · 1\/3/)).toBeTruthy();
-    expect(screen.getByTestId('detail-reminders')).toHaveTextContent('Task reminders arrive in a later update.');
+    expect(screen.getByTestId('detail-reminders')).toHaveTextContent('10 minutes before');
     expect(screen.queryByTestId('detail-repeat')).toBeNull();
 
     await fireEvent.press(screen.getByTestId('detail-edit'));

@@ -8,6 +8,7 @@ import type { CategoryColor, RecurrenceRule } from '../../domain/models';
 import { parseOccurrenceId } from '../../domain/recurrence/generator';
 import type { SqlDriver } from '../db/driver';
 import { defaultWindow, ensureOccurrences } from '../occurrences';
+import { getItemReminder, type ItemReminder } from '../reminders';
 import { getEntity } from '../store';
 
 export type AgendaKind = 'task' | 'occurrence' | 'routine';
@@ -423,6 +424,8 @@ export interface TaskDetail {
   goal: { id: string; title: string } | null;
   /** A series opened without one of its occurrences: it can be edited or deleted, not completed. */
   template: boolean;
+  /** The task's reminder, or null when it has none. */
+  reminder: ItemReminder | null;
 }
 
 /**
@@ -467,7 +470,8 @@ export async function getTaskDetail(
     item = { ...taskItem({ ...row, date: row.date ?? rule?.startDate ?? '' }), recurring: !!rule };
   }
   await attachSubtasks(db, ownerId, [item], ticked);
-  return { item, rule, goal, template: !!rule && !occId };
+  const reminder = await getItemReminder(db, ownerId, 'task', task.id);
+  return { item, rule, goal, template: !!rule && !occId, reminder };
 }
 
 export interface DayLoad {

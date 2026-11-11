@@ -104,6 +104,9 @@ function AppShell() {
         <Stack.Screen name="goal/new" options={{ presentation: 'modal' }} />
         <Stack.Screen name="goal/[id]" />
         <Stack.Screen name="goal/edit/[id]" options={{ presentation: 'modal' }} />
+        <Stack.Screen name="routine/new" options={{ presentation: 'modal' }} />
+        <Stack.Screen name="routine/[id]" />
+        <Stack.Screen name="routine/edit/[id]" options={{ presentation: 'modal' }} />
         <Stack.Screen name="account/delete" options={{ presentation: 'modal' }} />
         <Stack.Screen name="+not-found" />
       </Stack>

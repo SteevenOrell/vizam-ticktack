@@ -36,6 +36,7 @@ import { TextField } from '../../ui/TextField';
 import { radii, sizes, space } from '../../ui/theme/layout';
 import { useTheme } from '../../ui/theme/ThemeProvider';
 import { archiveGoal, getGoalOptions, GoalRepeatError } from '../../data/goals';
+import { ItemReminderField } from '../goals/ItemReminderField';
 import { useLastTaskGuard } from '../goals/useLastTaskGuard';
 import { useDataContext } from '../session/SessionProvider';
 import { CategoryField, DurationSelect, GoalField, TimeSelect } from './fields';
@@ -404,6 +405,14 @@ export function TaskEditorScreen({
             weekStartsOn={weekStartsOn}
             error={errors.repeat}
             goal={goalBound}
+          />
+        </Section>
+
+        <Section title={t('reminders.title')}>
+          <ItemReminderField
+            value={draft.reminder ?? null}
+            onChange={(reminder) => update({ reminder })}
+            timed={!!draft.date && !!draft.startTime}
           />
         </Section>
 
