@@ -1,0 +1,1255 @@
+{
+ "shots": 160,
+ "overflows": [],
+ "truncated": [
+  "light-en-today-390: Keep it to two pages and share it with the team on (288/164)",
+  "light-en-today-390: Easy pace, 20 minutes out and back. (185/160)",
+  "light-en-calendar-week-390: Keep it to two pages and share it with the team on (288/164)",
+  "light-en-calendar-week-390: Easy pace, 20 minutes out and back. (185/160)",
+  "light-en-calendar-month-390: Keep it to two pages and share it with the team on (288/164)",
+  "light-en-calendar-month-390: Easy pace, 20 minutes out and back. (185/160)",
+  "dark-en-today-390: Keep it to two pages and share it with the team on (288/164)",
+  "dark-en-today-390: Easy pace, 20 minutes out and back. (185/160)",
+  "dark-en-calendar-week-390: Keep it to two pages and share it with the team on (288/164)",
+  "dark-en-calendar-week-390: Easy pace, 20 minutes out and back. (185/160)",
+  "dark-en-calendar-month-390: Keep it to two pages and share it with the team on (288/164)",
+  "dark-en-calendar-month-390: Easy pace, 20 minutes out and back. (185/160)",
+  "light-fr-today-390: Travail concentré · 1/3 sous-tâches (181/178)",
+  "light-fr-today-390: Deux pages au plus, à partager avec l’équipe vendr (276/164)",
+  "light-fr-today-390: Rythme facile, 20 minutes aller-retour. (195/160)",
+  "light-fr-calendar-week-390: Travail concentré · 1/3 sous-tâches (181/178)",
+  "light-fr-calendar-week-390: Deux pages au plus, à partager avec l’équipe vendr (276/164)",
+  "light-fr-calendar-week-390: Rythme facile, 20 minutes aller-retour. (195/160)",
+  "light-fr-calendar-month-390: Travail concentré · 1/3 sous-tâches (181/178)",
+  "light-fr-calendar-month-390: Deux pages au plus, à partager avec l’équipe vendr (276/164)",
+  "light-fr-calendar-month-390: Rythme facile, 20 minutes aller-retour. (195/160)",
+  "dark-fr-today-390: Travail concentré · 1/3 sous-tâches (181/178)",
+  "dark-fr-today-390: Deux pages au plus, à partager avec l’équipe vendr (276/164)",
+  "dark-fr-today-390: Rythme facile, 20 minutes aller-retour. (195/160)",
+  "dark-fr-calendar-week-390: Travail concentré · 1/3 sous-tâches (181/178)",
+  "dark-fr-calendar-week-390: Deux pages au plus, à partager avec l’équipe vendr (276/164)",
+  "dark-fr-calendar-week-390: Rythme facile, 20 minutes aller-retour. (195/160)",
+  "dark-fr-calendar-month-390: Travail concentré · 1/3 sous-tâches (181/178)",
+  "dark-fr-calendar-month-390: Deux pages au plus, à partager avec l’équipe vendr (276/164)",
+  "dark-fr-calendar-month-390: Rythme facile, 20 minutes aller-retour. (195/160)",
+  "light-en-calendar-week-1440: Morning start (79/55)",
+  "light-en-calendar-week-1440: Easy 3 km run (78/55)",
+  "light-en-calendar-week-1440: Review the weekly plan (134/131)",
+  "light-en-calendar-week-1440: Draft the project outline (139/55)",
+  "light-en-calendar-week-1440: Team check-in (85/55)",
+  "dark-en-calendar-week-1440: Morning start (79/55)",
+  "dark-en-calendar-week-1440: Easy 3 km run (78/55)",
+  "dark-en-calendar-week-1440: Review the weekly plan (134/131)",
+  "dark-en-calendar-week-1440: Draft the project outline (139/55)",
+  "dark-en-calendar-week-1440: Team check-in (85/55)",
+  "light-fr-calendar-week-1440: Revoir le plan de la semaine (158/131)",
+  "light-fr-calendar-week-1440: Ébaucher le plan du projet (150/55)",
+  "light-fr-calendar-week-1440: Point d’équipe (84/55)",
+  "dark-fr-calendar-week-1440: Revoir le plan de la semaine (158/131)",
+  "dark-fr-calendar-week-1440: Ébaucher le plan du projet (150/55)",
+  "dark-fr-calendar-week-1440: Point d’équipe (84/55)"
+ ],
+ "errors": [],
+ "widthRows": [
+  {
+   "width": 240,
+   "language": "en",
+   "file": "today",
+   "overflow": 260,
+   "root": 500,
+   "fixedBad": []
+  },
+  {
+   "width": 240,
+   "language": "en",
+   "file": "calendar-day",
+   "overflow": 260,
+   "root": 500,
+   "fixedBad": []
+  },
+  {
+   "width": 240,
+   "language": "en",
+   "file": "calendar-week",
+   "overflow": 260,
+   "root": 500,
+   "fixedBad": []
+  },
+  {
+   "width": 240,
+   "language": "en",
+   "file": "calendar-month",
+   "overflow": 260,
+   "root": 500,
+   "fixedBad": []
+  },
+  {
+   "width": 240,
+   "language": "en",
+   "file": "goals",
+   "overflow": 260,
+   "root": 500,
+   "fixedBad": []
+  },
+  {
+   "width": 240,
+   "language": "en",
+   "file": "routines",
+   "overflow": 260,
+   "root": 500,
+   "fixedBad": []
+  },
+  {
+   "width": 240,
+   "language": "en",
+   "file": "me",
+   "overflow": 260,
+   "root": 500,
+   "fixedBad": []
+  },
+  {
+   "width": 240,
+   "language": "en",
+   "file": "history",
+   "overflow": 260,
+   "root": 500,
+   "fixedBad": []
+  },
+  {
+   "width": 240,
+   "language": "en",
+   "file": "overdue",
+   "overflow": 260,
+   "root": 500,
+   "fixedBad": []
+  },
+  {
+   "width": 240,
+   "language": "en",
+   "file": "categories",
+   "overflow": 260,
+   "root": 500,
+   "fixedBad": []
+  },
+  {
+   "width": 240,
+   "language": "en",
+   "file": "failed-sync",
+   "overflow": 260,
+   "root": 500,
+   "fixedBad": []
+  },
+  {
+   "width": 240,
+   "language": "en",
+   "file": "task-new",
+   "overflow": 260,
+   "root": 500,
+   "fixedBad": []
+  },
+  {
+   "width": 240,
+   "language": "en",
+   "file": "goal-new",
+   "overflow": 260,
+   "root": 500,
+   "fixedBad": []
+  },
+  {
+   "width": 240,
+   "language": "en",
+   "file": "routine-new",
+   "overflow": 260,
+   "root": 500,
+   "fixedBad": []
+  },
+  {
+   "width": 240,
+   "language": "en",
+   "file": "delete-account",
+   "overflow": 260,
+   "root": 500,
+   "fixedBad": []
+  },
+  {
+   "width": 240,
+   "language": "fr",
+   "file": "today",
+   "overflow": 260,
+   "root": 500,
+   "fixedBad": []
+  },
+  {
+   "width": 240,
+   "language": "fr",
+   "file": "calendar-day",
+   "overflow": 260,
+   "root": 500,
+   "fixedBad": []
+  },
+  {
+   "width": 240,
+   "language": "fr",
+   "file": "calendar-week",
+   "overflow": 260,
+   "root": 500,
+   "fixedBad": []
+  },
+  {
+   "width": 240,
+   "language": "fr",
+   "file": "calendar-month",
+   "overflow": 260,
+   "root": 500,
+   "fixedBad": []
+  },
+  {
+   "width": 240,
+   "language": "fr",
+   "file": "goals",
+   "overflow": 260,
+   "root": 500,
+   "fixedBad": []
+  },
+  {
+   "width": 240,
+   "language": "fr",
+   "file": "routines",
+   "overflow": 260,
+   "root": 500,
+   "fixedBad": []
+  },
+  {
+   "width": 240,
+   "language": "fr",
+   "file": "me",
+   "overflow": 260,
+   "root": 500,
+   "fixedBad": []
+  },
+  {
+   "width": 240,
+   "language": "fr",
+   "file": "history",
+   "overflow": 260,
+   "root": 500,
+   "fixedBad": []
+  },
+  {
+   "width": 240,
+   "language": "fr",
+   "file": "overdue",
+   "overflow": 260,
+   "root": 500,
+   "fixedBad": []
+  },
+  {
+   "width": 240,
+   "language": "fr",
+   "file": "categories",
+   "overflow": 260,
+   "root": 500,
+   "fixedBad": []
+  },
+  {
+   "width": 240,
+   "language": "fr",
+   "file": "failed-sync",
+   "overflow": 260,
+   "root": 500,
+   "fixedBad": []
+  },
+  {
+   "width": 240,
+   "language": "fr",
+   "file": "task-new",
+   "overflow": 260,
+   "root": 500,
+   "fixedBad": []
+  },
+  {
+   "width": 240,
+   "language": "fr",
+   "file": "goal-new",
+   "overflow": 260,
+   "root": 500,
+   "fixedBad": []
+  },
+  {
+   "width": 240,
+   "language": "fr",
+   "file": "routine-new",
+   "overflow": 260,
+   "root": 500,
+   "fixedBad": []
+  },
+  {
+   "width": 240,
+   "language": "fr",
+   "file": "delete-account",
+   "overflow": 260,
+   "root": 500,
+   "fixedBad": []
+  },
+  {
+   "width": 300,
+   "language": "en",
+   "file": "today",
+   "overflow": 0,
+   "root": 300,
+   "fixedBad": []
+  },
+  {
+   "width": 300,
+   "language": "en",
+   "file": "calendar-day",
+   "overflow": 0,
+   "root": 300,
+   "fixedBad": []
+  },
+  {
+   "width": 300,
+   "language": "en",
+   "file": "calendar-week",
+   "overflow": 0,
+   "root": 300,
+   "fixedBad": []
+  },
+  {
+   "width": 300,
+   "language": "en",
+   "file": "calendar-month",
+   "overflow": 0,
+   "root": 300,
+   "fixedBad": []
+  },
+  {
+   "width": 300,
+   "language": "en",
+   "file": "goals",
+   "overflow": 0,
+   "root": 300,
+   "fixedBad": []
+  },
+  {
+   "width": 300,
+   "language": "en",
+   "file": "routines",
+   "overflow": 0,
+   "root": 300,
+   "fixedBad": []
+  },
+  {
+   "width": 300,
+   "language": "en",
+   "file": "me",
+   "overflow": 0,
+   "root": 300,
+   "fixedBad": []
+  },
+  {
+   "width": 300,
+   "language": "en",
+   "file": "history",
+   "overflow": 0,
+   "root": 300,
+   "fixedBad": []
+  },
+  {
+   "width": 300,
+   "language": "en",
+   "file": "overdue",
+   "overflow": 0,
+   "root": 300,
+   "fixedBad": []
+  },
+  {
+   "width": 300,
+   "language": "en",
+   "file": "categories",
+   "overflow": 0,
+   "root": 300,
+   "fixedBad": []
+  },
+  {
+   "width": 300,
+   "language": "en",
+   "file": "failed-sync",
+   "overflow": 0,
+   "root": 300,
+   "fixedBad": []
+  },
+  {
+   "width": 300,
+   "language": "en",
+   "file": "task-new",
+   "overflow": 0,
+   "root": 300,
+   "fixedBad": []
+  },
+  {
+   "width": 300,
+   "language": "en",
+   "file": "goal-new",
+   "overflow": 0,
+   "root": 300,
+   "fixedBad": []
+  },
+  {
+   "width": 300,
+   "language": "en",
+   "file": "routine-new",
+   "overflow": 0,
+   "root": 300,
+   "fixedBad": []
+  },
+  {
+   "width": 300,
+   "language": "en",
+   "file": "delete-account",
+   "overflow": 0,
+   "root": 300,
+   "fixedBad": []
+  },
+  {
+   "width": 300,
+   "language": "fr",
+   "file": "today",
+   "overflow": 0,
+   "root": 300,
+   "fixedBad": []
+  },
+  {
+   "width": 300,
+   "language": "fr",
+   "file": "calendar-day",
+   "overflow": 0,
+   "root": 300,
+   "fixedBad": []
+  },
+  {
+   "width": 300,
+   "language": "fr",
+   "file": "calendar-week",
+   "overflow": 0,
+   "root": 300,
+   "fixedBad": []
+  },
+  {
+   "width": 300,
+   "language": "fr",
+   "file": "calendar-month",
+   "overflow": 0,
+   "root": 300,
+   "fixedBad": []
+  },
+  {
+   "width": 300,
+   "language": "fr",
+   "file": "goals",
+   "overflow": 0,
+   "root": 300,
+   "fixedBad": []
+  },
+  {
+   "width": 300,
+   "language": "fr",
+   "file": "routines",
+   "overflow": 0,
+   "root": 300,
+   "fixedBad": []
+  },
+  {
+   "width": 300,
+   "language": "fr",
+   "file": "me",
+   "overflow": 0,
+   "root": 300,
+   "fixedBad": []
+  },
+  {
+   "width": 300,
+   "language": "fr",
+   "file": "history",
+   "overflow": 0,
+   "root": 300,
+   "fixedBad": []
+  },
+  {
+   "width": 300,
+   "language": "fr",
+   "file": "overdue",
+   "overflow": 0,
+   "root": 300,
+   "fixedBad": []
+  },
+  {
+   "width": 300,
+   "language": "fr",
+   "file": "categories",
+   "overflow": 0,
+   "root": 300,
+   "fixedBad": []
+  },
+  {
+   "width": 300,
+   "language": "fr",
+   "file": "failed-sync",
+   "overflow": 0,
+   "root": 300,
+   "fixedBad": []
+  },
+  {
+   "width": 300,
+   "language": "fr",
+   "file": "task-new",
+   "overflow": 0,
+   "root": 300,
+   "fixedBad": []
+  },
+  {
+   "width": 300,
+   "language": "fr",
+   "file": "goal-new",
+   "overflow": 0,
+   "root": 300,
+   "fixedBad": []
+  },
+  {
+   "width": 300,
+   "language": "fr",
+   "file": "routine-new",
+   "overflow": 0,
+   "root": 300,
+   "fixedBad": []
+  },
+  {
+   "width": 300,
+   "language": "fr",
+   "file": "delete-account",
+   "overflow": 0,
+   "root": 300,
+   "fixedBad": []
+  },
+  {
+   "width": 390,
+   "language": "en",
+   "file": "today",
+   "overflow": 0,
+   "root": 390,
+   "fixedBad": []
+  },
+  {
+   "width": 390,
+   "language": "en",
+   "file": "calendar-day",
+   "overflow": 0,
+   "root": 390,
+   "fixedBad": []
+  },
+  {
+   "width": 390,
+   "language": "en",
+   "file": "calendar-week",
+   "overflow": 0,
+   "root": 390,
+   "fixedBad": []
+  },
+  {
+   "width": 390,
+   "language": "en",
+   "file": "calendar-month",
+   "overflow": 0,
+   "root": 390,
+   "fixedBad": []
+  },
+  {
+   "width": 390,
+   "language": "en",
+   "file": "goals",
+   "overflow": 0,
+   "root": 390,
+   "fixedBad": []
+  },
+  {
+   "width": 390,
+   "language": "en",
+   "file": "routines",
+   "overflow": 0,
+   "root": 390,
+   "fixedBad": []
+  },
+  {
+   "width": 390,
+   "language": "en",
+   "file": "me",
+   "overflow": 0,
+   "root": 390,
+   "fixedBad": []
+  },
+  {
+   "width": 390,
+   "language": "en",
+   "file": "history",
+   "overflow": 0,
+   "root": 390,
+   "fixedBad": []
+  },
+  {
+   "width": 390,
+   "language": "en",
+   "file": "overdue",
+   "overflow": 0,
+   "root": 390,
+   "fixedBad": []
+  },
+  {
+   "width": 390,
+   "language": "en",
+   "file": "categories",
+   "overflow": 0,
+   "root": 390,
+   "fixedBad": []
+  },
+  {
+   "width": 390,
+   "language": "en",
+   "file": "failed-sync",
+   "overflow": 0,
+   "root": 390,
+   "fixedBad": []
+  },
+  {
+   "width": 390,
+   "language": "en",
+   "file": "task-new",
+   "overflow": 0,
+   "root": 390,
+   "fixedBad": []
+  },
+  {
+   "width": 390,
+   "language": "en",
+   "file": "goal-new",
+   "overflow": 0,
+   "root": 390,
+   "fixedBad": []
+  },
+  {
+   "width": 390,
+   "language": "en",
+   "file": "routine-new",
+   "overflow": 0,
+   "root": 390,
+   "fixedBad": []
+  },
+  {
+   "width": 390,
+   "language": "en",
+   "file": "delete-account",
+   "overflow": 0,
+   "root": 390,
+   "fixedBad": []
+  },
+  {
+   "width": 390,
+   "language": "fr",
+   "file": "today",
+   "overflow": 0,
+   "root": 390,
+   "fixedBad": []
+  },
+  {
+   "width": 390,
+   "language": "fr",
+   "file": "calendar-day",
+   "overflow": 0,
+   "root": 390,
+   "fixedBad": []
+  },
+  {
+   "width": 390,
+   "language": "fr",
+   "file": "calendar-week",
+   "overflow": 0,
+   "root": 390,
+   "fixedBad": []
+  },
+  {
+   "width": 390,
+   "language": "fr",
+   "file": "calendar-month",
+   "overflow": 0,
+   "root": 390,
+   "fixedBad": []
+  },
+  {
+   "width": 390,
+   "language": "fr",
+   "file": "goals",
+   "overflow": 0,
+   "root": 390,
+   "fixedBad": []
+  },
+  {
+   "width": 390,
+   "language": "fr",
+   "file": "routines",
+   "overflow": 0,
+   "root": 390,
+   "fixedBad": []
+  },
+  {
+   "width": 390,
+   "language": "fr",
+   "file": "me",
+   "overflow": 0,
+   "root": 390,
+   "fixedBad": []
+  },
+  {
+   "width": 390,
+   "language": "fr",
+   "file": "history",
+   "overflow": 0,
+   "root": 390,
+   "fixedBad": []
+  },
+  {
+   "width": 390,
+   "language": "fr",
+   "file": "overdue",
+   "overflow": 0,
+   "root": 390,
+   "fixedBad": []
+  },
+  {
+   "width": 390,
+   "language": "fr",
+   "file": "categories",
+   "overflow": 0,
+   "root": 390,
+   "fixedBad": []
+  },
+  {
+   "width": 390,
+   "language": "fr",
+   "file": "failed-sync",
+   "overflow": 0,
+   "root": 390,
+   "fixedBad": []
+  },
+  {
+   "width": 390,
+   "language": "fr",
+   "file": "task-new",
+   "overflow": 0,
+   "root": 390,
+   "fixedBad": []
+  },
+  {
+   "width": 390,
+   "language": "fr",
+   "file": "goal-new",
+   "overflow": 0,
+   "root": 390,
+   "fixedBad": []
+  },
+  {
+   "width": 390,
+   "language": "fr",
+   "file": "routine-new",
+   "overflow": 0,
+   "root": 390,
+   "fixedBad": []
+  },
+  {
+   "width": 390,
+   "language": "fr",
+   "file": "delete-account",
+   "overflow": 0,
+   "root": 390,
+   "fixedBad": []
+  },
+  {
+   "width": 768,
+   "language": "en",
+   "file": "today",
+   "overflow": 0,
+   "root": 768,
+   "fixedBad": []
+  },
+  {
+   "width": 768,
+   "language": "en",
+   "file": "calendar-day",
+   "overflow": 0,
+   "root": 768,
+   "fixedBad": []
+  },
+  {
+   "width": 768,
+   "language": "en",
+   "file": "calendar-week",
+   "overflow": 0,
+   "root": 768,
+   "fixedBad": []
+  },
+  {
+   "width": 768,
+   "language": "en",
+   "file": "calendar-month",
+   "overflow": 0,
+   "root": 768,
+   "fixedBad": []
+  },
+  {
+   "width": 768,
+   "language": "en",
+   "file": "goals",
+   "overflow": 0,
+   "root": 768,
+   "fixedBad": []
+  },
+  {
+   "width": 768,
+   "language": "en",
+   "file": "routines",
+   "overflow": 0,
+   "root": 768,
+   "fixedBad": []
+  },
+  {
+   "width": 768,
+   "language": "en",
+   "file": "me",
+   "overflow": 0,
+   "root": 768,
+   "fixedBad": []
+  },
+  {
+   "width": 768,
+   "language": "en",
+   "file": "history",
+   "overflow": 0,
+   "root": 768,
+   "fixedBad": []
+  },
+  {
+   "width": 768,
+   "language": "en",
+   "file": "overdue",
+   "overflow": 0,
+   "root": 768,
+   "fixedBad": []
+  },
+  {
+   "width": 768,
+   "language": "en",
+   "file": "categories",
+   "overflow": 0,
+   "root": 768,
+   "fixedBad": []
+  },
+  {
+   "width": 768,
+   "language": "en",
+   "file": "failed-sync",
+   "overflow": 0,
+   "root": 768,
+   "fixedBad": []
+  },
+  {
+   "width": 768,
+   "language": "en",
+   "file": "task-new",
+   "overflow": 0,
+   "root": 768,
+   "fixedBad": []
+  },
+  {
+   "width": 768,
+   "language": "en",
+   "file": "goal-new",
+   "overflow": 0,
+   "root": 768,
+   "fixedBad": []
+  },
+  {
+   "width": 768,
+   "language": "en",
+   "file": "routine-new",
+   "overflow": 0,
+   "root": 768,
+   "fixedBad": []
+  },
+  {
+   "width": 768,
+   "language": "en",
+   "file": "delete-account",
+   "overflow": 0,
+   "root": 768,
+   "fixedBad": []
+  },
+  {
+   "width": 768,
+   "language": "fr",
+   "file": "today",
+   "overflow": 0,
+   "root": 768,
+   "fixedBad": []
+  },
+  {
+   "width": 768,
+   "language": "fr",
+   "file": "calendar-day",
+   "overflow": 0,
+   "root": 768,
+   "fixedBad": []
+  },
+  {
+   "width": 768,
+   "language": "fr",
+   "file": "calendar-week",
+   "overflow": 0,
+   "root": 768,
+   "fixedBad": []
+  },
+  {
+   "width": 768,
+   "language": "fr",
+   "file": "calendar-month",
+   "overflow": 0,
+   "root": 768,
+   "fixedBad": []
+  },
+  {
+   "width": 768,
+   "language": "fr",
+   "file": "goals",
+   "overflow": 0,
+   "root": 768,
+   "fixedBad": []
+  },
+  {
+   "width": 768,
+   "language": "fr",
+   "file": "routines",
+   "overflow": 0,
+   "root": 768,
+   "fixedBad": []
+  },
+  {
+   "width": 768,
+   "language": "fr",
+   "file": "me",
+   "overflow": 0,
+   "root": 768,
+   "fixedBad": []
+  },
+  {
+   "width": 768,
+   "language": "fr",
+   "file": "history",
+   "overflow": 0,
+   "root": 768,
+   "fixedBad": []
+  },
+  {
+   "width": 768,
+   "language": "fr",
+   "file": "overdue",
+   "overflow": 0,
+   "root": 768,
+   "fixedBad": []
+  },
+  {
+   "width": 768,
+   "language": "fr",
+   "file": "categories",
+   "overflow": 0,
+   "root": 768,
+   "fixedBad": []
+  },
+  {
+   "width": 768,
+   "language": "fr",
+   "file": "failed-sync",
+   "overflow": 0,
+   "root": 768,
+   "fixedBad": []
+  },
+  {
+   "width": 768,
+   "language": "fr",
+   "file": "task-new",
+   "overflow": 0,
+   "root": 768,
+   "fixedBad": []
+  },
+  {
+   "width": 768,
+   "language": "fr",
+   "file": "goal-new",
+   "overflow": 0,
+   "root": 768,
+   "fixedBad": []
+  },
+  {
+   "width": 768,
+   "language": "fr",
+   "file": "routine-new",
+   "overflow": 0,
+   "root": 768,
+   "fixedBad": []
+  },
+  {
+   "width": 768,
+   "language": "fr",
+   "file": "delete-account",
+   "overflow": 0,
+   "root": 768,
+   "fixedBad": []
+  },
+  {
+   "width": 1440,
+   "language": "en",
+   "file": "today",
+   "overflow": 0,
+   "root": 1440,
+   "fixedBad": []
+  },
+  {
+   "width": 1440,
+   "language": "en",
+   "file": "calendar-day",
+   "overflow": 0,
+   "root": 1440,
+   "fixedBad": []
+  },
+  {
+   "width": 1440,
+   "language": "en",
+   "file": "calendar-week",
+   "overflow": 0,
+   "root": 1440,
+   "fixedBad": []
+  },
+  {
+   "width": 1440,
+   "language": "en",
+   "file": "calendar-month",
+   "overflow": 0,
+   "root": 1440,
+   "fixedBad": []
+  },
+  {
+   "width": 1440,
+   "language": "en",
+   "file": "goals",
+   "overflow": 0,
+   "root": 1440,
+   "fixedBad": []
+  },
+  {
+   "width": 1440,
+   "language": "en",
+   "file": "routines",
+   "overflow": 0,
+   "root": 1440,
+   "fixedBad": []
+  },
+  {
+   "width": 1440,
+   "language": "en",
+   "file": "me",
+   "overflow": 0,
+   "root": 1440,
+   "fixedBad": []
+  },
+  {
+   "width": 1440,
+   "language": "en",
+   "file": "history",
+   "overflow": 0,
+   "root": 1440,
+   "fixedBad": []
+  },
+  {
+   "width": 1440,
+   "language": "en",
+   "file": "overdue",
+   "overflow": 0,
+   "root": 1440,
+   "fixedBad": []
+  },
+  {
+   "width": 1440,
+   "language": "en",
+   "file": "categories",
+   "overflow": 0,
+   "root": 1440,
+   "fixedBad": []
+  },
+  {
+   "width": 1440,
+   "language": "en",
+   "file": "failed-sync",
+   "overflow": 0,
+   "root": 1440,
+   "fixedBad": []
+  },
+  {
+   "width": 1440,
+   "language": "en",
+   "file": "task-new",
+   "overflow": 0,
+   "root": 1440,
+   "fixedBad": []
+  },
+  {
+   "width": 1440,
+   "language": "en",
+   "file": "goal-new",
+   "overflow": 0,
+   "root": 1440,
+   "fixedBad": []
+  },
+  {
+   "width": 1440,
+   "language": "en",
+   "file": "routine-new",
+   "overflow": 0,
+   "root": 1440,
+   "fixedBad": []
+  },
+  {
+   "width": 1440,
+   "language": "en",
+   "file": "delete-account",
+   "overflow": 0,
+   "root": 1440,
+   "fixedBad": []
+  },
+  {
+   "width": 1440,
+   "language": "fr",
+   "file": "today",
+   "overflow": 0,
+   "root": 1440,
+   "fixedBad": []
+  },
+  {
+   "width": 1440,
+   "language": "fr",
+   "file": "calendar-day",
+   "overflow": 0,
+   "root": 1440,
+   "fixedBad": []
+  },
+  {
+   "width": 1440,
+   "language": "fr",
+   "file": "calendar-week",
+   "overflow": 0,
+   "root": 1440,
+   "fixedBad": []
+  },
+  {
+   "width": 1440,
+   "language": "fr",
+   "file": "calendar-month",
+   "overflow": 0,
+   "root": 1440,
+   "fixedBad": []
+  },
+  {
+   "width": 1440,
+   "language": "fr",
+   "file": "goals",
+   "overflow": 0,
+   "root": 1440,
+   "fixedBad": []
+  },
+  {
+   "width": 1440,
+   "language": "fr",
+   "file": "routines",
+   "overflow": 0,
+   "root": 1440,
+   "fixedBad": []
+  },
+  {
+   "width": 1440,
+   "language": "fr",
+   "file": "me",
+   "overflow": 0,
+   "root": 1440,
+   "fixedBad": []
+  },
+  {
+   "width": 1440,
+   "language": "fr",
+   "file": "history",
+   "overflow": 0,
+   "root": 1440,
+   "fixedBad": []
+  },
+  {
+   "width": 1440,
+   "language": "fr",
+   "file": "overdue",
+   "overflow": 0,
+   "root": 1440,
+   "fixedBad": []
+  },
+  {
+   "width": 1440,
+   "language": "fr",
+   "file": "categories",
+   "overflow": 0,
+   "root": 1440,
+   "fixedBad": []
+  },
+  {
+   "width": 1440,
+   "language": "fr",
+   "file": "failed-sync",
+   "overflow": 0,
+   "root": 1440,
+   "fixedBad": []
+  },
+  {
+   "width": 1440,
+   "language": "fr",
+   "file": "task-new",
+   "overflow": 0,
+   "root": 1440,
+   "fixedBad": []
+  },
+  {
+   "width": 1440,
+   "language": "fr",
+   "file": "goal-new",
+   "overflow": 0,
+   "root": 1440,
+   "fixedBad": []
+  },
+  {
+   "width": 1440,
+   "language": "fr",
+   "file": "routine-new",
+   "overflow": 0,
+   "root": 1440,
+   "fixedBad": []
+  },
+  {
+   "width": 1440,
+   "language": "fr",
+   "file": "delete-account",
+   "overflow": 0,
+   "root": 1440,
+   "fixedBad": []
+  }
+ ]
+}

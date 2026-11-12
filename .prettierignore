@@ -1,0 +1,10 @@
+node_modules
+dist
+web-build
+coverage
+.expo
+docs
+assets
+package-lock.json
+emulator-data
+src/ui/brand/wordmarkData.ts
